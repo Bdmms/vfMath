@@ -147,16 +147,16 @@ namespace Math
 				_mm_mul_ps(_mm_xyzw_ps(q.z, q.w, -q.w, 0.0f), _mm_permute_ps(q.simd, ZZY))),
 			_mm_xyzw_ps(1.0f, 0.0f, 0.0f, 0.0f) );*/
 
-		matrix.m[0]  = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
-		matrix.m[1]  =        2.0f * (q.x * q.y + q.w * q.z);
-		matrix.m[2]  =        2.0f * (q.x * q.z - q.w * q.y);
+		matrix.m[0] = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
+		matrix.m[1] = 2.0f * (q.x * q.y + q.w * q.z);
+		matrix.m[2] = 2.0f * (q.x * q.z - q.w * q.y);
 
-		matrix.m[4]  =        2.0f * (q.x * q.y - q.w * q.z);
-		matrix.m[5]  = 1.0f - 2.0f * (q.x * q.x + q.z * q.z);
-		matrix.m[6]  =        2.0f * (q.y * q.z + q.w * q.x);
+		matrix.m[4] = 2.0f * (q.x * q.y - q.w * q.z);
+		matrix.m[5] = 1.0f - 2.0f * (q.x * q.x + q.z * q.z);
+		matrix.m[6] = 2.0f * (q.y * q.z + q.w * q.x);
 
-		matrix.m[8]  =        2.0f * (q.x * q.z + q.w * q.y);
-		matrix.m[9]  =        2.0f * (q.y * q.z - q.w * q.x);
+		matrix.m[8] = 2.0f * (q.x * q.z + q.w * q.y);
+		matrix.m[9] = 2.0f * (q.y * q.z - q.w * q.x);
 		matrix.m[10] = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
 	}
 
@@ -389,7 +389,7 @@ namespace Math
 	 * @param to - final vector (normalized)
 	 * @param axis - axis to rotate around (normalized)
 	 * @return rotation matrix
-	 * 
+	 *
 	 * TODO: Check if this functions works in general cases
 	*/
 	template<> [[nodiscard]] static mat4x4 rotationBetween(const vec3f& from, const vec3f& to, const vec3f& axis)
@@ -431,12 +431,21 @@ namespace Math
 		const float left, const float right, const float bottom,
 		const float top, const float zNear, const float zFar)
 	{
+#ifdef CLAMP_PERSPECTIVE_ZERO_ONE
+		mat.m[0] = 2.0f / (right - left);
+		mat.m[5] = 2.0f / (top - bottom);
+		mat.m[10] = 1.0f / (zNear - zFar);
+		mat.m[12] = -(right + left) / (right - left);
+		mat.m[13] = -(top + bottom) / (top - bottom);
+		mat.m[14] = -zNear / (zFar - zNear);
+#else
 		mat.m[0] = 2.0f / (right - left);
 		mat.m[5] = 2.0f / (top - bottom);
 		mat.m[10] = 2.0f / (zNear - zFar);
 		mat.m[12] = -(right + left) / (right - left);
 		mat.m[13] = -(top + bottom) / (top - bottom);
 		mat.m[14] = -(zFar + zNear) / (zFar - zNear);
+#endif
 	}
 
 	/**
@@ -449,6 +458,15 @@ namespace Math
 	*/
 	static void setPerspective(mat4x4& mat, float fovy, float aspect, float zNear, float zFar)
 	{
+#ifdef CLAMP_PERSPECTIVE_ZERO_ONE
+		float tanHalfFovy = tanf(fovy / 2.0f);
+		mat.m[0] = 1.0f / (aspect * tanHalfFovy);
+		mat.m[5] = 1.0f / tanHalfFovy;
+		mat.m[10] = zFar / (zNear - zFar);
+		mat.m[11] = -1.0f;
+		mat.m[14] = -(zFar * zNear) / (zFar - zNear);
+		mat.m[15] = 0.0f;
+#else
 		float tanHalfFovy = tanf(fovy / 2.0f);
 		mat.m[0] = 1.0f / (aspect * tanHalfFovy);
 		mat.m[5] = 1.0f / tanHalfFovy;
@@ -456,6 +474,7 @@ namespace Math
 		mat.m[11] = -1.0f;
 		mat.m[14] = -(2.0f * zFar * zNear) / (zFar - zNear);
 		mat.m[15] = 0.0f;
+#endif
 	}
 
 	/**
