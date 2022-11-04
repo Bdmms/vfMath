@@ -433,7 +433,7 @@ namespace Math
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
 		mat.m[0] = 2.0f / (right - left);
-		mat.m[5] = 2.0f / (top - bottom);
+		mat.m[5] = -2.0f / (top - bottom);
 		mat.m[10] = 1.0f / (zNear - zFar);
 		mat.m[12] = -(right + left) / (right - left);
 		mat.m[13] = -(top + bottom) / (top - bottom);
@@ -461,7 +461,7 @@ namespace Math
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
 		float tanHalfFovy = tanf(fovy / 2.0f);
 		mat.m[0] = 1.0f / (aspect * tanHalfFovy);
-		mat.m[5] = 1.0f / tanHalfFovy;
+		mat.m[5] = -1.0f / tanHalfFovy;
 		mat.m[10] = zFar / (zNear - zFar);
 		mat.m[11] = -1.0f;
 		mat.m[14] = -(zFar * zNear) / (zFar - zNear);
