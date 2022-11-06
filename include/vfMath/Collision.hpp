@@ -136,6 +136,8 @@ struct MeshCollider : public InstantCollider
 
 	constexpr CollisionFace* begin() { return faces; }
 	constexpr CollisionFace* end() { return faces + numFaces; }
+	constexpr const CollisionFace* begin() const { return faces; }
+	constexpr const CollisionFace* end() const { return faces + numFaces; }
 };
 
 /**
