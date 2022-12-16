@@ -36,6 +36,7 @@ union vec4i
 	vec4i& operator/=(const int b) noexcept { simd = _mm_div_epi32(simd, _mm_set1_epi32(b)); return *this; }
 
 	[[nodiscard]] vec4i operator-() { return vec4i{ _mm_mul_epi32(simd, _mm_set1_epi32(-1)) }; }
+	[[nodiscard]] vec4i operator~() { return vec4i{ _mm_xor_epi32(simd, SIMD_4i_BITMASK) }; }
 
 	// Logical Operators
 	vec4i& operator&=(const vec4i& b) noexcept { simd = _mm_and_si128(simd, b.simd); return *this; }

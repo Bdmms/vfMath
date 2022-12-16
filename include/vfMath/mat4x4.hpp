@@ -366,10 +366,33 @@ union mat4x4
 #endif
 }
 
+[[nodiscard]] static mat4x4 operator*(const float a, const mat4x4& b) noexcept
+{
+#if ENABLE_INSTRUCTIONS_AVX512
+	return mat4x4{ _mm512_mul_ps(b.avx512, _mm512_set1_ps(a)) };
+#elif ENABLE_INSTRUCTIONS_AVX2
+	__m256 scale = _mm256_set1_ps(a);
+	return mat4x4{
+		_mm256_mul_ps(b.avx2[0],scale),
+		_mm256_mul_ps(b.avx2[1],scale)
+	};
+#elif ENABLE_INSTRUCTIONS_SSE2
+	__m128 scale = _mm_set1_ps(a);
+	return mat4x4({
+		_mm_mul_ps(b.simd[0],scale),
+		_mm_mul_ps(b.simd[1],scale),
+		_mm_mul_ps(b.simd[2],scale),
+		_mm_mul_ps(b.simd[3],scale),
+		});
+#else
+	// TODO
+#endif
+}
+
 [[nodiscard]] static mat4x4 operator/(const mat4x4& a, const float b) noexcept
 {
 #if ENABLE_INSTRUCTIONS_AVX512
-	return mat4x4{ _mm512_div_ps(avx512, _mm512_set1_ps(b)) };
+	return mat4x4{ _mm512_div_ps(a.avx512, _mm512_set1_ps(b)) };
 #elif ENABLE_INSTRUCTIONS_AVX2
 	__m256 scale = _mm256_set1_ps(b);
 	return mat4x4{
@@ -396,6 +419,15 @@ union mat4x4
 						b.simd, _mm_xyzw_ps(a.m[1], a.m[5], a.m[9], a.m[13]),
 						b.simd, _mm_xyzw_ps(a.m[2], a.m[6], a.m[10], a.m[14]),
 						b.simd, _mm_xyzw_ps(a.m[3], a.m[7], a.m[11], a.m[15])) };
+#else
+	// TODO
+#endif
+}
+
+[[nodiscard]] static vec4f operator*(const vec4f& a, const mat4x4& b) noexcept
+{
+#if ENABLE_INSTRUCTIONS_SSE2
+	return { _mm_dot_ps(a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3])};
 #else
 	// TODO
 #endif
