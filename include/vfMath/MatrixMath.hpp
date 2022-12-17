@@ -507,6 +507,18 @@ namespace Math
 #endif
 	}
 
+	/**
+	 * @brief Normalizes the first 3 columns of the matrix. For affine transformations,
+	 * this operation removes scaling from the transform.
+	 * @param transform - matrix transform
+	 * @return normalized affine transformation
+	*/
+	static mat4x4 normalize(const mat4x4& transform)
+	{
+		vec3f len = Math::parallel::length( transform.x_axis, transform.y_axis, transform.z_axis );
+		return { transform.x_axis / len.x, transform.y_axis / len.y, transform.z_axis / len.z, transform.origin };
+	}
+
 	/*
 	[[nodiscard]] static mat4x4 slerp(const mat4x4& a, const mat4x4& b, const float t)
 	{
