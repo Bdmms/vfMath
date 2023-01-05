@@ -23,6 +23,11 @@ static std::ostream& operator<<(std::ostream& os, const vec2f& vector)
 	return os << std::format("{}, {}", vector.x, vector.y);
 }
 
+static std::ostream& operator<<(std::ostream& os, const euler& euler)
+{
+	return os << std::format("{}, {}, {}", euler.rx, euler.ry, euler.rz);
+}
+
 static std::ostream& operator<<(std::ostream& os, const vec4f& vector)
 {
 	return os << std::format("{}, {}, {}, {}", vector.x, vector.y, vector.z, vector.w);

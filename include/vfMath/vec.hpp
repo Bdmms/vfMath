@@ -36,6 +36,8 @@ constexpr __m128i	SIMD_4i_BITMASK = { BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, 
 // TODO: Compensate for __m128i using bytes!!!
 #endif
 
+#define _mm_xyzw_epi32(x,y,z,w) _mm_set_epi32(w,z,y,x)
+
 #define _mm_xyzw_ps(x,y,z,w) _mm_set_ps(w,z,y,x)
 #define _mm_sum_ps(a,b,c,d) _mm_hadd_ps(_mm_hadd_ps(a,b), _mm_hadd_ps(c,d))
 #define _mm_dot_ps(a,b,c,d,e,f,g,h) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), _mm_mul_ps(g, h))

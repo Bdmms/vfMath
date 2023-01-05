@@ -161,6 +161,7 @@
     <ClInclude Include="include\vfMath\AdvancedMath.hpp" />
     <ClInclude Include="include\vfMath\Collision.hpp" />
     <ClInclude Include="include\vfMath\Curves.hpp" />
+    <ClInclude Include="include\vfMath\Euler.hpp" />
     <ClInclude Include="include\vfMath\EulerMath.hpp" />
     <ClInclude Include="include\vfMath\Geometry.hpp" />
     <ClInclude Include="include\vfMath\mat2x2.hpp" />

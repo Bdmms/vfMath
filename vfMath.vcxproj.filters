@@ -101,5 +101,8 @@
     <ClInclude Include="include\vfMath\Transform.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\vfMath\Euler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

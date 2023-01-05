@@ -4,20 +4,182 @@
 
 #include "Collision.hpp"
 
+// Scalar
+typedef float Mass_t;			// kg
+
+// Linear
 typedef vec4f Point_t;			// x metres
 typedef vec3f Displacement_t;	// x metres
 typedef vec3f Velocity_t;		// x metres / s
 typedef vec3f Acceleration_t;	// x metres / s^2
+typedef vec3f Momentum_t;		// x kg * x metres / s
 typedef vec3f Force_t;			// x kg * units / s^2
 
-//typedef mat4x4 Rotation_t;			// x radians
-//typedef mat4x4 AngularVelocity_t;		// x radians / s
-//typedef mat4x4 AngularAccel_t;		// x radians / s^2
-//typedef mat4x4 Torque_t;				// x kg * radians / s^2
+// Angular
+typedef quat Rotation_t;					// x radians
+typedef AxisAngle AngularVelocity_t;		// x radians / s
+typedef AxisAngle AngularAcceleration_t;	// x radians / s^2
+typedef AxisAngle AngularMomentum_t;		// x kg * radians / s
+typedef AxisAngle Moment_t;					// x kg * radians / s^2
+
+typedef InstantCollider TransformSpace;
 
 constexpr Acceleration_t GRAVITATIONAL_ACCELERATION = { 0.0f, -9.81f, 0.0f };
+constexpr TransformSpace GLOBAL_SPACE = { Math::IDENTITY<mat4x4>, Math::IDENTITY<mat4x4> };
 
-struct RigidBodyConstraints
+namespace Physics
+{
+	static Moment_t getTorque(Displacement_t displacement, Force_t force)
+	{
+		return Math::cross(displacement, force);
+	}
+}
+
+/*struct Joint
+{
+	Point_t point = Math::ZERO<Point_t>;
+	Rotation_t rotation = Math::IDENTITY<Rotation_t>;
+};*/
+
+struct RigidBody
+{
+	// Transform space of RigidBody
+	TransformSpace jointSpace;
+	TransformSpace xformSpace;
+	// Children of RigidBody
+	std::vector<RigidBody> children;
+	// Transform relative to parent
+	mat4x4 rJoint;
+	mat4x4 rOffset;
+
+	// Linear (Relative to joint)
+	//Point_t rPosition;
+	//Velocity_t rVelocity = Math::ZERO<Velocity_t>;
+	Force_t rForce = Math::ZERO<Force_t>;
+
+	// Angular (Relative to joint)
+	Rotation_t rOrientation = Math::IDENTITY<Rotation_t>;
+	AngularVelocity_t rAngularVelocity = Math::IDENTITY<AngularVelocity_t>;
+	Moment_t rMoment = Math::IDENTITY<Moment_t>;
+
+	// Space that members are relative to
+	const TransformSpace& parent;
+
+	// Scalars
+	Mass_t mass = 1.0f;
+
+	RigidBody(const Point_t& joint = Math::ZERO<Point_t>, const Point_t& position = Math::ZERO<Point_t>) 
+		: parent(GLOBAL_SPACE), rJoint(Math::create::translation(joint)), rOffset(Math::create::translation(position))
+	{
+		updateTransforms();
+	}
+
+	RigidBody(const TransformSpace& parent, const Point_t& joint, const Point_t& position) :
+		parent(parent), rJoint(Math::create::translation(joint)), rOffset(Math::create::translation(position))
+	{
+		updateTransforms();
+	}
+
+	RigidBody& emplace_back(const Point_t& joint, const Point_t& position)
+	{
+		return children.emplace_back(xformSpace, joint, position);
+	}
+
+	constexpr size_t size() const
+	{
+		size_t count = 1;
+
+		for (const RigidBody& child : children)
+		{
+			count += child.size();
+		}
+
+		return count;
+	}
+
+	constexpr void copyTo(mat4x4* transforms, size_t& index) const
+	{
+		transforms[index] = jointSpace.transform;
+		++index;
+		transforms[index] = xformSpace.transform;
+		++index;
+
+		for (const RigidBody& child : children)
+		{
+			child.copyTo(transforms, index);
+		}
+	}
+
+	constexpr void copyTo(mat4x4* transforms) const
+	{
+		size_t index = 0;
+		copyTo(transforms, index);
+	}
+
+	void updateTransforms()
+	{
+		jointSpace.transform = parent.transform * rJoint;
+		jointSpace.inverse = jointSpace.transform.inverse();
+		xformSpace.transform = jointSpace.transform * rOffset;
+		xformSpace.inverse = xformSpace.transform.inverse();
+	}
+
+	void updateNetForce(const Acceleration_t& gravity)
+	{
+		float gravityIntensity = Math::length(gravity);
+		vec3f aGravityDirection = gravity / gravityIntensity;
+		vec3f rGravityDirection = Math::normalize(jointSpace.inverse * aGravityDirection);
+
+		// Initialize net force
+		rForce = rGravityDirection * gravityIntensity * mass;
+		rMoment = Physics::getTorque( rOffset.origin, rForce ) - (0.75f * Math::length(rAngularVelocity) * rAngularVelocity);
+
+		// Transform relative to joint
+		//mat4x4 rTransform = Math::IDENTITY<mat4x4>;
+		//Math::setRotation(rTransform, rOrientation);
+		//Math::setTranslation(rTransform, rPosition);
+		
+		for (RigidBody& child : children)
+		{
+			child.updateNetForce(gravity);
+
+			//Point_t rChildJoint = rTransform * child.rJoint;			// Child joint relative to joint
+			//Point_t rChildForce = rTransform * child.rForce;			// Child force at joint relative to joint
+			//Displacement_t rChildDisplacement = child.rJoint. - rJoint;	// Displacement relative to joint
+
+			//rForce += Math::project(rChildForce, rChildDisplacement);
+			//rMoment += Physics::getTorque(rChildDisplacement, rChildForce);
+		}
+	}
+
+	void updateSimulation(const float deltaTime)
+	{
+		rAngularVelocity += rMoment * (deltaTime / mass);
+		rOrientation *= Math::toQuat(rAngularVelocity * deltaTime);
+
+		Math::setRotation(rJoint, rOrientation);
+		updateTransforms();
+
+		for (RigidBody& child : children)
+		{
+			child.updateSimulation(deltaTime);
+		}
+	}
+
+	void update(const Acceleration_t& gravity, const float deltaTime)
+	{
+		updateNetForce(gravity);
+		updateSimulation(deltaTime);
+	}
+
+	// Converts to matrix
+	/*mat4x4 getTransform()
+	{
+		return Math::create::transform(position, orientation, scale);
+	}*/
+};
+
+/*struct RigidBodyConstraints
 {
 	vec4f minPosition = Math::MIN<vec3f>;
 	vec4f maxPosition = Math::MAX<vec3f>;
@@ -100,11 +262,11 @@ struct RigidBodyObject : public CollisionHandler
 
 		isColliding = false;
 	}
-};
+};*/
 
 namespace Physics
 {
-	static void applyRotation(quat& rotation, const vec3f& angularDisplacement)
+	/*static void applyRotation(quat& rotation, const vec3f& angularDisplacement)
 	{
 		const quat& vQuat = reinterpret_cast<const quat&>(angularDisplacement);
 		rotation += 0.5f * rotation * vQuat;
@@ -142,7 +304,7 @@ namespace Physics
 			node.absoluteOrientation = node.orientation;
 			node.absolutePosition = node.position;
 		}
-	}
+	}*/
 }
 
 #endif

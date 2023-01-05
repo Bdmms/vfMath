@@ -3,14 +3,23 @@
 #define VF_EULER_MATH_HPP
 
 #include "VectorMath.hpp"
-
-typedef vec3f euler;
+#include "Euler.hpp"
 
 /**
  * @brief Utilities for Euler Angles
 */
 namespace Math
 {
+	template<> inline constexpr static euler ZERO<euler> = { 0.0f, 0.0f, 0.0f, 0.0f };
+	template<> inline constexpr static euler ONES<euler> = { 1.0f, 1.0f, 1.0f, 1.0f };
+	template<> inline constexpr static euler IDENTITY<euler> = { 0.0f, 0.0f, 0.0f, 0.0f };
+	template<> inline constexpr static euler NEGATIVE<euler> = { -1.0f, -1.0f, -1.0f, -1.0f };
+	template<> inline constexpr static euler MIN<euler> = { MIN<float>, MIN<float>, MIN<float>, MIN<float> };
+	template<> inline constexpr static euler MAX<euler> = { MAX<float>, MAX<float>, MAX<float>, MAX<float> };
+	template<> inline constexpr static euler PI<euler> = { PI<float>, PI<float>, PI<float>, PI<float> };
+	template<> inline constexpr static euler TWO_PI<euler> = { TWO_PI<float>, TWO_PI<float>, TWO_PI<float>, TWO_PI<float> };
+	template<> inline constexpr static euler HALF_PI<euler> = { HALF_PI<float>, HALF_PI<float>, HALF_PI<float>, HALF_PI<float> };
+
 	/**
 	 * @brief Generates rotation between two axes
 	 * @tparam T - rotation type
@@ -68,6 +77,36 @@ namespace Math
 	}
 
 	/**
+	 * @brief Calculates the sine of the euler angles
+	 * @param a - euler angles
+	 * @return sin vector
+	*/
+	[[nodiscard]] static vec4f sin(const euler& rotation)
+	{
+		return { _mm_sin_ps(rotation.simd) };
+	}
+
+	/**
+	 * @brief Calculates the cosine of the euler angles
+	 * @param a - euler angles
+	 * @return cos vector
+	*/
+	[[nodiscard]] static vec4f cos(const euler& rotation)
+	{
+		return { _mm_cos_ps(rotation.simd) };
+	}
+
+	/**
+	 * @brief Calculates the tan of the euler angles
+	 * @param a - euler angles
+	 * @return tan vector
+	*/
+	[[nodiscard]] static vec4f tan(const euler& rotation)
+	{
+		return { _mm_tan_ps(rotation.simd) };
+	}
+
+	/**
 	 * @brief Rotates a vector around the origin using euler angles
 	 * @param position - position vector
 	 * @param rotation - euler angles
@@ -75,8 +114,8 @@ namespace Math
 	*/
 	[[nodiscard]] static vec3f rotate(const vec3f& position, const euler& rotation)
 	{
-		vec3f s = Math::sin(rotation);
-		vec3f c = Math::cos(rotation);
+		vec3f s = sin(rotation);
+		vec3f c = cos(rotation);
 
 		return {
 			_mm_dot_ps(
@@ -86,6 +125,17 @@ namespace Math
 				position.simd, SIMD_4f_W
 			)
 		};
+	}
+
+	/**
+	 * @brief Generates random euler angles within the range
+	 * @param min - minimum angles
+	 * @param max - maximum angles
+	 * @return random euler angles
+	*/
+	template<> [[nodiscard]] static euler random<euler>(const euler& min, const euler& max)
+	{
+		return { _mm_fmadd_ps(_mm_div_ps(_mm_cvtepi32_ps(_mm_set_epi32(rand(), rand(), rand(), rand())), _mm_set1_ps((float)RAND_MAX)), _mm_sub_ps(max.simd, min.simd), min.simd) };
 	}
 }
 

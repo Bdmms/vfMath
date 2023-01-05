@@ -42,14 +42,6 @@ union quat
 
 	[[nodiscard]] quat operator-() const { return quat{ _mm_mul_ps(simd, _mm_set1_ps(-1.0f)) }; }
 
-	// Sets the quaternion based on a vector direction
-	quat& operator=(const vec4f& v) noexcept
-	{
-		simd = _mm_mul_ps(v.simd, _mm_sin_ps(_mm_mul_ps(v.simd, _mm_set1_ps(0.5f))));
-		w = cosf(v.w * 0.5f);
-		return *this;
-	}
-
 	/**
 	 * @brief Calculates the squared norm of the quaternion
 	 * @return squared norm of the quaternion

@@ -2,16 +2,13 @@
 #ifndef VF_VECTOR_MATH_HPP
 #define VF_VECTOR_MATH_HPP
 
-#ifdef WB_DEBUG_CONSOLE_FLAG
-#include <iostream>
-#endif
-
 #include "Math.hpp"
 #include "vec4f.hpp"
 #include "vec4i.hpp"
 
 typedef vec4f vec3f;
 typedef vec4i vec3i;
+typedef vec3f AxisAngle;
 
 typedef vec4f (*VectorInterpolator)(const vec4f& a, const vec4f& b, const float weight);
 
@@ -38,10 +35,10 @@ namespace Math
 	template<> inline constexpr static vec2f ONES<vec2f> = { 1.0f, 1.0f };
 	template<> inline constexpr static vec2i ONES<vec2i> = { 1, 1 };
 
-	template<> inline constexpr static vec4f IDENTITY<vec4f> = { 1.0f, 1.0f, 1.0f, 1.0f };
-	template<> inline constexpr static vec4i IDENTITY<vec4i> = { 1, 1, 1, 1 };
-	template<> inline constexpr static vec2f IDENTITY<vec2f> = { 1.0f, 1.0f };
-	template<> inline constexpr static vec2i IDENTITY<vec2i> = { 1, 1 };
+	template<> inline constexpr static vec4f IDENTITY<vec4f> = ZERO<vec4f>;
+	template<> inline constexpr static vec4i IDENTITY<vec4i> = ZERO<vec4i>;
+	template<> inline constexpr static vec2f IDENTITY<vec2f> = ZERO<vec2f>;
+	template<> inline constexpr static vec2i IDENTITY<vec2i> = ZERO<vec2i>;
 
 	template<> inline constexpr static vec4f NEGATIVE<vec4f> = { -1.0f, -1.0f, -1.0f, -1.0f };
 	template<> inline constexpr static vec4i NEGATIVE<vec4i> = { -1, -1, -1, -1 };
@@ -103,6 +100,18 @@ namespace Math
 	}
 
 	/**
+	 * @brief Returns a composite value depending on the input condition vector
+	 * @param input - condition input vector
+	 * @param trueVal - vector components returned on true input
+	 * @param falseVal - vector components returned on false input
+	 * @return output vector
+	*/
+	[[nodiscard]] static vec4f condition(const vec4f& input, const vec4f& trueVal, const vec4f& falseVal)
+	{
+		return (input & trueVal) + ((~input) & falseVal);
+	}
+
+	/**
 	 * @brief Converts the 4D vector into 3D by truncating the w coordinate
 	 * @param v - 4D vector
 	 * @return forced 3D vector
@@ -117,10 +126,10 @@ namespace Math
 	 * @param v - vector
 	 * @return re-mapped vector
 	*/
-	template <unsigned int permuatation>
+	template <unsigned int swizzle>
 	[[nodiscard]] static vec4f map(const vec4f& v)
 	{
-		return { _mm_permute_ps(v.simd, permuatation) };
+		return { _mm_permute_ps(v.simd, swizzle) };
 	}
 
 	/**
@@ -216,13 +225,26 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the unit vector
+	 * @brief Calculates the unit 2D vector
 	 * @param v - vector
-	 * @return normalized vectors
+	 * @return normalized vector
 	*/
-	template<typename T> [[nodiscard]] static T normalize(const T& v)
+	[[nodiscard]] static vec2f normalize(const vec2f& v)
 	{
 		return v / length(v);
+	}
+
+	/**
+	 * @brief Calculates the unit 3D/4D vector
+	 * @param v - vector
+	 * @return normalized vector
+	*/
+	[[nodiscard]] static vec4f normalize(const vec4f& v)
+	{
+		//__m128 product = _mm_mul_ps(v.simd, v.simd);
+		//__m128 half = _mm_hadd_ps( product, product );
+		//return { _mm_mul_ps( v.simd, _mm_invsqrt_ps( _mm_hadd_ps( half, half ) ) ) };
+		return { _mm_div_ps(v.simd, _mm_set1_ps(sqrtf(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w))) };
 	}
 
 	/**
@@ -456,11 +478,11 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f sign(const vec4f& vector)
 	{
-		return vector / Math::abs(vector);
+		return Math::condition( vector >= Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::NEGATIVE<vec4f> );
 	}
 
 	/**
-	 * @brief Calculates the sin of the vector
+	 * @brief Calculates the sine of the vector
 	 * @param a - vector
 	 * @return sin vector
 	*/
@@ -470,7 +492,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the sin of the vector
+	 * @brief Calculates the sine of the vector
 	 * @param a - vector
 	 * @return sin vector
 	*/
@@ -480,7 +502,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the cos of the vector
+	 * @brief Calculates the cosine of the vector
 	 * @param a - vector
 	 * @return cos vector
 	*/
@@ -490,7 +512,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the cos of the vector
+	 * @brief Calculates the cosine of the vector
 	 * @param a - vector
 	 * @return cos vector
 	*/
@@ -542,18 +564,6 @@ namespace Math
 	}
 
 	/**
-	 * @brief Returns a composite value depending on the input condition vector
-	 * @param input - condition input vector
-	 * @param trueVal - vector components returned on true input
-	 * @param falseVal - vector components returned on false input
-	 * @return output vector
-	*/
-	[[nodiscard]] static vec4f condition(const vec4f& input, const vec4f& trueVal, const vec4f& falseVal)
-	{
-		return (input & trueVal) + ((~input) & falseVal);
-	}
-
-	/**
 	 * @brief Generates an arbitrary orthogonal direction vector
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
@@ -590,17 +600,32 @@ namespace Math
 
 	/**
 	 * @brief Rotates a vector around an axis by an angle
-	 * @param v - position vector
+	 * @param position - position vector
 	 * @param axis - axis direction (normalized)
 	 * @param angle - angle around axis
 	 * @return rotated position vector
 	*/
-	[[nodiscard]] static vec4f rotate(const vec4f& v, const vec3f& axis, const float angle)
+	[[nodiscard]] static vec4f rotate(const vec4f& position, const vec3f& axis, const float angle)
 	{
 		// Based on quaternion implementation, but without using a quaternion
 		__m128 qxyz = _mm_mul_ps(axis.simd, _mm_set1_ps(sinf(angle * 0.5f)));
-		return { _mm_add_ps(v.simd, _mm_mul_ps(_mm_set1_ps(2.0f),
-			_mm_cross_ps(qxyz, _mm_add_ps(_mm_cross_ps(qxyz, v.simd), _mm_mul_ps(v.simd, _mm_set1_ps(cosf(angle * 0.5f))))))) };
+		return { _mm_add_ps(position.simd, _mm_mul_ps(_mm_set1_ps(2.0f),
+			_mm_cross_ps(qxyz, _mm_add_ps(_mm_cross_ps(qxyz, position.simd), _mm_mul_ps(position.simd, _mm_set1_ps(cosf(angle * 0.5f))))))) };
+	}
+
+	/**
+	 * @brief Rotates a vector around an axis by an angle
+	 * @param position - position vector
+	 * @param rotation - axis angle vector
+	 * @return rotated position
+	*/
+	[[nodiscard]] static vec3f rotate(const vec3f& position, const AxisAngle& rotation)
+	{
+		float angle = Math::length(rotation);
+		if (angle <= Math::EPSILON<float>) return position;
+
+		vec3f axis = rotation / angle;
+		return rotate( position, axis, angle );
 	}
 
 	/**

@@ -35,6 +35,17 @@ namespace Math
 		};
 	}
 
+	static quat toQuat(const AxisAngle& rotation)
+	{
+		float angle = Math::length(rotation);
+		if (angle <= Math::EPSILON<float>) return Math::IDENTITY<quat>;
+
+		vec3f axis = rotation / angle;
+		quat q = { _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) ) };
+		q.w = cosf( angle * 0.5f );
+		return q;
+	}
+
 	/**
 	 * @brief Calculates the unit quaternion
 	 * @param q - quaternion
@@ -69,6 +80,21 @@ namespace Math
 			atan2f( 2.0f * (q.x * q.y + q.w * q.z), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z ),
 			0.0f
 		};
+	}
+
+	/**
+	 * @brief Converts quaternion to an axis and angle
+	 * @param q - quaternion
+	 * @return Axis angle vector
+	*/
+	[[nodiscard]] static AxisAngle toAxisAngle(const quat& q)
+	{
+		AxisAngle axis = { q.x, q.y, q.z, 0.0f };
+		float length = Math::length(axis);
+		if (length <= Math::EPSILON<float>) return Math::ZERO<vec3f>;
+
+		float angle = 2.0f * atan2f( length, q.w );
+		return axis * (angle / length);
 	}
 
 	/**

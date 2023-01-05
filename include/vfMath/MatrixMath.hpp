@@ -632,7 +632,7 @@ namespace Math
 	static mat4x4 randomTransform(const vec3f& minTrans = ZERO<vec4f>, const vec3f& maxTrans = ZERO<vec4f>, const vec3f& minScale = ONES<vec4f>, const vec3f& maxScale = ONES<vec4f>)
 	{
 		vec3f translation = Math::random(minTrans, maxTrans);
-		vec3f rotation = Math::random(ZERO<vec4f>, TWO_PI<vec4f>);
+		euler rotation = Math::random(ZERO<euler>, TWO_PI<euler>);
 		vec3f scale = Math::random(minScale, maxScale);
 		return create::transform(translation, rotation, scale);
 	}

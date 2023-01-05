@@ -415,10 +415,21 @@ union mat4x4
 [[nodiscard]] static vec4f operator*(const mat4x4& a, const vec4f& b) noexcept
 {
 #if ENABLE_INSTRUCTIONS_SSE2
-	return { _mm_dot_ps(b.simd, _mm_xyzw_ps(a.m[0], a.m[4], a.m[8], a.m[12]),
+	__m128 t0 = _mm_shuffle_ps(a.x_axis.simd, a.y_axis.simd, 0x44);
+	__m128 t2 = _mm_shuffle_ps(a.x_axis.simd, a.y_axis.simd, 0xEE);
+	__m128 t1 = _mm_shuffle_ps(a.z_axis.simd, a.origin.simd, 0x44);
+	__m128 t3 = _mm_shuffle_ps(a.z_axis.simd, a.origin.simd, 0xEE);
+
+	return { _mm_dot_ps(
+		_mm_shuffle_ps(t0, t1, 0x88), b.simd,
+		_mm_shuffle_ps(t0, t1, 0xDD), b.simd,
+		_mm_shuffle_ps(t2, t3, 0x88), b.simd,
+		_mm_shuffle_ps(t2, t3, 0xDD), b.simd) };
+
+	/*return {_mm_dot_ps(b.simd, _mm_xyzw_ps(a.m[0], a.m[4], a.m[8], a.m[12]),
 						b.simd, _mm_xyzw_ps(a.m[1], a.m[5], a.m[9], a.m[13]),
 						b.simd, _mm_xyzw_ps(a.m[2], a.m[6], a.m[10], a.m[14]),
-						b.simd, _mm_xyzw_ps(a.m[3], a.m[7], a.m[11], a.m[15])) };
+						b.simd, _mm_xyzw_ps(a.m[3], a.m[7], a.m[11], a.m[15])) };*/
 #else
 	// TODO
 #endif
