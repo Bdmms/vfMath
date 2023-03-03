@@ -12,8 +12,7 @@ enum class ColliderType : unsigned char
 {
 	Cube = 0,
 	Sphere = 1,
-	Cylinder = 2,
-	Triangle = 3
+	Triangle = 2
 };
 
 /**
@@ -66,14 +65,17 @@ public:
 */
 struct CollisionData
 {
-	const InstantCollider* parent;
+	const InstantCollider* parent = nullptr;
 	vec4f position	 = Math::ZERO<vec4f>;
 	vec3f normal	 = Math::ZERO<vec3f>;
-	vec3f recoveryDirection	 = Math::ZERO<vec3f>;
-	float signedDistance = 0.0f;
+	vec3f recoveryDirection	= Math::ZERO<vec3f>;
+	vec3f displacement = Math::ZERO<vec3f>;
+	float signedDistance = Math::MAX<float>;
 };
 
-typedef void (*CollisionTest)(CollisionData& collision, const InstantCollider& a, const InstantCollider& b);
+typedef void (*CollisionTest) (CollisionData& collision, const InstantCollider& a, const InstantCollider& b);
+typedef bool (*IntersectTest) (const InstantCollider& a, const InstantCollider& b);
+
 /**
  * @brief Interface for object handling collision
 */
@@ -97,9 +99,10 @@ struct Collider
 	InstantCollider& volume;
 	CollisionHandler& handler;
 	ColliderType type;
+	uint8_t collisionFlag;
 
 	Collider(const ColliderType type, InstantCollider& volume, CollisionHandler& handler = DEFAULT_COLLISION_HANDLER)
-		: volume(volume), handler(handler), type(type) {}
+		: volume(volume), handler(handler), type(type), collisionFlag(0) {}
 };
 
 typedef InstantCollider CollisionFace;
@@ -147,6 +150,9 @@ namespace Collision
 {
 	void getCollisionData(CollisionData& collision, const Collider& a, const Collider& b);
 	CollisionTest getCollisionTest(const ColliderType a, const ColliderType b);
+
+	bool isIntersecting(const Collider& a, const Collider& b);
+	IntersectTest getIntersectTest(const ColliderType a, const ColliderType b);
 
 	MeshCollider createCubeMesh();
 }
@@ -319,7 +325,7 @@ public:
 */
 class MultiTypeCollisionLayer : public CollisionLayer
 {
-	std::vector<LinearCollider> volume;
+	std::vector<InstantCollider> volume;
 	std::vector<Collider> colliders;
 
 public:
@@ -344,10 +350,10 @@ public:
 	 * @param type
 	 * @param transform
 	*/
-	Collider& addCollider(const ColliderType type, const mat4x4& transform = Math::IDENTITY<mat4x4>)
+	Collider& addCollider(const ColliderType type, const mat4x4& transform = Math::IDENTITY<mat4x4>, CollisionHandler& handler = DEFAULT_COLLISION_HANDLER)
 	{
-		LinearCollider& objVolume = volume.emplace_back(transform);
-		return colliders.emplace_back( type, objVolume );
+		InstantCollider& objVolume = volume.emplace_back( transform, transform.inverse() );
+		return colliders.emplace_back( type, objVolume, handler );
 	}
 
 	/**

@@ -8,6 +8,8 @@
 
 union vec2f;
 union vec4f;
+union mat2x2;
+union mat4x4;
 
 union vec2i;
 union vec4i;

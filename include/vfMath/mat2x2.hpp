@@ -13,6 +13,17 @@ union mat2x2
 	vec2f col[2];
 	float m[4];
 
+	constexpr mat2x2() : m() {}
+
+	constexpr mat2x2(const float a, const float b, const float c, const float d)
+		: m{ a, b, c, d } {}
+
+	constexpr mat2x2(const vec2f& a, const vec2f& b)
+		: col{ a, b } {}
+
+	constexpr mat2x2(const __m128& a)
+		: simd{ a } {}
+
 	constexpr float operator[](const unsigned char i) const { return m[i]; }
 	constexpr float& operator[](const unsigned char i) { return m[i]; }
 
@@ -23,11 +34,16 @@ union mat2x2
 
 	mat2x2& operator*=(const mat2x2& b) noexcept
 	{
-		__m128 b0 = _mm_permute_ps(simd, swizzle::ZWXY);
-		__m128 b1 = _mm_permute_ps(b.simd, swizzle::YXWZ);
-		simd = _mm_sub_ps(_mm_mul_ps(simd, b.simd), _mm_mul_ps(b0, b1));
+		__m128 b0 = _mm_permute_ps(  simd, swizzle::XYXY);
+		__m128 b1 = _mm_permute_ps(b.simd, swizzle::XXZZ);
+		__m128 b2 = _mm_permute_ps(  simd, swizzle::ZWZW);
+		__m128 b3 = _mm_permute_ps(b.simd, swizzle::YYWW);
+		simd = _mm_add_ps(_mm_mul_ps(b0, b1), _mm_mul_ps(b2, b3));
 		return *this;
 	}
+
+	// Conversions
+	[[nodiscard]] operator mat4x4() const;
 
 	/**
 	 * @brief Calculates the determinant of this matrix
@@ -79,9 +95,11 @@ union mat2x2
 
 [[nodiscard]] static mat2x2 operator*(const mat2x2& a, const mat2x2& b) noexcept
 {
-	__m128 b0 = _mm_permute_ps(a.simd, swizzle::ZWXY);
-	__m128 b1 = _mm_permute_ps(b.simd, swizzle::YXWZ);
-	return mat2x2{ _mm_sub_ps(_mm_mul_ps(a.simd, b.simd), _mm_mul_ps(b0, b1)) };
+	__m128 b0 = _mm_permute_ps(a.simd, swizzle::XYXY);
+	__m128 b1 = _mm_permute_ps(b.simd, swizzle::XXZZ);
+	__m128 b2 = _mm_permute_ps(a.simd, swizzle::ZWZW);
+	__m128 b3 = _mm_permute_ps(b.simd, swizzle::YYWW);
+	return mat2x2{ _mm_add_ps(_mm_mul_ps(b0, b1), _mm_mul_ps(b2, b3)) };
 }
 
 #endif

@@ -14,14 +14,14 @@ typedef mat4x4 (*MatrixInterpolator)(const mat4x4& a, const mat4x4& b, const flo
 */
 namespace Math
 {
-	template<> inline constexpr static mat2x2 ZERO<mat2x2> = { 0, 0, 0, 0 };
-	template<> inline constexpr static mat4x4 ZERO<mat4x4> = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	template<> inline constexpr static mat2x2 ZERO<mat2x2> = { 0.f, 0.f, 0.f, 0.f };
+	template<> inline constexpr static mat4x4 ZERO<mat4x4> = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 
-	template<> inline constexpr static mat2x2 ONES<mat2x2> = { 1, 1, 1, 1 };
-	template<> inline constexpr static mat4x4 ONES<mat4x4> = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+	template<> inline constexpr static mat2x2 ONES<mat2x2> = { 1.f, 1.f, 1.f, 1.f };
+	template<> inline constexpr static mat4x4 ONES<mat4x4> = { 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f };
 
-	template<> inline constexpr static mat2x2 IDENTITY<mat2x2> = { 1, 0, 1, 0 };
-	template<> inline constexpr static mat4x4 IDENTITY<mat4x4> = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+	template<> inline constexpr static mat2x2 IDENTITY<mat2x2> = { 1.f, 0.f, 0.f, 1.f };
+	template<> inline constexpr static mat4x4 IDENTITY<mat4x4> = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
 
 	/**
 	 * @brief Truncates a 4x4 matrix into a 3x3 matrix

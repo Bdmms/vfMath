@@ -41,7 +41,7 @@ namespace Physics
 	Rotation_t rotation = Math::IDENTITY<Rotation_t>;
 };*/
 
-struct RigidBody
+struct RigidBody : public CollisionHandler
 {
 	// Transform space of RigidBody
 	TransformSpace jointSpace;
@@ -50,7 +50,7 @@ struct RigidBody
 	std::vector<RigidBody> children;
 	// Transform relative to parent
 	mat4x4 rJoint;
-	mat4x4 rOffset;
+	vec4f rCentroid;
 
 	// Linear (Relative to joint)
 	//Point_t rPosition;
@@ -68,14 +68,14 @@ struct RigidBody
 	// Scalars
 	Mass_t mass = 1.0f;
 
-	RigidBody(const Point_t& joint = Math::ZERO<Point_t>, const Point_t& position = Math::ZERO<Point_t>) 
-		: parent(GLOBAL_SPACE), rJoint(Math::create::translation(joint)), rOffset(Math::create::translation(position))
+	RigidBody(const Point_t& joint = Math::ZERO<Point_t>, const Point_t& position = Math::ZERO<Point_t>)
+		: parent(GLOBAL_SPACE), rJoint(Math::create::translation(joint)), rCentroid(position)
 	{
 		updateTransforms();
 	}
 
 	RigidBody(const TransformSpace& parent, const Point_t& joint, const Point_t& position) :
-		parent(parent), rJoint(Math::create::translation(joint)), rOffset(Math::create::translation(position))
+		parent(parent), rJoint(Math::create::translation(joint)), rCentroid(position)
 	{
 		updateTransforms();
 	}
@@ -97,30 +97,31 @@ struct RigidBody
 		return count;
 	}
 
-	constexpr void copyTo(mat4x4* transforms, size_t& index) const
+	void copyTo(mat4x4* transforms, const mat4x4& offset, size_t& index) const
 	{
-		transforms[index] = jointSpace.transform;
+		transforms[index] = jointSpace.transform * offset;
 		++index;
-		transforms[index] = xformSpace.transform;
+		transforms[index] = jointSpace.transform * Math::create::translation(rCentroid) * offset;
 		++index;
 
 		for (const RigidBody& child : children)
 		{
-			child.copyTo(transforms, index);
+			child.copyTo(transforms, offset, index);
 		}
 	}
 
-	constexpr void copyTo(mat4x4* transforms) const
+	void copyTo(mat4x4* transforms, const mat4x4& offset = Math::IDENTITY<mat4x4>) const
 	{
 		size_t index = 0;
-		copyTo(transforms, index);
+		copyTo(transforms, offset, index);
 	}
 
 	void updateTransforms()
 	{
 		jointSpace.transform = parent.transform * rJoint;
 		jointSpace.inverse = jointSpace.transform.inverse();
-		xformSpace.transform = jointSpace.transform * rOffset;
+
+		xformSpace.transform = jointSpace.transform * Math::create::translation(rCentroid);
 		xformSpace.inverse = xformSpace.transform.inverse();
 	}
 
@@ -132,7 +133,7 @@ struct RigidBody
 
 		// Initialize net force
 		rForce = rGravityDirection * gravityIntensity * mass;
-		rMoment = Physics::getTorque( rOffset.origin, rForce ) - (0.75f * Math::length(rAngularVelocity) * rAngularVelocity);
+		rMoment = Physics::getTorque( rCentroid, rForce ) - (0.75f * Math::length(rAngularVelocity) * rAngularVelocity);
 
 		// Transform relative to joint
 		//mat4x4 rTransform = Math::IDENTITY<mat4x4>;
@@ -177,6 +178,11 @@ struct RigidBody
 	{
 		return Math::create::transform(position, orientation, scale);
 	}*/
+
+	virtual void onCollision(const CollisionData& collision, InstantCollider& collider) override
+	{
+		//ransform.origin -= collision.recoveryDirection * collision.signedDistance;
+	}
 };
 
 /*struct RigidBodyConstraints
