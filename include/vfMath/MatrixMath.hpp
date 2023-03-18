@@ -113,11 +113,24 @@ namespace Math
 	}
 
 	/**
+	 * @brief Sets the rotation of the matrix
+	 * @param matrix - 2D transform matrix
+	 * @param rotation - rotation angle
+	*/
+	static void setRotation( mat2x2& matrix, float rotation )
+	{
+		matrix.m[0] = cosf( rotation );
+		matrix.m[1] = sinf( rotation );
+		matrix.m[2] = -matrix.m[1];
+		matrix.m[3] = matrix.m[0];
+	}
+
+	/**
 	 * @brief Sets the rotation of the matrix (Overwrites the 3x3 matrix)
 	 * @param matrix - transform matrix
 	 * @param rotation - euler rotation vector
 	*/
-	static void setRotation(mat4x4& matrix, const euler& rotation)
+	static void setRotation( mat4x4& matrix, const euler& rotation )
 	{
 		vec3f s = Math::sin(rotation);
 		vec3f c = Math::cos(rotation);
@@ -200,6 +213,20 @@ namespace Math
 		matrix.m[2] = 2.0f * (q.x * q.z + q.w * q.y);
 		matrix.m[6] = 2.0f * (q.y * q.z - q.w * q.x);
 		matrix.m[10] = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+	}
+
+	/*
+	 * @brief Sets the 2D transform of the 2x2 matrix
+	 * @param rotation - rotation angle
+	 * @param scale - scaling vector
+	*/
+	static void setTransform( mat2x2& matrix, const float rotation, const vec2f scale )
+	{
+		setRotation( matrix, rotation );
+		matrix.m[0] *= scale.x;
+		matrix.m[1] *= scale.x;
+		matrix.m[2] *= scale.y;
+		matrix.m[3] *= scale.y;
 	}
 
 	/**

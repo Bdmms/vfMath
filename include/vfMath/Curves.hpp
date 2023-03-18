@@ -247,14 +247,14 @@ struct SmoothDirection
 		target = newTarget;
 	}
 
-	constexpr vec3f getDirection() const
+	constexpr const vec3f& getDirection() const
 	{
 		return current;
 	}
 
-	vec3f getDirection(const float elapsedTime)
+	const vec3f& getDirection(const float elapsedTime)
 	{
-		return current = Math::slerp(current, target, elapsedTime * speed);
+		return current = Math::slerp( current, target, elapsedTime * speed );
 	}
 };
 
