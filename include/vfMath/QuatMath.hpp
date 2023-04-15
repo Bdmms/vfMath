@@ -112,20 +112,20 @@ namespace Math
 
 	/**
 	 * @brief Generates the quaternion that rotates from one axis to another
-	 * @param from - initial vector
-	 * @param to - target vector
+	 * @param from - initial vector (normalized)
+	 * @param to - target vector (normalized)
 	 * @return resulting quaternion
 	*/
-	template<> [[nodiscard]] static quat rotationBetween(const vec3f& from, const vec3f& to)
+	template<> [[nodiscard]] static quat rotationBetween( const vec3f& from, const vec3f& to )
 	{
-		float product = Math::dot(from, to);
-		if (product > 0.999999f) return IDENTITY<quat>;
-		if (product < -0.999999f) return { 0.0f, 1.0f, 0.0f, 0.0f };
+		float product = Math::dot_3D( from, to );
+		if( product > 0.999999f ) return IDENTITY<quat>;
+		if( product < -0.999999f ) return { Math::orthogonal( from ).simd };
 
-		__m128 nrm = _mm_cross_ps(from.simd, to.simd);
-		__m128 len = _mm_mag2_ps(from.simd, to.simd);
-		nrm.m128_f32[3] = len.m128_f32[0] * len.m128_f32[1] + product;
-		return normalize(reinterpret_cast<quat&>(nrm));
+		__m128 rotation = _mm_cross_ps( from.simd, to.simd );
+		rotation.m128_f32[3] = Math::dot_3D( from, to ) + 1.0f;
+
+		return normalize( reinterpret_cast<quat&>( rotation ) );
 	}
 
 	/**

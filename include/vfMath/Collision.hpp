@@ -119,14 +119,14 @@ struct MeshCollider : public InstantCollider
 
 	}
 
-	constexpr MeshCollider(const MeshCollider& copy)
-		: InstantCollider(copy), faces(new CollisionFace[copy.numFaces]), numFaces(copy.numFaces)
+	constexpr MeshCollider( const MeshCollider& copy )
+		: InstantCollider( copy ), faces( new CollisionFace[copy.numFaces] ), numFaces( copy.numFaces )
 	{
 		std::copy(copy.faces, copy.faces + numFaces, faces);
 	}
 
-	constexpr MeshCollider(MeshCollider&& copy) noexcept
-		: InstantCollider(std::move(copy)), faces(std::exchange(copy.faces, nullptr)), numFaces(std::exchange(copy.numFaces, 0))
+	constexpr MeshCollider( MeshCollider&& copy ) noexcept
+		: InstantCollider( copy ), faces( std::exchange( copy.faces, nullptr ) ), numFaces( std::exchange( copy.numFaces, 0 ) )
 	{
 
 	}

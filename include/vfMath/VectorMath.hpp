@@ -629,6 +629,21 @@ namespace Math
 	}
 
 	/**
+	 * @brief Generates rotation between two axes
+	 * @tparam T - rotation type
+	 * @param from - initial axis (normalized)
+	 * @param to - final axis (normalized)
+	 * @return rotation between axes
+	*/
+	template<typename T> [[nodiscard]] static T rotationBetween( const vec3f& from, const vec3f& to )
+	{
+		float product = dot_3D( from, to );
+		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
+		if( product < -0.999999f ) return orthogonal( from ) * Math::PI<float>;
+		return normalize( cross( from, to ) ) * acosf( product );
+	}
+
+	/**
 	 * @brief Spherical interpolation between two direction vectors
 	 * @param a - first direction (normalized)
 	 * @param b - second direction (normalized)

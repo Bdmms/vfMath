@@ -27,9 +27,9 @@ namespace Math
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<typename T> [[nodiscard]] static T rotationBetween(const vec3f& from, const vec3f& to)
+	template<> [[nodiscard]] static euler rotationBetween( const vec3f& from, const vec3f& to )
 	{
-		return to - from;
+		return { _mm_sub_ps( to.simd, from.simd ) };
 	}
 
 	/**
