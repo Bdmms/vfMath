@@ -10,15 +10,9 @@ typedef vec4f vec3f;
 typedef vec4i vec3i;
 typedef vec3f AxisAngle;
 
-typedef vec4f (*VectorInterpolator)(const vec4f& a, const vec4f& b, const float weight);
-
-enum class Axis
-{
-	X, Y, Z, W
-};
-
-template<typename V>
-concept IsVector = std::is_same<V, vec4f>::value || std::is_same<V, vec2f>::value;
+// TODO:
+// template<typename V>
+// concept IsVector = std::is_same<V, vec4f>::value || std::is_same<V, vec2f>::value;
 
 /**
  * @brief Utilities for 4D vectors
@@ -94,7 +88,17 @@ namespace Math
 	 * @param v - floating-point vector
 	 * @return true if all components are non-zero
 	*/
-	[[nodiscard]] constexpr static bool evaluate(const vec4f& v)
+	[[nodiscard]] constexpr static bool evaluate( const vec2f v )
+	{
+		return v.x && v.y;
+	}
+
+	/**
+	 * @brief Evaluates the vector as true or false
+	 * @param v - floating-point vector
+	 * @return true if all components are non-zero
+	*/
+	[[nodiscard]] constexpr static bool evaluate( const vec4f& v )
 	{
 		return v.simd.m128_u32[0] && v.simd.m128_u32[1] && v.simd.m128_u32[2] && v.simd.m128_u32[3];
 	}
@@ -106,30 +110,45 @@ namespace Math
 	 * @param falseVal - vector components returned on false input
 	 * @return output vector
 	*/
-	[[nodiscard]] static vec4f condition(const vec4f& input, const vec4f& trueVal, const vec4f& falseVal)
+	[[nodiscard]] static vec2f condition( const vec2f input, const vec2f trueVal, const vec2f falseVal )
 	{
-		return (input & trueVal) + ((~input) & falseVal);
+		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
 	}
 
 	/**
-	 * @brief Converts the 4D vector into 3D by truncating the w coordinate
-	 * @param v - 4D vector
-	 * @return forced 3D vector
+	 * @brief Returns a composite value depending on the input condition vector
+	 * @param input - condition input vector
+	 * @param trueVal - vector components returned on true input
+	 * @param falseVal - vector components returned on false input
+	 * @return output vector
 	*/
-	[[nodiscard]] constexpr static vec3f to3D(const vec4f& v)
+	[[nodiscard]] static vec4f condition( const vec4f& input, const vec4f& trueVal, const vec4f& falseVal )
 	{
-		return { v.x, v.y, v.z, 0.0f };
+		return ( input & trueVal ) + ( ( ~input ) & falseVal );
+	}
+
+	/**
+	 * @brief Checks if two overlapping boundaries overlap
+	 * @param min0 - minimum of first bounds
+	 * @param max0 - maximum of first bounds
+	 * @param min1 - minimum of second bounds
+	 * @param max1 - maximum of second bounds
+	 * @return Whether the two boundaries overlap
+	*/
+	[[nodiscard]] constexpr bool overlaps( const vec4f& min0, const vec4f& max0, const vec4f& min1, const vec4f& max1 )
+	{
+		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
 	}
 
 	/**
 	 * @brief Re-maps the components of the vector using the specified swizzle code
 	 * @param v - vector
-	 * @return re-mapped vector
+	 * @return swizzled vector
 	*/
 	template <unsigned int swizzle>
-	[[nodiscard]] static vec4f map(const vec4f& v)
+	[[nodiscard]] static vec4f map( const vec4f& v )
 	{
-		return { _mm_permute_ps(v.simd, swizzle) };
+		return { _mm_permute_ps( v.simd, swizzle ) };
 	}
 
 	/**
@@ -138,7 +157,7 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot(const vec2f& a, const vec2f& b)
+	[[nodiscard]] constexpr float dot( const vec2f a, const vec2f b )
 	{
 		return a.x * b.x + a.y * b.y;
 	}
@@ -149,7 +168,7 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot(const vec4f& a, const vec4f& b)
+	[[nodiscard]] constexpr float dot( const vec4f& a, const vec4f& b )
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 	}
@@ -160,7 +179,7 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot_3D(const vec4f& a, const vec4f& b)
+	[[nodiscard]] constexpr float dot_3D( const vec4f& a, const vec4f& b )
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
@@ -171,7 +190,7 @@ namespace Math
 	 * @param b - second vector
 	 * @return cross product of the two vectors
 	*/
-	[[nodiscard]] constexpr vec3f cross(const vec2f a, const vec2f b)
+	[[nodiscard]] constexpr vec3f cross( const vec2f a, const vec2f b )
 	{
 		return { 0.0f, 0.0f, a.x * b.y - a.y * b.x, 0.0f };
 	}
@@ -182,17 +201,26 @@ namespace Math
 	 * @param b - second vector
 	 * @return cross product of the two vectors
 	*/
-	[[nodiscard]] static vec3f cross(const vec3f& a, const vec3f& b)
+	[[nodiscard]] static vec3f cross( const vec3f& a, const vec3f& b )
 	{
 		//return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
-		return { _mm_cross_ps(a.simd,b.simd) };
+		return { _mm_cross_ps( a.simd, b.simd ) };
 	}
 
 	/**
 	 * @brief Calculates the squared length of the vector
 	 * @return squared length of the vector
 	*/
-	[[nodiscard]] constexpr float length2(const vec4f& v)
+	[[nodiscard]] constexpr float length2( const vec2f v )
+	{
+		return v.x * v.x + v.y * v.y;
+	}
+
+	/**
+	 * @brief Calculates the squared length of the vector
+	 * @return squared length of the vector
+	*/
+	[[nodiscard]] constexpr float length2( const vec4f& v )
 	{
 		return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
 	}
@@ -201,27 +229,18 @@ namespace Math
 	 * @brief Calculates the length of the vector
 	 * @return length of the vector
 	*/
-	[[nodiscard]] static float length(const vec4f& v) noexcept
+	[[nodiscard]] static float length( const vec2f v ) noexcept
 	{
-		return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
-	}
-
-	/**
-	 * @brief Calculates the squared length of the vector
-	 * @return squared length of the vector
-	*/
-	[[nodiscard]] constexpr float length2(const vec2f& v)
-	{
-		return v.x * v.x + v.y * v.y;
+		return sqrtf( v.x * v.x + v.y * v.y );
 	}
 
 	/**
 	 * @brief Calculates the length of the vector
 	 * @return length of the vector
 	*/
-	[[nodiscard]] static float length(const vec2f& v) noexcept
+	[[nodiscard]] static float length( const vec4f& v ) noexcept
 	{
-		return sqrtf(v.x * v.x + v.y * v.y);
+		return sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
 	}
 
 	/**
@@ -229,9 +248,9 @@ namespace Math
 	 * @param v - vector
 	 * @return normalized vector
 	*/
-	[[nodiscard]] static vec2f normalize(const vec2f& v)
+	[[nodiscard]] static vec2f normalize( const vec2f v )
 	{
-		return v / length(v);
+		return v / length( v );
 	}
 
 	/**
@@ -239,12 +258,12 @@ namespace Math
 	 * @param v - vector
 	 * @return normalized vector
 	*/
-	[[nodiscard]] static vec4f normalize(const vec4f& v)
+	[[nodiscard]] static vec4f normalize( const vec4f& v )
 	{
 		//__m128 product = _mm_mul_ps(v.simd, v.simd);
 		//__m128 half = _mm_hadd_ps( product, product );
 		//return { _mm_mul_ps( v.simd, _mm_invsqrt_ps( _mm_hadd_ps( half, half ) ) ) };
-		return { _mm_div_ps(v.simd, _mm_set1_ps(sqrtf(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w))) };
+		return { _mm_div_ps( v.simd, _mm_set1_ps( sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w ) ) ) };
 	}
 
 	/**
@@ -253,9 +272,20 @@ namespace Math
 	 * @param b - second vector
 	 * @return squared distance
 	*/
-	template<typename T> [[nodiscard]] constexpr T::ElementType distance2(const T& a, const T& b)
+	[[nodiscard]] constexpr float distance2( const vec2f a, const vec2f b )
 	{
-		return dot(a - b, a - b);
+		return length2( a - b );
+	}
+
+	/**
+	 * @brief Calculates the squared distance between vectors
+	 * @param a - first vector
+	 * @param b - second vector
+	 * @return squared distance
+	*/
+	[[nodiscard]] constexpr float distance2( const vec4f& a, const vec4f& b )
+	{
+		return length2( a - b );
 	}
 
 	/**
@@ -264,9 +294,9 @@ namespace Math
 	 * @param b - second vector
 	 * @return distance
 	*/
-	[[nodiscard]] static float distance(const vec4f& a, const vec4f& b)
+	[[nodiscard]] static float distance( const vec2f a, const vec2f b )
 	{
-		return sqrtf(distance2(a, b));
+		return sqrtf( distance2( a, b ) );
 	}
 
 	/**
@@ -275,9 +305,9 @@ namespace Math
 	 * @param b - second vector
 	 * @return distance
 	*/
-	[[nodiscard]] static float distance(const vec2f& a, const vec2f& b)
+	[[nodiscard]] static float distance( const vec4f& a, const vec4f& b )
 	{
-		return sqrtf(distance2(a, b));
+		return sqrtf( distance2( a, b ) );
 	}
 
 	/**
@@ -286,9 +316,9 @@ namespace Math
 	 * @param b - second vector
 	 * @return projected vector
 	*/
-	template<typename T> [[nodiscard]] constexpr T project(const T& a, const T& b)
+	template<typename T> [[nodiscard]] constexpr T project( const T& a, const T& b )
 	{
-		return b * (dot(a, b) / dot(b, b));
+		return b * ( dot( a, b ) / dot( b, b ) );
 	}
 
 	/**
@@ -297,10 +327,9 @@ namespace Math
 	 * @param b - normal vector
 	 * @return reflected vector
 	*/
-	template<typename T> [[nodiscard]] constexpr T reflect(const T& a, const T& b)
+	template<typename T> [[nodiscard]] constexpr T reflect( const T& a, const T& b )
 	{
-		T projection = project(a, b);
-		return projection - (a - projection);
+		return a - b * dot( a, b ) * 2.0f;
 	}
 
 	/**
@@ -310,9 +339,9 @@ namespace Math
 	 * @param max - maximum vector of clamp (optional)
 	 * @return clamped vector
 	*/
-	[[nodiscard]] constexpr vec2f clamp(const vec2f vector, const vec2f& min = ZERO<vec2f>, const vec2f& max = ONES<vec2f>)
+	[[nodiscard]] constexpr vec2f clamp( const vec2f vector, const vec2f min = ZERO<vec2f>, const vec2f max = ONES<vec2f> )
 	{
-		return { Math::clamp(vector.x, min.x, max.x), Math::clamp(vector.y, min.y, max.y) };
+		return { std::clamp( vector.x, min.x, max.x ), std::clamp( vector.y, min.y, max.y ) };
 	}
 
 	/**
@@ -322,9 +351,9 @@ namespace Math
 	 * @param max - maximum vector of clamp (optional)
 	 * @return clamped vector
 	*/
-	[[nodiscard]] static vec4f clamp(const vec4f& vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f>)
+	[[nodiscard]] static vec4f clamp( const vec4f& vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
 	{
-		return { _mm_clamp_ps(vector.simd, min.simd, max.simd) };
+		return { _mm_clamp_ps( vector.simd, min.simd, max.simd ) };
 	}
 
 	/**
@@ -332,9 +361,9 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec2f floor(const vec2f v)
+	[[nodiscard]] static vec2f floor( const vec2f v )
 	{
-		return { floorf(v.x), floorf(v.y) };
+		return { floorf( v.x ), floorf( v.y ) };
 	}
 
 	/**
@@ -342,9 +371,9 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec4f floor(const vec4f& v)
+	[[nodiscard]] static vec4f floor( const vec4f& v )
 	{
-		return { _mm_floor_ps(v.simd) };
+		return { _mm_floor_ps( v.simd ) };
 	}
 
 	/**
@@ -352,9 +381,9 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec2f ceil(const vec2f v)
+	[[nodiscard]] static vec2f ceil( const vec2f v )
 	{
-		return { ceilf(v.x), ceilf(v.y) };
+		return { ceilf( v.x ), ceilf( v.y ) };
 	}
 
 	/**
@@ -362,9 +391,19 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec4f ceil(const vec4f& v)
+	[[nodiscard]] static vec4f ceil( const vec4f& v )
 	{
-		return { _mm_ceil_ps(v.simd) };
+		return { _mm_ceil_ps( v.simd ) };
+	}
+	
+	/**
+	 * @brief Rounds the vector to the closest integer
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec2f round( const vec2f v )
+	{
+		return { roundf( v.x ), roundf( v.y ) };
 	}
 
 	/**
@@ -372,19 +411,9 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec2f round(const vec2f& v)
+	[[nodiscard]] static vec4f round( const vec4f& v )
 	{
-		return { roundf(v.x), roundf(v.y) };
-	}
-
-	/**
-	 * @brief Rounds the vector to the closest integer
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f round(const vec4f& v)
-	{
-		return { _mm_round_ps(v.simd, 0b00) };
+		return { _mm_round_ps( v.simd, 0b00 ) };
 	}
 
 	/**
@@ -393,9 +422,9 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] constexpr vec2f min(const vec2f vector, const vec2f min)
+	[[nodiscard]] constexpr vec2f min( const vec2f vector, const vec2f min )
 	{
-		return { std::min(vector.x, min.x), std::min(vector.y, min.y) };
+		return { std::min( vector.x, min.x ), std::min( vector.y, min.y ) };
 	}
 
 	/**
@@ -404,9 +433,9 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4f min(const vec4f& vector, const vec4f& min)
+	[[nodiscard]] static vec4f min( const vec4f& vector, const vec4f& min )
 	{
-		return { _mm_min_ps(vector.simd, min.simd) };
+		return { _mm_min_ps( vector.simd, min.simd ) };
 	}
 
 	/**
@@ -415,9 +444,9 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] constexpr vec2f max(const vec2f vector, const vec2f max)
+	[[nodiscard]] constexpr vec2f max( const vec2f vector, const vec2f max )
 	{
-		return { std::max(vector.x, max.x), std::max(vector.y, max.y) };
+		return { std::max( vector.x, max.x ), std::max( vector.y, max.y ) };
 	}
 
 	/**
@@ -426,9 +455,9 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4f max(const vec4f& vector, const vec4f& max)
+	[[nodiscard]] static vec4f max( const vec4f& vector, const vec4f& max )
 	{
-		return { _mm_max_ps(vector.simd, max.simd) };
+		return { _mm_max_ps( vector.simd, max.simd ) };
 	}
 
 	/**
@@ -436,9 +465,9 @@ namespace Math
 	 * @param a - vector
 	 * @return square root vector
 	*/
-	[[nodiscard]] static vec2f sqrt(const vec2f a)
+	[[nodiscard]] static vec2f sqrt( const vec2f a )
 	{
-		return { sqrtf(a.x), sqrtf(a.y) };
+		return { sqrtf( a.x ), sqrtf( a.y ) };
 	}
 
 	/**
@@ -446,9 +475,9 @@ namespace Math
 	 * @param a - vector
 	 * @return square root vector
 	*/
-	[[nodiscard]] static vec4f sqrt(const vec4f& a)
+	[[nodiscard]] static vec4f sqrt( const vec4f& a )
 	{
-		return { _mm_sqrt_ps(a.simd) };
+		return { _mm_sqrt_ps( a.simd ) };
 	}
 
 	/**
@@ -456,9 +485,9 @@ namespace Math
 	 * @param a - vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec2f abs(const vec2f a)
+	[[nodiscard]] static vec2f abs( const vec2f a )
 	{
-		return { fabsf(a.x), fabsf(a.y) };
+		return { fabsf( a.x ), fabsf( a.y ) };
 	}
 
 	/**
@@ -466,9 +495,9 @@ namespace Math
 	 * @param a - vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4f abs(const vec4f& a)
+	[[nodiscard]] static vec4f abs( const vec4f& a )
 	{
-		return { _mm_sqrt_ps(_mm_mul_ps(a.simd, a.simd)) };
+		return { _mm_sqrt_ps( _mm_mul_ps( a.simd, a.simd ) ) };
 	}
 
 	/**
@@ -476,7 +505,17 @@ namespace Math
 	 * @param vector - vector components
 	 * @return sign of the vector components
 	*/
-	[[nodiscard]] static vec4f sign(const vec4f& vector)
+	[[nodiscard]] constexpr vec2f sign( const vec2f vector )
+	{
+		return { Math::sign( vector.x ), Math::sign( vector.y ) };
+	}
+
+	/**
+	 * @brief Determines the sign of the vector's components in the form of 1.0 or -1.0
+	 * @param vector - vector components
+	 * @return sign of the vector components
+	*/
+	[[nodiscard]] static vec4f sign( const vec4f& vector )
 	{
 		return Math::condition( vector >= Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::NEGATIVE<vec4f> );
 	}
@@ -564,15 +603,25 @@ namespace Math
 	}
 
 	/**
+	 * @brief Generates an orthogonal direction vector
+	 * @param vector - non-zero vector (normalized)
+	 * @return direction orthogonal to vector
+	*/
+	[[nodiscard]] static vec2f orthogonal( const vec2f vector )
+	{
+		return { vector.y, -vector.x };
+	}
+
+	/**
 	 * @brief Generates an arbitrary orthogonal direction vector
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
 	*/
-	[[nodiscard]] static vec3f orthogonal(const vec3f& vector)
+	[[nodiscard]] static vec3f orthogonal( const vec3f& vector )
 	{
-		return fabsf(dot_3D(Math::axis::X<vec3f>, vector)) > 0.9f ?
-			Math::normalize(Math::cross(vector, Math::axis::Z<vec3f>)) :
-			Math::normalize(Math::cross(vector, Math::axis::X<vec3f>));
+		return fabsf( dot_3D( Math::axis::X<vec3f>, vector ) ) > 0.9f ?
+			Math::normalize( Math::cross( vector, Math::axis::Z<vec3f> ) ) :
+			Math::normalize( Math::cross( vector, Math::axis::X<vec3f> ) );
 	}
 
 	/**
@@ -581,9 +630,9 @@ namespace Math
 	 * @param direction - direction vector (normalized)
 	 * @return vector orthogonal to direction
 	*/
-	[[nodiscard]] static vec3f orthogonal(const vec3f& vector, const vec3f& direction)
+	[[nodiscard]] static vec3f orthogonal( const vec3f& vector, const vec3f& direction )
 	{
-		return vector - direction * dot_3D(vector, direction);
+		return vector - direction * dot_3D( vector, direction );
 	}
 
 	/**
@@ -593,9 +642,9 @@ namespace Math
 	 * @param t - weight
 	 * @return weighted vector
 	*/
-	template<> [[nodiscard]] static vec4f lerp<vec4f>(const vec4f& a, const vec4f& b, const float t)
+	template<> [[nodiscard]] static vec4f lerp<vec4f>( const vec4f& a, const vec4f& b, const float t )
 	{
-		return { _mm_fmadd_ps(_mm_sub_ps(b.simd, a.simd), _mm_set1_ps(t), a.simd)};
+		return { _mm_fmadd_ps( _mm_sub_ps( b.simd, a.simd ), _mm_set1_ps( t ), a.simd ) };
 	}
 
 	/**
@@ -605,12 +654,12 @@ namespace Math
 	 * @param angle - angle around axis
 	 * @return rotated position vector
 	*/
-	[[nodiscard]] static vec4f rotate(const vec4f& position, const vec3f& axis, const float angle)
+	[[nodiscard]] static vec4f rotate( const vec4f& position, const vec3f& axis, const float angle )
 	{
 		// Based on quaternion implementation, but without using a quaternion
-		__m128 qxyz = _mm_mul_ps(axis.simd, _mm_set1_ps(sinf(angle * 0.5f)));
-		return { _mm_add_ps(position.simd, _mm_mul_ps(_mm_set1_ps(2.0f),
-			_mm_cross_ps(qxyz, _mm_add_ps(_mm_cross_ps(qxyz, position.simd), _mm_mul_ps(position.simd, _mm_set1_ps(cosf(angle * 0.5f))))))) };
+		__m128 qxyz = _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) );
+		return { _mm_add_ps( position.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ),
+			_mm_cross_ps( qxyz, _mm_add_ps( _mm_cross_ps( qxyz, position.simd ), _mm_mul_ps( position.simd, _mm_set1_ps( cosf( angle * 0.5f ) ) ) ) ) ) ) };
 	}
 
 	/**
@@ -619,13 +668,25 @@ namespace Math
 	 * @param rotation - axis angle vector
 	 * @return rotated position
 	*/
-	[[nodiscard]] static vec3f rotate(const vec3f& position, const AxisAngle& rotation)
+	[[nodiscard]] static vec3f rotate( const vec3f& position, const AxisAngle& rotation )
 	{
-		float angle = Math::length(rotation);
-		if (angle <= Math::EPSILON<float>) return position;
+		float angle = Math::length( rotation );
+		if( angle <= Math::EPSILON<float> ) return position;
 
 		vec3f axis = rotation / angle;
 		return rotate( position, axis, angle );
+	}
+
+	/**
+	 * @brief Generates rotation around an axis
+	 * @tparam T - rotation type
+	 * @param axis - axis (normalized)
+	 * @param angle - radian angle around axis
+	 * @return rotation around axis
+	*/
+	template<typename T> [[nodiscard]] static T rotationAround( const vec3f& axis, const float angle )
+	{
+		return axis * angle;
 	}
 
 	/**
@@ -650,24 +711,13 @@ namespace Math
 	 * @param t - weight
 	 * @return weighted direction (normalized)
 	*/
-	[[nodiscard]] static vec3f slerp(const vec3f& a, const vec3f& b, const float t)
+	[[nodiscard]] static vec3f slerp( const vec3f& a, const vec3f& b, const float t )
 	{
-		float product = Math::dot_3D(a, b);
-		if (product > 1.0f - Math::EPSILON<float>) return a; 
-		
-		vec3f normal = product < Math::EPSILON<float> - 1.0f ? Math::orthogonal( a ) : Math::normalize( Math::cross( a, b ) );
-		return Math::rotate( a, normal, acosf( product ) * t );
-	}
+		float product = Math::dot_3D( a, b );
+		if( product > 1.0f - Math::EPSILON<float> ) return a;
 
-	/**
-	 * @brief Utilities for performing vector functions across a uniform value
-	*/
-	namespace uniform
-	{
-		[[nodiscard]] static vec4f sqrt(const float value)
-		{
-			return VECTOR_FORWARD(_mm_sqrt_ps(_mm_set1_ps(value)));
-		}
+		vec3f normal = product < Math::EPSILON<float> -1.0f ? Math::orthogonal( a ) : Math::normalize( Math::cross( a, b ) );
+		return Math::rotate( a, normal, acosf( product ) * t );
 	}
 
 	/**
@@ -683,9 +733,9 @@ namespace Math
 		 * @param d - fourth vector
 		 * @return sum of the 4 vectors stored as a single vector
 		*/
-		[[nodiscard]] static vec4f hsum(const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f>)
+		[[nodiscard]] static vec4f hsum( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f> )
 		{
-			return VECTOR_FORWARD(_mm_sum_ps(a.simd, b.simd, c.simd, d.simd));
+			return VECTOR_FORWARD( _mm_sum_ps( a.simd, b.simd, c.simd, d.simd ) );
 		}
 
 		/**
@@ -694,9 +744,9 @@ namespace Math
 		 * @param b - second vector
 		 * @return sum of the 2 vectors stored as a single vector
 		*/
-		[[nodiscard]] static vec4f hsum(const vec4f& a, const vec4f& b)
+		[[nodiscard]] static vec4f hsum( const vec4f& a, const vec4f& b )
 		{
-			return VECTOR_FORWARD(_mm_sum2_ps(a.simd, b.simd));
+			return VECTOR_FORWARD( _mm_sum2_ps( a.simd, b.simd ) );
 		}
 
 		/**
@@ -711,10 +761,10 @@ namespace Math
 		 * @param h - second vector of fourth pair
 		 * @return 4 dot products stored as a single vector
 		*/
-		[[nodiscard]] inline static vec4f dot(const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d,
-			const vec4f& e, const vec4f& f, const vec4f& g, const vec4f& h)
+		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d,
+			const vec4f& e, const vec4f& f, const vec4f& g, const vec4f& h )
 		{
-			return VECTOR_FORWARD(_mm_dot_ps(a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd));
+			return VECTOR_FORWARD( _mm_dot_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd ) );
 		}
 
 		/**
@@ -727,9 +777,9 @@ namespace Math
 		 * @param f - second vector of third pair
 		 * @return 3 dot products stored as a single vector
 		*/
-		[[nodiscard]] inline static vec4f dot(const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d, const vec4f& e, const vec4f& f)
+		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d, const vec4f& e, const vec4f& f )
 		{
-			return VECTOR_FORWARD(_mm_dot3_ps(a.simd, b.simd, c.simd, d.simd, e.simd, f.simd));
+			return VECTOR_FORWARD( _mm_dot3_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd ) );
 		}
 
 		/**
@@ -740,9 +790,9 @@ namespace Math
 		 * @param d - second vector of second pair
 		 * @return 2 dot products stored as a single vector
 		*/
-		[[nodiscard]] inline static vec4f dot(const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d)
+		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d )
 		{
-			return VECTOR_FORWARD(_mm_dot2_ps(a.simd, b.simd, c.simd, d.simd));
+			return VECTOR_FORWARD( _mm_dot2_ps( a.simd, b.simd, c.simd, d.simd ) );
 		}
 
 		/**
@@ -753,9 +803,9 @@ namespace Math
 		 * @param d - fourth vector
 		 * @return 4 vector lengths stored as a single vector
 		*/
-		[[nodiscard]] static vec4f length(const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d)
+		[[nodiscard]] static vec4f length( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d )
 		{
-			return VECTOR_FORWARD(_mm_mag_ps(a.simd,b.simd,c.simd,d.simd));
+			return VECTOR_FORWARD( _mm_mag_ps( a.simd, b.simd, c.simd, d.simd ) );
 		}
 
 		/**
@@ -765,9 +815,9 @@ namespace Math
 		 * @param c - third vector
 		 * @return 3 vector lengths stored as a single vector
 		*/
-		[[nodiscard]] static vec4f length(const vec4f& a, const vec4f& b, const vec4f& c)
+		[[nodiscard]] static vec4f length( const vec4f& a, const vec4f& b, const vec4f& c )
 		{
-			return VECTOR_FORWARD(_mm_mag3_ps(a.simd,b.simd,c.simd));
+			return VECTOR_FORWARD( _mm_mag3_ps( a.simd, b.simd, c.simd ) );
 		}
 
 		/**
@@ -776,9 +826,9 @@ namespace Math
 		 * @param b - second vector
 		 * @return 2 vector lengths stored as a single vector
 		*/
-		[[nodiscard]] static vec4f length(const vec4f& a, const vec4f& b)
+		[[nodiscard]] static vec4f length( const vec4f& a, const vec4f& b )
 		{
-			return VECTOR_FORWARD( _mm_mag2_ps(a.simd,b.simd));
+			return VECTOR_FORWARD( _mm_mag2_ps( a.simd, b.simd ) );
 		}
 	};
 
@@ -788,9 +838,9 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return random vector
 	*/
-	template<> [[nodiscard]] static vec2f random<vec2f>(const vec2f& min, const vec2f& max)
+	template<> [[nodiscard]] static vec2f random<vec2f>( const vec2f& min, const vec2f& max )
 	{
-		return min + vec2f{ ((float)rand() / RAND_MAX), ((float)rand() / RAND_MAX) } * (max - min);
+		return min + vec2f{ ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ) } *( max - min );
 	}
 
 	/**
@@ -799,9 +849,9 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return random vector
 	*/
-	template<> [[nodiscard]] static vec4f random<vec4f>(const vec4f& min, const vec4f& max)
+	template<> [[nodiscard]] static vec4f random<vec4f>( const vec4f& min, const vec4f& max )
 	{
-		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps((float)RAND_MAX) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
+		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( (float)RAND_MAX ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
 	}
 
 	/**
@@ -811,7 +861,17 @@ namespace Math
 	*/
 	template <typename T> static T randomDirection()
 	{
-		return 1.0f;
+		return rand() / RAND_MAX_FLOAT;
+	}
+
+	/**
+	 * @brief Generates a random 3D rotation
+	 * @tparam T - type of the rotation
+	 * @return random rotation of specified type
+	*/
+	template <typename T> static T randomRotation()
+	{
+		return rand() / RAND_MAX_FLOAT;
 	}
 
 	/**
@@ -820,8 +880,8 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static vec2f randomDirection<vec2f>()
 	{
-		float theta = ((float)rand() / RAND_MAX) * TWO_PI<float>;
-		return { cosf(theta), sinf(theta) };
+		float theta = rand() * RAND_CONVERT_TAU;
+		return { cosf( theta ), sinf( theta ) };
 	}
 
 	/**
@@ -830,36 +890,20 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static vec3f randomDirection<vec3f>()
 	{
-		float alpha = ((float)rand() / RAND_MAX) * TWO_PI<float>;
-		float beta = ((float)rand() / RAND_MAX) * PI<float>;
-		float cosBeta = cosf(beta);
-		return { cosf(alpha) * cosBeta, sinf(alpha) * cosBeta, sinf(beta), 0.0f };
+		float alpha = rand() * RAND_CONVERT_TAU;
+		float beta = rand() * RAND_CONVERT_PI;
+		float cosBeta = cosf( beta );
+		return { cosf( alpha ) * cosBeta, sinf( alpha ) * cosBeta, sinf( beta ), 0.0f };
+	}
+
+	/**
+	 * @brief Generates a random axis angle rotation
+	 * @return random axis angle rotation
+	*/
+	template<> [[nodiscard]] static AxisAngle randomRotation<AxisAngle>()
+	{
+		return randomDirection<vec3f>() * random<float>( 0.0f, Math::TWO_PI<float> );
 	}
 };
-
-namespace Interpolate
-{
-	inline constexpr static VectorInterpolator VECTOR_LINEAR = Math::lerp<vec4f>;
-
-	[[nodiscard]] inline static vec4f VECTOR_BEZIER(const vec4f& a, const vec4f& b, const float t)
-	{
-		return Math::lerp(a, b, 3.0f * (1.0f - t) * t * t + t * t * t);
-	}
-
-	[[nodiscard]] inline static vec4f VECTOR_QUADRATIC(const vec4f& a, const vec4f& b, const float t)
-	{
-		return Math::lerp(a, b, t * t);
-	}
-
-	[[nodiscard]] inline static vec3f DIRECTION_LINEAR(const vec3f& a, const vec3f& b, const float t)
-	{
-		return Math::normalize( Math::lerp( a, b, t ) );
-	}
-
-	[[nodiscard]] inline static vec3f DIRECTION_BEZIER(const vec3f& a, const vec3f& b, const float t)
-	{
-		return Math::normalize( Math::lerp( a, b, 3.0f * (1.0f - t) * t * t + t * t * t ) );
-	}
-}
 
 #endif

@@ -2,7 +2,7 @@
 #ifndef VF_GEOMETRY_HPP
 #define VF_GEOMETRY_HPP
 
-#include "AdvancedMath.hpp"
+#include "MatrixMath.hpp"
 
 // W-coordinate of vector is the sphere's radius
 typedef vec4f Sphere;
@@ -307,9 +307,9 @@ namespace Geometry
 	{
 		vec3f vector = point - e.origin;
 		float dist2 = Math::length2(vector);
-		vec3f direction = vector / Math::uniform::sqrt(dist2);
+		vec3f direction = vector / Math::sqrt( { _mm_set1_ps( dist2 ) } );
 		float radius2 = getSquaredRadius(e, direction);
-		return dist2 >= radius2 ? point : e.origin + direction * Math::uniform::sqrt(radius2);
+		return dist2 >= radius2 ? point : e.origin + direction * Math::sqrt( { _mm_set1_ps( radius2 ) } );
 	}
 
 	static bool intersect_Ellipsoid_Line(const Ellipsoid& e, const vec3f& point)

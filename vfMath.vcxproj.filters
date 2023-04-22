@@ -44,9 +44,6 @@
     <ClInclude Include="include\vfMath\vec2i.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\vfMath\vec3f.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\vfMath\vec4f.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -56,13 +53,7 @@
     <ClInclude Include="include\vfMath\VectorMath.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\vfMath\AdvancedMath.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\vfMath\mat2x2.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\vfMath\mat3x3.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\vfMath\mat4x4.hpp">
@@ -80,9 +71,6 @@
     <ClInclude Include="include\vfMath\EulerMath.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\vfMath\iostream.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\vfMath\Collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -96,9 +84,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\vfMath\Physics.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\vfMath\Transform.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\vfMath\Euler.hpp">
