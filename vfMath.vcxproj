@@ -162,13 +162,11 @@
     <ClInclude Include="include\vfMath\Curves.hpp" />
     <ClInclude Include="include\vfMath\Euler.hpp" />
     <ClInclude Include="include\vfMath\EulerMath.hpp" />
-    <ClInclude Include="include\vfMath\Geometry.hpp" />
     <ClInclude Include="include\vfMath\mat2x2.hpp" />
     <ClInclude Include="include\vfMath\mat4x4.hpp" />
     <ClInclude Include="include\vfMath\Math.hpp" />
     <ClInclude Include="include\vfMath\MatrixMath.hpp" />
     <ClInclude Include="include\vfMath\Perlin.hpp" />
-    <ClInclude Include="include\vfMath\Physics.hpp" />
     <ClInclude Include="include\vfMath\quaternion.hpp" />
     <ClInclude Include="include\vfMath\QuatMath.hpp" />
     <ClInclude Include="include\vfMath\swizzle.hpp" />

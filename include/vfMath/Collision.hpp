@@ -2,7 +2,7 @@
 #ifndef WB_COLLISION_HPP
 #define WB_COLLISION_HPP
 
-#include "Geometry.hpp"
+#include "MatrixMath.hpp"
 #include <vector>
 
 /**

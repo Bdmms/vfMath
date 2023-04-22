@@ -77,13 +77,7 @@
     <ClInclude Include="include\vfMath\Curves.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\vfMath\Geometry.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\vfMath\Perlin.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\vfMath\Physics.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\vfMath\Euler.hpp">

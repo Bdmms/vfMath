@@ -1,5 +1,27 @@
 #include "../include/vfMath/Collision.hpp"
 
+/**
+ * @brief Clamps the UV coordinates to the boundary of a triangle
+ * @param uv - UV coordinates stored in a 2D vector
+ * @return clamped UV coordinates
+*/
+static vec2f clampTriangleUV( const vec2f& uv )
+{
+	vec2f bounded = Math::max( uv, Math::ZERO<vec2f> );
+	return bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
+}
+
+/**
+ * @brief Clamps the UV coordinates to the boundary of a triangle
+ * @param uv - UV coordinates stored in a 4D vector
+ * @return clamped UV coordinates
+*/
+static vec4f clampTriangleUV( const vec4f& uv )
+{
+	vec4f bounded = Math::max( uv, Math::ZERO<vec4f> );
+	return bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
+}
+
 constexpr uint8_t maxIndex(const vec3f& vector)
 {
 	if (vector.x >= vector.y)	return vector.z >= vector.x ? 2u : 0u;
@@ -169,7 +191,7 @@ static void test_Sphere_Triangle( CollisionData& collision, const InstantCollide
 	const vec3f& origin = face.transform.origin;
 
 	// Get UV coordinates of closest point on triangle
-	vec4f clamped = Geometry::clampTriangleUV( face.inverse * xform.origin );
+	vec4f clamped = clampTriangleUV( face.inverse * xform.origin );
 
 	// Calculate distance vs radius
 	collision.position = origin + face.transform.x_axis * clamped.x + face.transform.y_axis * clamped.y;
@@ -228,7 +250,7 @@ static bool intersect_Sphere_Triangle(const InstantCollider& sphere, const Insta
 	const vec3f& origin = face.transform.origin;
 
 	// Get UV coordinates of closest point on triangle
-	vec4f clamped = Geometry::clampTriangleUV(face.inverse * xform.origin);
+	vec4f clamped = clampTriangleUV(face.inverse * xform.origin);
 
 	// Calculate distance vs radius
 	vec3f position = origin + face.transform.x_axis * clamped.x + face.transform.y_axis * clamped.y;
