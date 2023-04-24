@@ -20,8 +20,9 @@ union vec4f
 	struct { float r, g, b, a; };
 
 	// Operators
-	constexpr float operator[]( const unsigned char i ) const { return v[i]; }
-	constexpr float& operator[]( const unsigned char i ) { return v[i]; }
+	constexpr float operator[]( uint32_t i ) const { return v[i]; }
+	constexpr float& operator[]( uint32_t i ) { return v[i]; }
+
 	vec4f& operator+=( const vec4f& b ) noexcept { simd = _mm_add_ps( simd, b.simd ); return *this; }
 	vec4f& operator-=( const vec4f& b ) noexcept { simd = _mm_sub_ps( simd, b.simd ); return *this; }
 	vec4f& operator*=( const vec4f& b ) noexcept { simd = _mm_mul_ps( simd, b.simd ); return *this; }
