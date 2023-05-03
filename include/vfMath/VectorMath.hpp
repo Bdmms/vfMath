@@ -439,6 +439,17 @@ namespace Math
 	}
 
 	/**
+	 * @brief Truncates the vector by a minimum
+	 * @param vector - vector
+	 * @param min - minimum vector
+	 * @return absolute vector
+	*/
+	[[nodiscard]] static vec4i min( const vec4i& vector, const vec4i& min )
+	{
+		return { _mm_min_epi32( vector.simd, min.simd ) };
+	}
+
+	/**
 	 * @brief Truncates the vector by a maximum
 	 * @param vector - vector
 	 * @param max - maximum vector
@@ -459,6 +470,18 @@ namespace Math
 	{
 		return { _mm_max_ps( vector.simd, max.simd ) };
 	}
+
+	/**
+	 * @brief Truncates the vector by a maximum
+	 * @param vector - vector
+	 * @param max - maximum vector
+	 * @return absolute vector
+	*/
+	[[nodiscard]] static vec4i max( const vec4i& vector, const vec4i& max )
+	{
+		return { _mm_max_epi32( vector.simd, max.simd ) };
+	}
+
 
 	/**
 	 * @brief Calculates the square root of a vector

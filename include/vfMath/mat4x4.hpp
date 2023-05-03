@@ -479,4 +479,6 @@ union mat4x4
 #endif
 }
 
+typedef mat4x4 mat4f;
+
 #endif
