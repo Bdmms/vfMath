@@ -934,17 +934,46 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	vec4f origin = unitSpace.inverse * point;
 	vec3f line   = unitSpace.inverse * ( ray * distance );
 
+	// We need to make sure the distance/normal is calculated relative to the unit space
+	bool hit = false;
+	vec3f relNormal;
+	float maxDistance = Math::length( line );
+	float relDistance = maxDistance;
+	line /= maxDistance;
+	
+	// This stores whether the line is moving towards 0.0f or 1.0f across each axis
+	vec3f constant = Math::sign( line );
+	vec3f current = origin;
+	float traveled = 0.0f;
+	
+	// Keep going until it reaches the end of the line
+	while( traveled <= maxDistance )
+	{
+		// Get the current unit index
+		vec3f unitf = Math::floor( current );
+		vec3i unitIdx = vec3i( unitf );
+		size_t idx = unitIdx.u_x + ( ( unitIdx.u_y + ( unitIdx.u_z * dimensions.u_y ) ) * dimensions.u_x );
+
+		if( idx < length )
+		{
+			// Execute collision test
+			hit |= units[idx].rayCast( origin, line, relDistance, relNormal );
+		}
+
+		// Find the closest unit to increment to
+		vec3f distance = ( constant - ( current - unitf ) ) / line;
+		float t = std::min( distance.x, std::min( distance.y, distance.z ) );
+		traveled += t;
+		current += line * t;
+	}
+
+
+	/*
 	// Compute the bounding box of the line
 	// TODO: This isn't optimal, it should step through each unit it intersects and return the first unit with a hit
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( Math::min( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
 	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  Math::max( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
 	
-	// We need to make sure the distance/normal is calculated relative to the unit space
-	bool hit = false;
-	vec3f relNormal;
-	float relDistance = Math::length( line );
-	line /= relDistance;
-
 	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
 	{
 		size_t iz = idx.u_z * dimensions.u_y;
@@ -957,6 +986,7 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 			}
 		}
 	}
+	*/
 
 	if( hit )
 	{

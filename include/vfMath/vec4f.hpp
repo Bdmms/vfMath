@@ -63,6 +63,8 @@ union vec4f
 [[nodiscard]] static vec4f operator%( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_fmod_ps( _mm_set1_ps( a ), b.simd ) ); }
 
 // Comparators
+//[[nodiscard]] static vec4f operator==( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpeq_ps( a.simd, b.simd ) ); }
+//[[nodiscard]] static vec4f operator!=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpneq_ps( a.simd, b.simd ) ); }
 [[nodiscard]] static vec4f operator>=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpge_ps( a.simd, b.simd ) ); }
 [[nodiscard]] static vec4f operator<=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmple_ps( a.simd, b.simd ) ); }
 [[nodiscard]] static vec4f operator>( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpgt_ps( a.simd, b.simd ) ); }
