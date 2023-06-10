@@ -400,6 +400,7 @@ struct CollisionUnit
 	std::vector<CollisionFace> faces;
 
 	void collision( TransformSpace& relative ) const;
+	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
 };
 
 struct CollisionLattice
@@ -456,7 +457,9 @@ struct CollisionLattice
 	}
 
 	void addTriangle( const TransformSpace& triangle );
+
 	void collision( TransformSpace& sphere ) const;
+	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
 
 	constexpr const CollisionUnit& getUnit( const vec4i& idx ) const
 	{
@@ -500,13 +503,42 @@ struct CollisionLattice
 	}
 };
 
+struct CollisionMesh
+{
+	TransformSpace bounds;
+	Bounds<vec3f> aabb;
+	std::vector<CollisionFace> faces;
+
+	CollisionMesh( const mat4f& transform ) :
+		bounds{ transform, transform.inverse() },
+		aabb( Math::Box::calculateAABB( transform ) )
+	{
+
+	}
+
+	CollisionMesh( const mat4f& transform, const CollisionFace* faceArr, size_t numFaces ) :
+		bounds{ transform, transform.inverse() },
+		aabb( Math::Box::calculateAABB( transform ) )
+	{
+		faces.reserve( numFaces );
+		for( size_t i = 0LLU; i < numFaces; ++i )
+		{
+			faces.emplace_back( bounds.inverse * faceArr[i].transform, faceArr[i].inverse * bounds.transform );
+		}
+	}
+
+	void collision( TransformSpace& relative ) const;
+};
+
 struct CollisionMap
 {
 	std::vector<CollisionLattice> fields;
+	std::vector<CollisionMesh> meshes;
 
-	const CollisionLattice& add( const MeshCollider& meshCollision, const vec3i& dimensions );
-	const CollisionLattice& add( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
-
+	const CollisionMesh& addMesh( const MeshCollider& meshCollision );
+	const CollisionLattice& addLattice( const MeshCollider& meshCollision, const vec3i& dimensions );
+	const CollisionLattice& addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
+	
 	constexpr const CollisionUnit& getUnit( const vec4i& id ) const
 	{
 		return fields[id.w].getUnit( id );
@@ -515,6 +547,7 @@ struct CollisionMap
 	vec4i getPointID( const vec4f& point ) const;
 
 	void collision( TransformSpace& sphere ) const;
+	const TransformSpace* rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
 };
 
 #endif

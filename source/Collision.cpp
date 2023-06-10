@@ -770,7 +770,13 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 	}
 }
 
-const CollisionLattice& CollisionMap::add( const MeshCollider& meshCollision, const vec3i& dimensions )
+const CollisionMesh& CollisionMap::addMesh( const MeshCollider& meshCollision )
+{
+	mat4x4 bounds = calculateBoundingTransform( meshCollision );
+	return meshes.emplace_back( bounds, meshCollision.faces, meshCollision.numFaces );
+}
+
+const CollisionLattice& CollisionMap::addLattice( const MeshCollider& meshCollision, const vec3i& dimensions )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
 	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
@@ -783,7 +789,7 @@ const CollisionLattice& CollisionMap::add( const MeshCollider& meshCollision, co
 	return field;
 }
 
-const CollisionLattice& CollisionMap::add( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
+const CollisionLattice& CollisionMap::addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
 	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
@@ -829,6 +835,23 @@ void CollisionUnit::collision( TransformSpace& relativeSphere ) const
 	}
 }
 
+void CollisionMesh::collision( TransformSpace& sphere ) const
+{
+	TransformSpace relative = { bounds.inverse * sphere.transform, sphere.inverse * bounds.transform };
+	vec4f startOrigin = relative.transform.origin;
+	vec3f displacement;
+
+	for( const CollisionFace& face : faces )
+	{
+		if( sphereFaceCollision( displacement, relative, face ) )
+		{
+			Math::translate( relative, displacement );
+		}
+	}
+
+	Math::translate( sphere, bounds.transform * ( relative.transform.origin - startOrigin ) );
+}
+
 void CollisionLattice::collision( TransformSpace& sphere ) const
 {
 	TransformSpace relative = { unitSpace.inverse * sphere.transform, sphere.inverse * unitSpace.transform };
@@ -865,4 +888,96 @@ void CollisionMap::collision( TransformSpace& sphere ) const
 			lattice.collision( sphere );
 		}
 	}
+
+	for( const CollisionMesh& mesh : meshes )
+	{
+		if( Math::overlaps( aabb.min, aabb.max, mesh.aabb.min, mesh.aabb.max ) )
+		{
+			mesh.collision( sphere );
+		}
+	}
+}
+
+bool CollisionUnit::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+{
+	bool hit = false;
+
+	for( const CollisionFace& face : faces )
+	{
+		if( Math::dot_3D( face.transform.z_axis, ray ) > 0.0f ) continue;
+
+		float rayDistance = Math::Triangle::rayDistance( face.transform, point, ray );
+		if( rayDistance >= 0.0f && rayDistance <= distance )
+		{
+			distance = rayDistance;
+			normal = face.transform.z_axis;
+			hit = true;
+		}
+	}
+
+	return hit;
+}
+
+bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+{
+	// Convert finite ray into unit space
+	vec4f origin = unitSpace.inverse * point;
+	vec3f line   = unitSpace.inverse * ( ray * distance );
+
+	// Compute the bounding box of the line
+	vec3i minIdx = Math::clamp( vec3i( Math::floor( Math::min( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
+	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  Math::max( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
+	
+	// Only return a valid distance if distance is less than ray length
+	bool hit = false;
+	vec3f relNormal;
+	float relDistance = Math::length( line );
+	line /= relDistance;
+
+	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
+	{
+		size_t iz = idx.u_z * dimensions.u_y;
+		for( idx.y = minIdx.y; idx.y < maxIdx.y; ++idx.y )
+		{
+			size_t iy = ( iz + idx.u_y ) * dimensions.u_x;
+			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
+			{
+				hit |= units[iy + idx.u_x].rayCast( origin, line, relDistance, relNormal );
+			}
+		}
+	}
+
+	if( hit )
+	{
+		// Check that the hit is closer than the current distance
+		float rayDistance = Math::length( unitSpace.transform * ( line * relDistance ) );
+		if( rayDistance <= distance )
+		{
+			distance = rayDistance;
+			normal = Math::normalize( unitSpace.transform * relNormal );
+			return true;
+		}
+	}
+
+	return false;
+}
+
+const TransformSpace* CollisionMap::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+{
+	const TransformSpace* space = nullptr;
+
+	for( const CollisionLattice& lattice : fields )
+	{
+		vec4f origin = lattice.bounds.inverse * point;
+		vec3f line   = lattice.bounds.inverse * ray;
+
+		// Check that the ray intersects with the lattice
+		// Check that the intersection is closer than the last
+		if( Math::Box::rayTest( origin, line ) && lattice.rayCast( point, ray, distance, normal ) )
+		{
+			space = &lattice.bounds;
+		}
+	}
+
+	return space;
 }
