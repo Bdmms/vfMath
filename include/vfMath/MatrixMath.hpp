@@ -335,6 +335,34 @@ namespace Math
 	}
 
 	/**
+	 * @brief Converts rotation matrix to an axis and angle.
+	 * Note: matrix must be a valid rotation matrix
+	 * @param rotation - rotation matrix
+	 * @return Axis angle vector
+	*/
+	[[nodiscard]] static AxisAngle toAxisAngle( const mat4x4& rotation )
+	{
+		vec3f diagonal = 0.5f * vec3f{ rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
+		float angle = acosf( diagonal.x + diagonal.y + diagonal.z - 0.5f );
+
+		return ( vec3f{ rotation.y_axis.z, rotation.z_axis.x, rotation.x_axis.y } - vec3f{ rotation.z_axis.y, rotation.x_axis.z, rotation.y_axis.x } ) * ( angle / ( 2.0f * sinf( angle ) ) );
+	}
+
+	/**
+	 * @brief Converts rotation matrix to a quaternion.
+	 * Note: matrix must be a valid rotation matrix
+	 * @param rotation - rotation matrix
+	 * @return quaternion rotation
+	*/
+	/*[[nodiscard]] static quat toQuat(const mat4x4& rotation)
+	{
+		vec3f diagonal = { rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
+		float c = 0.5f * ( diagonal.x + diagonal.y + diagonal.z - 1.0f );
+
+		return Math::rotationAround<quat>( ( diagonal - vec3f{ c, c, c } ) / ( 1.0f - c ), acosf( c ) );
+	}*/
+
+	/**
 	 * @brief Decomposes an affine transform into its components
 	 * @param matrix - affine transform matrix
 	 * @param position - translation component
@@ -570,6 +598,76 @@ namespace Math
 		return ( b - a ) * t + a;
 #endif
 	}
+
+	static void slerp( mat4x4& result, const mat4x4& a, const mat4x4& b, const float t )
+	{
+		// Calculate rotation between a and b
+		__m128 c0 = _mm_dot3_ps( a.x_axis.simd, b.x_axis.simd, a.y_axis.simd, b.x_axis.simd, a.z_axis.simd, b.x_axis.simd );
+		__m128 c1 = _mm_dot3_ps( a.x_axis.simd, b.y_axis.simd, a.y_axis.simd, b.y_axis.simd, a.z_axis.simd, b.y_axis.simd );
+		__m128 c2 = _mm_dot3_ps( a.x_axis.simd, b.z_axis.simd, a.y_axis.simd, b.z_axis.simd, a.z_axis.simd, b.z_axis.simd );
+
+		// Calculate the axis of rotation
+		__m128 diagonal = _mm_mul_ps( _mm_set1_ps( 0.5f ), _mm_xyzw_ps( c0.m128_f32[0], c1.m128_f32[1], c2.m128_f32[2], 0.0f ) );
+		float angle = acosf( diagonal.m128_f32[0] + diagonal.m128_f32[1] + diagonal.m128_f32[2] - 0.5f );
+		__m128 axis = _mm_div_ps( _mm_sub_ps( _mm_xyzw_ps( c1.m128_f32[2], c2.m128_f32[0], c0.m128_f32[1], 0.0f ), _mm_xyzw_ps( c2.m128_f32[1], c0.m128_f32[2], c1.m128_f32[0], 0.0f ) ), _mm_set1_ps( 2.0f * sinf( angle ) ) );
+
+		float c = cosf( angle * t );
+		__m128 vc = _mm_mul_ps( axis, _mm_set1_ps( 1.0f - c ) );
+		__m128 vs = _mm_mul_ps( axis, _mm_set1_ps( sinf( angle * t ) ) );
+
+		// Create new weighted rotation
+		c0 = _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[0] ), _mm_xyzw_ps( c, vs.m128_f32[2], -vs.m128_f32[1], 0.0f ) );
+		c1 = _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[1] ), _mm_xyzw_ps( -vs.m128_f32[2], c, vs.m128_f32[0], 0.0f ) );
+		c2 = _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[2] ), _mm_xyzw_ps( vs.m128_f32[1], -vs.m128_f32[0], c, 0.0f ) );
+
+		// Apply weighted rotation to a
+		__m128 r0a = _mm_xyzw_ps( a.x_axis.x, a.y_axis.x, a.z_axis.x, 0.0f );
+		__m128 r1a = _mm_xyzw_ps( a.x_axis.y, a.y_axis.y, a.z_axis.y, 0.0f );
+		__m128 r2a = _mm_xyzw_ps( a.x_axis.z, a.y_axis.z, a.z_axis.z, 0.0f );
+
+		result.x_axis.simd = _mm_dot3_ps( r0a, c0, r1a, c0, r2a, c0 );
+		result.y_axis.simd = _mm_dot3_ps( r0a, c1, r1a, c1, r2a, c1 );
+		result.z_axis.simd = _mm_dot3_ps( r0a, c2, r1a, c2, r2a, c2 );
+	}
+
+	/*static void tlerp(mat4x4& result, const mat4x4& a, const mat4x4& b, const float t)
+	{
+		// Calculate transform between a and b
+		__m128 c0 = _mm_dot3_ps( a.x_axis.simd, b.x_axis.simd, a.y_axis.simd, b.x_axis.simd, a.z_axis.simd, b.x_axis.simd );
+		__m128 c1 = _mm_dot3_ps( a.x_axis.simd, b.y_axis.simd, a.y_axis.simd, b.y_axis.simd, a.z_axis.simd, b.y_axis.simd );
+		__m128 c2 = _mm_dot3_ps( a.x_axis.simd, b.z_axis.simd, a.y_axis.simd, b.z_axis.simd, a.z_axis.simd, b.z_axis.simd );
+
+		// Normalize matrix
+		__m128 length = _mm_mag3_ps( c0, c1, c2 );
+		c0 = _mm_div_ps( c0, _mm_set1_ps( length.m128_f32[0] ) );
+		c1 = _mm_div_ps( c1, _mm_set1_ps( length.m128_f32[1] ) );
+		c2 = _mm_div_ps( c2, _mm_set1_ps( length.m128_f32[2] ) );
+
+		// Calculate the axis of rotation
+		__m128 diagonal = _mm_mul_ps( _mm_set1_ps( 0.5f ), _mm_xyzw_ps( c0.m128_f32[0], c1.m128_f32[1], c2.m128_f32[2], 0.0f ) );
+		float angle = acosf( diagonal.m128_f32[0] + diagonal.m128_f32[1] + diagonal.m128_f32[2] - 0.5f );
+		__m128 axis = _mm_div_ps( _mm_sub_ps( _mm_xyzw_ps( c1.m128_f32[2], c2.m128_f32[0], c0.m128_f32[1], 0.0f ), _mm_xyzw_ps( c2.m128_f32[1], c0.m128_f32[2], c1.m128_f32[0], 0.0f ) ), _mm_set1_ps( 2.0f * sinf( angle ) ) );
+
+		float c = cosf( angle * t );
+		__m128 vc = _mm_mul_ps( axis, _mm_set1_ps( 1.0f - c ) );
+		__m128 vs = _mm_mul_ps( axis, _mm_set1_ps( sinf( angle * t ) ) );
+
+		// Create new weighted transform
+		__m128 scale = _mm_fmadd_ps( _mm_sub_ps( length, SIMD_4f_ONES ), _mm_set1_ps( t ), SIMD_4f_ONES );
+		c0 = _mm_mul_ps( _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[0] ), _mm_xyzw_ps( c, vs.m128_f32[2], -vs.m128_f32[1], 0.0f ) ), _mm_set1_ps( scale.m128_f32[0] ) );
+		c1 = _mm_mul_ps( _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[1] ), _mm_xyzw_ps( -vs.m128_f32[2], c, vs.m128_f32[0], 0.0f ) ), _mm_set1_ps( scale.m128_f32[1] ) );
+		c2 = _mm_mul_ps( _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[2] ), _mm_xyzw_ps( vs.m128_f32[1], -vs.m128_f32[0], c, 0.0f ) ), _mm_set1_ps( scale.m128_f32[2] ) );
+
+		// Apply weighted rotation to a
+		__m128 r0a = _mm_xyzw_ps( a.x_axis.x, a.y_axis.x, a.z_axis.x, 0.0f );
+		__m128 r1a = _mm_xyzw_ps( a.x_axis.y, a.y_axis.y, a.z_axis.y, 0.0f );
+		__m128 r2a = _mm_xyzw_ps( a.x_axis.z, a.y_axis.z, a.z_axis.z, 0.0f );
+
+		result.x_axis.simd = _mm_dot3_ps( r0a, c0, r1a, c0, r2a, c0 );
+		result.y_axis.simd = _mm_dot3_ps( r0a, c1, r1a, c1, r2a, c1 );
+		result.z_axis.simd = _mm_dot3_ps( r0a, c2, r1a, c2, r2a, c2 );
+		result.origin.simd = _mm_fmadd_ps( _mm_sub_ps( b.origin.simd, a.origin.simd ), _mm_set1_ps( t ), a.origin.simd );
+	}*/
 
 	/**
 	 * @brief Normalizes the first 3 columns of the matrix. For affine transformations,

@@ -647,11 +647,11 @@ void calculateTriangleBounds( Bounds<vec3f>& bounds, const mat4x4& t )
 
 	__m128 point = _mm_add_ps( t.origin.simd, t.x_axis.simd );
 	bounds.min.simd = _mm_min_ps( bounds.min.simd, point );
-	bounds.min.simd = _mm_max_ps( bounds.min.simd, point );
+	bounds.max.simd = _mm_max_ps( bounds.max.simd, point );
 
 	point = _mm_add_ps( t.origin.simd, t.y_axis.simd );
 	bounds.min.simd = _mm_min_ps( bounds.min.simd, point );
-	bounds.min.simd = _mm_max_ps( bounds.min.simd, point );
+	bounds.max.simd = _mm_max_ps( bounds.max.simd, point );
 }
 
 Bounds<vec3f> Math::Box::calculateAABB( const mat4x4& t )
@@ -744,18 +744,21 @@ mat4x4 calculateBoundingTransform( const std::vector<MeshCollider>& collision )
 	return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, midpoint };
 }
 
-void UniformCollisionField::addTriangle( const TransformSpace& triangle )
+void CollisionLattice::addTriangle( const TransformSpace& triangle )
 {
 	Bounds<vec3f> triangleBounds;
 	TransformSpace relative = { unitSpace.inverse * triangle.transform, triangle.inverse * unitSpace.transform };
-	TransformSpace unit = relative;
+	TransformSpace unit;
+	TransformSpace unitTriangle;
+	unit.transform = Math::create::scale( { 0.5f, 0.5f, 0.5f } );
+	unit.inverse = Math::create::scale( { 2.0f, 2.0f, 2.0f } );
 	
 	calculateTriangleBounds( triangleBounds, relative.transform );
-	vec3f originIdx = relative.transform.origin;
-	vec3f originInv = relative.inverse.origin;
 
-	vec3i minIdx = Math::clamp( vec3i( Math::floor( triangleBounds.min ) ), Math::ZERO<vec3i>, dimensions );
-	vec3i maxIdx = Math::clamp( vec3i( Math::floor( triangleBounds.max ) ) + Math::ONES<vec4i>, Math::ZERO<vec3i>, dimensions );
+	vec3i minIdx = Math::clamp( vec3i( Math::floor( triangleBounds.min ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
+	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  triangleBounds.max ) ), Math::ONES<vec3i>, dimensions );
+	minIdx.w = 0;
+	maxIdx.w = 0;
 
 	// Populate the units with any intersecting face 
 	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
@@ -766,11 +769,13 @@ void UniformCollisionField::addTriangle( const TransformSpace& triangle )
 			size_t iy = ( iz + idx.u_y ) * dimensions.u_x;
 			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
 			{
-				vec3f fIdx = vec3f( idx );
-				unit.transform.origin = originIdx - fIdx;
-				unit.inverse = unit.transform.inverse();
+				unit.transform.origin = vec4f( idx ) + vec4f{ 0.5f, 0.5f, 0.5f, 1.0f };
+				unit.inverse.origin = unit.transform.origin * vec4f{ -2.0f, -2.0f, -2.0f, 1.0f };
 
-				if( Math::Box::triangleTest( unit ) )
+				unitTriangle.transform = unit.inverse * relative.transform;
+				unitTriangle.transform = relative.inverse * unit.transform;
+
+				if( Math::Box::triangleTest( unitTriangle ) )
 				{
 					units[iy + idx.u_x].faces.emplace_back( relative );
 				}
@@ -779,10 +784,10 @@ void UniformCollisionField::addTriangle( const TransformSpace& triangle )
 	}
 }
 
-const UniformCollisionField& CollisionMap::add( const MeshCollider& meshCollision, const vec3i& dimensions )
+const CollisionLattice& CollisionMap::add( const MeshCollider& meshCollision, const vec3i& dimensions )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
-	UniformCollisionField& field = fields.emplace_back( bounds, dimensions );
+	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
 
 	for( const CollisionFace& face : meshCollision )
 	{
@@ -792,14 +797,14 @@ const UniformCollisionField& CollisionMap::add( const MeshCollider& meshCollisio
 	return field;
 }
 
-const UniformCollisionField& CollisionMap::add( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
+const CollisionLattice& CollisionMap::add( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
-	UniformCollisionField& field = fields.emplace_back( bounds, dimensions );
+	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
 
 	for( const MeshCollider& collider : meshCollision )
 	{
-		for( const CollisionFace& face : meshCollision )
+		for( const CollisionFace& face : collider )
 		{
 			field.addTriangle( face );
 		}
@@ -812,7 +817,7 @@ vec4i CollisionMap::getPointID( const vec4f& point ) const
 {
 	for( size_t i = 0; i < fields.size(); ++i )
 	{
-		const UniformCollisionField& field = fields[i];
+		const CollisionLattice& field = fields[i];
 		vec4i index = vec3i( Math::floor( field.unitSpace.inverse * point ) );
 		vec3i cmp = index >= Math::ZERO<vec3i> && index < field.dimensions;
 
@@ -834,7 +839,7 @@ void CollisionUnit::collision( TransformSpace& relativeSphere ) const
 	}
 }
 
-void UniformCollisionField::collision( TransformSpace& sphere ) const
+void CollisionLattice::collision( TransformSpace& sphere ) const
 {
 	TransformSpace relative = { unitSpace.inverse * sphere.transform, sphere.inverse * unitSpace.transform };
 	Bounds<vec3f> aabb = Math::Box::calculateAABB( relative.transform );
@@ -863,7 +868,7 @@ void CollisionMap::collision( TransformSpace& sphere ) const
 {
 	Bounds<vec3f> aabb = Math::Box::calculateAABB( sphere.transform );
 
-	for( const UniformCollisionField& field : fields )
+	for( const CollisionLattice& field : fields )
 	{
 		if( Math::overlaps( aabb.min, aabb.max, field.aabb.min, field.aabb.max ) )
 		{

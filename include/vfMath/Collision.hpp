@@ -404,21 +404,21 @@ struct CollisionUnit
 	void collision( TransformSpace& relative ) const;
 };
 
-struct UniformCollisionField
+struct CollisionLattice
 {
 	TransformSpace bounds;
 	TransformSpace unitSpace;
 	Bounds<vec3f> aabb;
 	vec3i dimensions;
-	size_t size;
+	size_t length;
 	CollisionUnit* units;
 
-	UniformCollisionField( const mat4f& transform, const vec3i& dimensions ) :
+	CollisionLattice( const mat4f& transform, const vec3i& dimensions ) :
 		bounds{ transform, transform.inverse() },
 		dimensions( dimensions ),
 		aabb( Math::Box::calculateAABB( transform ) ),
-		size( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
-		units( new CollisionUnit[size] )
+		length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
+		units( new CollisionUnit[length] )
 	{
 		vec3f unitScale = 2.0f / vec3f( dimensions );
 		mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
@@ -429,30 +429,30 @@ struct UniformCollisionField
 	}
 
 	// Copy Constructor
-	constexpr UniformCollisionField( const UniformCollisionField& copy ) :
+	constexpr CollisionLattice( const CollisionLattice& copy ) :
 		bounds( copy.bounds ),
 		unitSpace( copy.unitSpace ),
 		dimensions( copy.dimensions ),
 		aabb( copy.aabb ),
-		size( copy.size ),
-		units( new CollisionUnit[size] )
+		length( copy.length ),
+		units( new CollisionUnit[length] )
 	{
-		std::copy_n( copy.units, copy.size, units );
+		std::copy_n( copy.units, copy.length, units );
 	}
 
 	// Move Constructor
-	constexpr UniformCollisionField( UniformCollisionField&& copy ) noexcept :
+	constexpr CollisionLattice( CollisionLattice&& copy ) noexcept :
 		bounds( std::move( copy.bounds ) ),
 		unitSpace( std::move( copy.unitSpace ) ),
 		dimensions( std::move( copy.dimensions ) ),
 		aabb( std::move( copy.aabb ) ),
-		size( copy.size ),
+		length( copy.length ),
 		units( std::exchange( copy.units, nullptr ) )
 	{
 
 	}
 
-	constexpr ~UniformCollisionField()
+	constexpr ~CollisionLattice()
 	{
 		if( units ) delete[] units;
 	}
@@ -467,10 +467,19 @@ struct UniformCollisionField
 		return units[size_t( iy + idx.u_x )];
 	}
 
+	constexpr CollisionUnit* data() { return units; }
+	constexpr CollisionUnit* begin() { return units; }
+	constexpr CollisionUnit* end() { return units + length; }
+
+	constexpr const CollisionUnit* data() const { return units; }
+	constexpr const CollisionUnit* begin() const { return units; }
+	constexpr const CollisionUnit* end() const { return units + length; }
+	constexpr size_t size() const { return length; }
+
 	constexpr size_t getMaxTriangleCount() const
 	{
 		size_t maxCount = 0u;
-		for( size_t i = 0; i < size; ++i )
+		for( size_t i = 0; i < length; ++i )
 		{
 			maxCount = std::max( maxCount, units[i].faces.size() );
 		}
@@ -480,20 +489,20 @@ struct UniformCollisionField
 	constexpr size_t getAvgTriangleCount() const
 	{
 		size_t totalCount = 0u;
-		for( size_t i = 0; i < size; ++i )
+		for( size_t i = 0; i < length; ++i )
 		{
 			totalCount += units[i].faces.size();
 		}
-		return totalCount / size;
+		return totalCount / length;
 	}
 };
 
 struct CollisionMap
 {
-	std::vector<UniformCollisionField> fields;
+	std::vector<CollisionLattice> fields;
 
-	const UniformCollisionField& add( const MeshCollider& meshCollision, const vec3i& dimensions );
-	const UniformCollisionField& add( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
+	const CollisionLattice& add( const MeshCollider& meshCollision, const vec3i& dimensions );
+	const CollisionLattice& add( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
 
 	constexpr const CollisionUnit& getUnit( const vec4i& id ) const
 	{
