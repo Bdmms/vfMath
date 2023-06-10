@@ -53,8 +53,6 @@ namespace Math
 	{
 		vec3f rayIntersect( const mat4f& triangle, const vec4f& point, const vec3f& direction );
 		float rayDistance( const mat4f& triangle, const vec4f& point, const vec3f& direction );
-
-		vec3f sphereDisplace( const TransformSpace& sphere, const TransformSpace& triangle );
 	}
 }
 
@@ -486,14 +484,19 @@ struct CollisionLattice
 		return maxCount;
 	}
 
-	constexpr size_t getAvgTriangleCount() const
+	constexpr size_t getTotalTriangleCount() const
 	{
 		size_t totalCount = 0u;
 		for( size_t i = 0; i < length; ++i )
 		{
 			totalCount += units[i].faces.size();
 		}
-		return totalCount / length;
+		return totalCount;
+	}
+
+	constexpr size_t getAvgTriangleCount() const
+	{
+		return getTotalTriangleCount() / length;
 	}
 };
 

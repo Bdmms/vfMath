@@ -604,36 +604,24 @@ bool Math::Box::boxTest( const TransformSpace& box )
 	return overlaps.m128_u32[0] && overlaps.m128_u32[1] && overlaps.m128_u32[2];
 }
 
-vec3f Math::Triangle::sphereDisplace( const TransformSpace& sphere, const TransformSpace& face )
+bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, const TransformSpace& face )
 {
 	vec3f uvs = face.inverse * sphere.transform.origin;
 	vec4f bounded = Math::max( uvs, Math::ZERO<vec4f> );
 	vec4f clamped = bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
-
-	if( clamped.z < 0.0f ) return Math::ZERO<vec3f>;
-
 	mat4x4 relFace = sphere.inverse * face.transform;
-	vec3f compNormal = Math::axis::W<vec4f> - ( relFace.origin + relFace.x_axis * uvs.x + relFace.y_axis * uvs.y );
-	vec3f compCombined = Math::axis::W<vec4f> - ( relFace.origin + relFace.x_axis * clamped.x + relFace.y_axis * clamped.y );
+
+	vec3f compNormal = Math::axis::W<vec4f> -( relFace.origin + relFace.x_axis * uvs.x + relFace.y_axis * uvs.y );
+	vec3f compCombined = Math::axis::W<vec4f> -( relFace.origin + relFace.x_axis * clamped.x + relFace.y_axis * clamped.y );
 	vec3f compSurface = compCombined - compNormal;
 
-	if( Math::length2( compSurface ) > 1.0f ) return Math::ZERO<vec3f>;
+	if( Math::length2( compSurface ) > 1.0f ) return false;
 
 	float x = sqrtf( 1.0f - Math::length2( compSurface ) ) - Math::length( compNormal );
-	return sphere.transform * ( Math::normalize( relFace.z_axis ) * x );
+	displacement = sphere.transform * ( Math::normalize( relFace.z_axis ) * x );
+
+	return Math::dot_3D( compCombined, compCombined ) <= 1.0f;
 }
-
-/*vec3f sphereDisplace2(const mat4x4 sphere, const TransformSpace& face)
-{
-	vec3f uvs = face.inverse * sphere.origin;
-	vec4f bounded = Math::max( uvs, Math::ZERO<vec4f> );
-	vec4f clamped = bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
-
-	if( clamped.z < 0.0f ) return Math::ZERO<vec3f>;
-
-	vec3f displacement = sphere.origin - face.transform.origin;
-
-}*/
 
 
 // ---------------------------
@@ -748,10 +736,8 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 {
 	Bounds<vec3f> triangleBounds;
 	TransformSpace relative = { unitSpace.inverse * triangle.transform, triangle.inverse * unitSpace.transform };
-	TransformSpace unit;
+	TransformSpace unit = { Math::create::scale( { 0.5f, 0.5f, 0.5f } ), Math::create::scale( { 2.0f, 2.0f, 2.0f } ) };
 	TransformSpace unitTriangle;
-	unit.transform = Math::create::scale( { 0.5f, 0.5f, 0.5f } );
-	unit.inverse = Math::create::scale( { 2.0f, 2.0f, 2.0f } );
 	
 	calculateTriangleBounds( triangleBounds, relative.transform );
 
@@ -833,20 +819,24 @@ vec4i CollisionMap::getPointID( const vec4f& point ) const
 
 void CollisionUnit::collision( TransformSpace& relativeSphere ) const
 {
+	vec3f displacement;
 	for( const CollisionFace& face : faces )
 	{
-		Math::translate( relativeSphere, Math::Triangle::sphereDisplace( relativeSphere, face ) );
+		if( sphereFaceCollision( displacement, relativeSphere, face ) )
+		{
+			Math::translate( relativeSphere, displacement );
+		}
 	}
 }
 
 void CollisionLattice::collision( TransformSpace& sphere ) const
 {
 	TransformSpace relative = { unitSpace.inverse * sphere.transform, sphere.inverse * unitSpace.transform };
-	Bounds<vec3f> aabb = Math::Box::calculateAABB( relative.transform );
 	vec4f startOrigin = relative.transform.origin;
 
+	Bounds<vec3f> aabb = Math::Box::calculateAABB( relative.transform );
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( aabb.min ) ), Math::ZERO<vec3i>, dimensions );
-	vec3i maxIdx = Math::clamp( vec3i( Math::floor( aabb.max ) ) + Math::ONES<vec4i>, Math::ZERO<vec3i>, dimensions );
+	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  aabb.max ) ), Math::ZERO<vec3i>, dimensions );
 
 	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
 	{
@@ -868,11 +858,11 @@ void CollisionMap::collision( TransformSpace& sphere ) const
 {
 	Bounds<vec3f> aabb = Math::Box::calculateAABB( sphere.transform );
 
-	for( const CollisionLattice& field : fields )
+	for( const CollisionLattice& lattice : fields )
 	{
-		if( Math::overlaps( aabb.min, aabb.max, field.aabb.min, field.aabb.max ) )
+		if( Math::overlaps( aabb.min, aabb.max, lattice.aabb.min, lattice.aabb.max ) )
 		{
-			field.collision( sphere );
+			lattice.collision( sphere );
 		}
 	}
 }
