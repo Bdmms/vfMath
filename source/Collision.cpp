@@ -770,13 +770,13 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 	}
 }
 
-const CollisionMesh& CollisionMap::addMesh( const MeshCollider& meshCollision )
+CollisionMesh& CollisionMap::addMesh( const MeshCollider& meshCollision )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
 	return meshes.emplace_back( bounds, meshCollision.faces, meshCollision.numFaces );
 }
 
-const CollisionLattice& CollisionMap::addLattice( const MeshCollider& meshCollision, const vec3i& dimensions )
+CollisionLattice& CollisionMap::addLattice( const MeshCollider& meshCollision, const vec3i& dimensions )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
 	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
@@ -789,7 +789,7 @@ const CollisionLattice& CollisionMap::addLattice( const MeshCollider& meshCollis
 	return field;
 }
 
-const CollisionLattice& CollisionMap::addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
+CollisionLattice& CollisionMap::addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
 {
 	mat4x4 bounds = calculateBoundingTransform( meshCollision );
 	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
@@ -821,6 +821,19 @@ vec4i CollisionMap::getPointID( const vec4f& point ) const
 	}
 
 	return Math::NEGATIVE<vec4f>;
+}
+
+void CollisionMap::update()
+{
+	for( CollisionLattice& lattice : fields )
+	{
+		lattice.aabb = Math::Box::calculateAABB( lattice.bounds.transform );
+	}
+
+	for( CollisionMesh& mesh : meshes )
+	{
+		mesh.aabb = Math::Box::calculateAABB( mesh.bounds.transform );
+	}
 }
 
 void CollisionUnit::collision( TransformSpace& relativeSphere ) const
@@ -941,7 +954,7 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	float relDistance = maxDistance;
 	line /= maxDistance;
 	
-	// This stores whether the line is moving towards 0.0f or 1.0f across each axis
+	// This stores whether the line is moving towards -1.0f or 1.0f across each axis
 	vec3f constant = Math::sign( line );
 	vec3f current = origin;
 	float traveled = 0.0f;
@@ -999,6 +1012,46 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	return false;
 }
 
+bool CollisionMesh::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+{
+	// Convert finite ray into mesh space
+	vec4f origin = bounds.inverse * point;
+	vec3f line = bounds.inverse * ( ray * distance );
+
+	if( !Math::Box::rayTest( origin, line ) ) return false;
+	
+	// We need to make sure the distance/normal is calculated relative to the emsh space
+	bool hit = false;
+	float relDistance = Math::length( line );
+	vec3f relNormal;
+	line /= relDistance;
+
+	for( const CollisionFace& face : faces )
+	{
+		// Rays only intersect with front-facing faces
+		if( Math::dot_3D( face.transform.z_axis, line ) > 0.0f ) continue;
+
+		// Check that the distance is postive and less than the current distance
+		float rayDistance = Math::Triangle::rayDistance( face.transform, origin, line );
+		if( rayDistance >= 0.0f && rayDistance <= relDistance )
+		{
+			relDistance = rayDistance;
+			relNormal = face.transform.z_axis;
+			hit = true;
+		}
+	}
+
+	if( hit )
+	{
+		// Convert the distance/normal back into world space
+		distance = Math::length( bounds.transform * ( line * relDistance ) );
+		normal = Math::normalize( bounds.transform * relNormal );
+		return true;
+	}
+
+	return false;
+}
+
 const TransformSpace* CollisionMap::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
 {
 	const TransformSpace* space = nullptr;
@@ -1014,6 +1067,14 @@ const TransformSpace* CollisionMap::rayCast( const vec4f& point, const vec3f& ra
 		if( Math::Box::rayTest( origin, line ) && lattice.rayCast( point, ray, distance, normal ) )
 		{
 			space = &lattice.bounds;
+		}
+	}
+
+	for( const CollisionMesh& mesh : meshes )
+	{
+		if( mesh.rayCast( point, ray, distance, normal ) )
+		{
+			space = &mesh.bounds;
 		}
 	}
 

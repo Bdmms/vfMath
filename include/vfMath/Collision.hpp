@@ -528,6 +528,7 @@ struct CollisionMesh
 	}
 
 	void collision( TransformSpace& relative ) const;
+	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
 };
 
 struct CollisionMap
@@ -535,9 +536,9 @@ struct CollisionMap
 	std::vector<CollisionLattice> fields;
 	std::vector<CollisionMesh> meshes;
 
-	const CollisionMesh& addMesh( const MeshCollider& meshCollision );
-	const CollisionLattice& addLattice( const MeshCollider& meshCollision, const vec3i& dimensions );
-	const CollisionLattice& addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
+	CollisionMesh& addMesh( const MeshCollider& meshCollision );
+	CollisionLattice& addLattice( const MeshCollider& meshCollision, const vec3i& dimensions );
+	CollisionLattice& addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
 	
 	constexpr const CollisionUnit& getUnit( const vec4i& id ) const
 	{
@@ -545,6 +546,8 @@ struct CollisionMap
 	}
 
 	vec4i getPointID( const vec4f& point ) const;
+
+	void update();
 
 	void collision( TransformSpace& sphere ) const;
 	const TransformSpace* rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
