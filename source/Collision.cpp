@@ -828,6 +828,7 @@ void CollisionUnit::collision( TransformSpace& relativeSphere ) const
 	vec3f displacement;
 	for( const CollisionFace& face : faces )
 	{
+		// If sphere intersects face, translate sphere by face displacement
 		if( sphereFaceCollision( displacement, relativeSphere, face ) )
 		{
 			Math::translate( relativeSphere, displacement );
@@ -854,13 +855,16 @@ void CollisionMesh::collision( TransformSpace& sphere ) const
 
 void CollisionLattice::collision( TransformSpace& sphere ) const
 {
+	// Convert the sphere into unit space
 	TransformSpace relative = { unitSpace.inverse * sphere.transform, sphere.inverse * unitSpace.transform };
 	vec4f startOrigin = relative.transform.origin;
 
+	// Compute the bounds of the sphere in unit space
 	Bounds<vec3f> aabb = Math::Box::calculateAABB( relative.transform );
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( aabb.min ) ), Math::ZERO<vec3i>, dimensions );
 	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  aabb.max ) ), Math::ZERO<vec3i>, dimensions );
 
+	// Iterate over the units the sphere overlaps with
 	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
 	{
 		size_t iz = idx.u_z * dimensions.u_y;
@@ -869,18 +873,22 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 			size_t iy = ( iz + idx.u_y ) * dimensions.u_x;
 			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
 			{
+				// Process the collision within the unit
 				units[iy + idx.u_x].collision( relative );
 			}
 		}
 	}
 
+	// Propagate the translation of the collision back into world space
 	Math::translate( sphere, unitSpace.transform * ( relative.transform.origin - startOrigin ) );
 }
 
 void CollisionMap::collision( TransformSpace& sphere ) const
 {
+	// Compute the bounds of the sphere in world space
 	Bounds<vec3f> aabb = Math::Box::calculateAABB( sphere.transform );
 
+	// Check if the bounds overlaps with the collision before performing test
 	for( const CollisionLattice& lattice : fields )
 	{
 		if( Math::overlaps( aabb.min, aabb.max, lattice.aabb.min, lattice.aabb.max ) )
@@ -904,8 +912,10 @@ bool CollisionUnit::rayCast( const vec4f& point, const vec3f& ray, float& distan
 
 	for( const CollisionFace& face : faces )
 	{
+		// Rays only intersect with front-facing faces
 		if( Math::dot_3D( face.transform.z_axis, ray ) > 0.0f ) continue;
 
+		// Check that the distance is postive and less than the current distance
 		float rayDistance = Math::Triangle::rayDistance( face.transform, point, ray );
 		if( rayDistance >= 0.0f && rayDistance <= distance )
 		{
@@ -925,10 +935,11 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	vec3f line   = unitSpace.inverse * ( ray * distance );
 
 	// Compute the bounding box of the line
+	// TODO: This isn't optimal, it should step through each unit it intersects and return the first unit with a hit
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( Math::min( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
 	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  Math::max( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
 	
-	// Only return a valid distance if distance is less than ray length
+	// We need to make sure the distance/normal is calculated relative to the unit space
 	bool hit = false;
 	vec3f relNormal;
 	float relDistance = Math::length( line );
@@ -949,14 +960,10 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 
 	if( hit )
 	{
-		// Check that the hit is closer than the current distance
-		float rayDistance = Math::length( unitSpace.transform * ( line * relDistance ) );
-		if( rayDistance <= distance )
-		{
-			distance = rayDistance;
-			normal = Math::normalize( unitSpace.transform * relNormal );
-			return true;
-		}
+		// Convert the distance/normal back into world space
+		distance = Math::length( unitSpace.transform * ( line * relDistance ) );
+		normal = Math::normalize( unitSpace.transform * relNormal );
+		return true;
 	}
 
 	return false;
@@ -968,6 +975,7 @@ const TransformSpace* CollisionMap::rayCast( const vec4f& point, const vec3f& ra
 
 	for( const CollisionLattice& lattice : fields )
 	{
+		// It's faster to test the collision bounds instead of the AABB
 		vec4f origin = lattice.bounds.inverse * point;
 		vec3f line   = lattice.bounds.inverse * ray;
 
