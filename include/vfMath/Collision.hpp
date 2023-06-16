@@ -29,6 +29,8 @@ struct Bounds
 	T max;
 };
 
+typedef TransformSpace CollisionFace;
+
 namespace Math
 {
 	static void translate( TransformSpace& space, const vec3f& translation )
@@ -37,22 +39,93 @@ namespace Math
 		space.inverse.origin -= space.inverse * translation;
 	}
 
+	static void extend( Bounds<vec3f>& bounds, const CollisionFace& face )
+	{
+		const vec4f& p0 = face.transform.origin;
+		const vec4f p1 = p0 + face.transform.x_axis;
+		const vec4f p2 = p0 + face.transform.y_axis;
+
+		bounds.min = Math::min( bounds.min, p0 );
+		bounds.min = Math::min( bounds.min, p1 );
+		bounds.min = Math::min( bounds.min, p2 );
+		bounds.max = Math::max( bounds.max, p0 );
+		bounds.max = Math::max( bounds.max, p1 );
+		bounds.max = Math::max( bounds.max, p2 );
+	}
+
+	template <typename IterableFaces>
+	static void extend( Bounds<vec3f>& bounds, const IterableFaces& faces )
+	{
+		for( const CollisionFace& face : faces )
+		{
+			extend( bounds, face );
+		}
+	}
+
+	static mat4x4 createBoundingTransform( const Bounds<vec3f>& bounds )
+	{
+		vec3f scale = ( bounds.max - bounds.min ) * 0.5f;
+		vec3f translation = ( bounds.max + bounds.min ) * 0.5f;
+		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
+	}
+
+	static mat4x4 createBoundingInverseTransform( const Bounds<vec3f>& bounds )
+	{
+		vec3f scale = 2.0f / ( bounds.max - bounds.min );
+		vec3f translation = ( bounds.max + bounds.min ) * ( -0.5f * scale );
+		translation.w = 1.0f;
+		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
+	}
+
 	namespace Box
 	{
+		/**
+		 * @brief Calculates the Axis Aligned Bounding Box (AABB) that fits the arbitrary box
+		 * @param transform - transform of the box in the axis aligned space
+		 * @return bounding vector pair that represents the AABB
+		*/
 		Bounds<vec3f> calculateAABB( const mat4f& transform );
 
+		/**
+		 * @brief Tests if the unit cube contains the point.
+		 * @param point - point vector
+		 * @return Whether the point is inside the unit cube
+		*/
 		bool pointTest( const vec4f& point );
-		bool rayTest( const vec4f& point, const vec3f& direction );
-		bool triangleTest( const TransformSpace& triangle );
-		bool boxTest( const TransformSpace& box );
 
-		vec4f rayCast( const vec4f& point, const vec3f& direction );
+		/**
+		 * @brief Tests if the finite ray intersects with the unit cube.
+		 * @param rayOrigin - origin point of the ray
+		 * @param rayVector - displacement vector to the end of the ray
+		 * @return Whether the ray intersects the unit cube
+		*/
+		bool rayTest( const vec4f& rayOrigin, const vec3f& rayVector );
+
+		/**
+		 * @brief Tests if the triangle intersects with the unit cube.
+		 * @param triangle - transform space of triangle
+		 * @return Whether the triangle intersects the unit cube
+		*/
+		bool triangleTest( const TransformSpace& triangle );
+
+		/**
+		 * @brief Tests if the arbitrary box intersects with the unit cube.
+		 * @param box - transform space of box
+		 * @return Whether the box intersects the unit cube
+		*/
+		bool boxTest( const TransformSpace& box );
 	}
 
 	namespace Triangle
 	{
-		vec3f rayIntersect( const mat4f& triangle, const vec4f& point, const vec3f& direction );
-		float rayDistance( const mat4f& triangle, const vec4f& point, const vec3f& direction );
+		/**
+		 * @brief Calculates the intersecting distance of the ray against the triangle.
+		 * @param triangle - transform of triangle
+		 * @param rayOrigin - origin point of the ray
+		 * @param rayVector - displacement vector to the end of the ray
+		 * @return Whether the triangle intersects the unit cube
+		*/
+		float rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector );
 	}
 }
 
@@ -101,44 +174,6 @@ struct Collider
 		: volume(volume), handler(handler), type(type), collisionFlag(0) {}
 };
 
-typedef TransformSpace CollisionFace;
-
-struct MeshCollider : public TransformSpace
-{
-	CollisionFace* faces;
-	size_t numFaces;
-	float surfaceThickness = 0.1f;
-
-	constexpr MeshCollider(const size_t numFaces)
-		: TransformSpace({ Math::IDENTITY<mat4x4>, Math::IDENTITY<mat4x4> }), faces(new CollisionFace[numFaces]), numFaces(numFaces)
-	{
-
-	}
-
-	constexpr MeshCollider( const MeshCollider& copy )
-		: TransformSpace( copy ), faces( new CollisionFace[copy.numFaces] ), numFaces( copy.numFaces )
-	{
-		std::copy(copy.faces, copy.faces + numFaces, faces);
-	}
-
-	constexpr MeshCollider( MeshCollider&& copy ) noexcept
-		: TransformSpace( copy ), faces( std::exchange( copy.faces, nullptr ) ), numFaces( std::exchange( copy.numFaces, 0 ) )
-	{
-
-	}
-
-	~MeshCollider()
-	{
-		if( faces != nullptr )
-			delete[] faces;
-	}
-
-	constexpr CollisionFace* begin() { return faces; }
-	constexpr CollisionFace* end() { return faces + numFaces; }
-	constexpr const CollisionFace* begin() const { return faces; }
-	constexpr const CollisionFace* end() const { return faces + numFaces; }
-};
-
 /**
  * @brief Generalizes handling of collision between colliders of different types
 */
@@ -150,7 +185,7 @@ namespace Collision
 	bool isIntersecting(const Collider& a, const Collider& b);
 	IntersectTest getIntersectTest(const ColliderType a, const ColliderType b);
 
-	MeshCollider createCubeMesh();
+	std::vector<CollisionFace> createCubeMesh();
 }
 
 /**
@@ -162,152 +197,6 @@ struct CollisionLayer
 	virtual const Collider* data() const = 0;
 	virtual size_t size() const = 0;
 };
-
-/**
- * @brief CollisionLayer dedicated for handling collision against mesh colliders
-*/
-class MeshCollisionLayer : public CollisionLayer
-{
-	std::vector<MeshCollider*> meshData;
-	std::vector<TransformSpace> volume;
-	std::vector<Collider> colliders;
-
-public:
-	MeshCollisionLayer(const size_t initCapacity)
-	{
-		volume.reserve(initCapacity);
-		colliders.reserve(initCapacity);
-	}
-
-	/**
-	 * @brief Adds the collider to the layer
-	*/
-	Collider& addCollider(const ColliderType type, CollisionHandler& handler = DEFAULT_COLLISION_HANDLER, const mat4x4& transform = Math::IDENTITY<mat4x4>)
-	{
-		TransformSpace& objVolume = volume.emplace_back(transform, transform.inverse());
-		return colliders.emplace_back(type, objVolume, handler);
-	}
-
-	/**
-	 * @brief Adds the mesh collider to the layer
-	*/
-	void addCollider(MeshCollider& collider)
-	{
-		meshData.emplace_back(&collider);
-	}
-
-	/**
-	 * @brief Performs the test for collisions on this layer
-	*/
-	virtual void executeCollisionTest() override
-	{
-		size_t size = colliders.size();
-		TransformSpace relative;
-		CollisionData collision;
-
-		for ( Collider& collider : colliders )
-		{
-			CollisionTest test = Collision::getCollisionTest( collider.type, ColliderType::Triangle );
-			
-			// Check each face on the mesh
-			for( MeshCollider* mesh : meshData )
-			{
-				MeshCollider& meshCollider = *mesh;
-				collision.parent = mesh;
-				relative.transform = meshCollider.inverse * collider.volume.transform;
-				relative.inverse = meshCollider.transform * collider.volume.inverse;
-
-				// TODO:
-				//relative.inverse = Math::IDENTITY<mat4x4>;
-
-				for ( CollisionFace& face : *mesh )
-				{
-					// Test collision relative to face
-					test( collision, relative, face );
-
-					// Check if the colliders intersect
-					if ( collision.signedDistance <= meshCollider.surfaceThickness )
-					{
-						collider.handler.onCollision( collision, face );
-					}
-				}
-			}
-		}
-	}
-
-	virtual size_t size() const override
-	{
-		return colliders.size();
-	}
-
-	virtual const Collider* data() const override
-	{
-		return colliders.data();
-	}
-};
-
-/*template<ColliderType TypeID>
-class MonoTypeCollisionLayer : public CollisionLayer
-{
-	std::vector<LinearCollider> volume;
-	std::vector<Collider> colliders;
-	CollisionTest collisionTest;
-
-public:
-	MonoTypeCollisionLayer(const size_t initCapacity)
-	{
-		volume.reserve(initCapacity);
-		colliders.reserve(initCapacity);
-		collisionTest = Collision::getCollisionTest(TypeID, TypeID);
-	}
-
-	Collider& addCollider(const mat4x4& transform = Math::IDENTITY<mat4x4>)
-	{
-		LinearCollider& objVolume = volume.emplace_back(transform);
-		return colliders.emplace_back(TypeID, objVolume);
-	}
-
-	virtual void executeCollisionTest() override
-	{
-		size_t size = colliders.size();
-		size_t rsize = size - 1;
-		CollisionData collision;
-
-		for (size_t i = 0; i < rsize; ++i)
-		{
-			Collider& colliderA = colliders[i];
-
-			for (size_t j = i + 1; j < size; ++j)
-			{
-				Collider& colliderB = colliders[j];
-				collisionTest( collision, colliderA.volume, colliderB.volume );
-
-				// Check if the colliders intersect
-				if ( collision.signedDistance <= 0.0f )
-				{
-					// Activate the handlers on each collider
-					colliderA.handler.onCollision( collision, colliderB.volume );
-					colliderB.handler.onCollision( collision, colliderA.volume );
-				}
-			}
-		}
-	}
-
-	virtual size_t size() const override
-	{
-		return colliders.size();
-	}
-
-	virtual const Collider* data() const override
-	{
-		return colliders.data();
-	}
-
-	constexpr LinearCollider* getVolumeBuffer()
-	{
-		return volume.data();
-	}
-};*/
 
 /**
  * @brief A controlled list of colliders that handles internal collisions
@@ -412,20 +301,7 @@ struct CollisionLattice
 	size_t length;
 	CollisionUnit* units;
 
-	CollisionLattice( const mat4f& transform, const vec3i& dimensions ) :
-		bounds{ transform, transform.inverse() },
-		dimensions( dimensions ),
-		aabb( Math::Box::calculateAABB( transform ) ),
-		length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
-		units( new CollisionUnit[length] )
-	{
-		vec3f unitScale = 2.0f / vec3f( dimensions );
-		mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
-		unitSpace.transform = bounds.transform * unitConvert;
-		unitSpace.inverse = unitSpace.transform.inverse();
-
-		unitScale.w = 1.0f;
-	}
+	CollisionLattice( const Bounds<vec3f>& bounds, const vec3i& dimensions );
 
 	// Copy Constructor
 	constexpr CollisionLattice( const CollisionLattice& copy ) :
@@ -509,6 +385,8 @@ struct CollisionMesh
 	Bounds<vec3f> aabb;
 	std::vector<CollisionFace> faces;
 
+	CollisionMesh( const std::vector<CollisionFace>& source );
+
 	CollisionMesh( const mat4f& transform ) :
 		bounds{ transform, transform.inverse() },
 		aabb( Math::Box::calculateAABB( transform ) )
@@ -536,9 +414,9 @@ struct CollisionMap
 	std::vector<CollisionLattice> fields;
 	std::vector<CollisionMesh> meshes;
 
-	CollisionMesh& addMesh( const MeshCollider& meshCollision );
-	CollisionLattice& addLattice( const MeshCollider& meshCollision, const vec3i& dimensions );
-	CollisionLattice& addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions );
+	CollisionMesh& addMesh( const std::vector<CollisionFace>& meshCollision );
+	CollisionLattice& addLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions );
+	CollisionLattice& addLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions );
 	
 	constexpr const CollisionUnit& getUnit( const vec4i& id ) const
 	{

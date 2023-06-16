@@ -310,10 +310,10 @@ CollisionFace* setQuad(CollisionFace* faces, const vec4f& p0, const vec4f& p1, c
 	return faces;
 }
 
-MeshCollider Collision::createCubeMesh()
+std::vector<CollisionFace> Collision::createCubeMesh()
 {
-	MeshCollider collider(12);
-	CollisionFace* ptr = collider.faces;
+	std::vector<CollisionFace> collider(12);
+	CollisionFace* ptr = collider.data();
 
 	ptr = setQuad(ptr, { -1.0f, -1.0f, -1.0f }, { -1.0f,  1.0f, -1.0f }, {  1.0f,  1.0f, -1.0f }, {  1.0f, -1.0f, -1.0f }, false);
 	ptr = setQuad(ptr, { -1.0f, -1.0f,  1.0f }, { -1.0f,  1.0f,  1.0f }, {  1.0f,  1.0f,  1.0f }, {  1.0f, -1.0f,  1.0f }, true);
@@ -463,68 +463,21 @@ vec3f linePlane( const vec4f& planeOrigin, const vec3f& planeNormal, const vec4f
 	};
 }
 
-float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& lineOrigin, const vec3f& lineVector )
+float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector )
 {
-	__m128 displaced = _mm_sub_ps( triangle.origin.simd, lineOrigin.simd );
+	// Calculate the line-plane intersection
+	__m128 displaced = _mm_sub_ps( triangle.origin.simd, rayOrigin.simd );
 	__m128 normal = _mm_cross_ps( triangle.x_axis.simd, triangle.y_axis.simd );
 
 	__m128 product = _mm_dot_ps( normal, displaced,
-		_mm_cross_ps( lineVector.simd, triangle.y_axis.simd ), displaced,
-		_mm_cross_ps( triangle.x_axis.simd, lineVector.simd ), displaced,
-		normal, lineVector.simd );
+		_mm_cross_ps( rayVector.simd, triangle.y_axis.simd ), displaced,
+		_mm_cross_ps( triangle.x_axis.simd, rayVector.simd ), displaced,
+		normal, rayVector.simd );
 
+	// Check that the plane intersection hits the region of the triangle
 	__m128 intersectData = _mm_div_ps( product, _mm_set1_ps( product.m128_f32[3] ) );
 	vec3f& intersection = reinterpret_cast<vec3f&>( intersectData );
 	return intersection.y >= 0.0f && intersection.z >= 0.0f && intersection.y + intersection.z <= 1.0f ? intersection.x : INFINITY;
-}
-
-vec3f Math::Triangle::rayIntersect( const mat4f& triangle, const vec4f& lineOrigin, const vec3f& lineVector )
-{
-	__m128 displaced = _mm_sub_ps( triangle.origin.simd, lineOrigin.simd );
-	__m128 normal = _mm_cross_ps( triangle.x_axis.simd, triangle.y_axis.simd );
-
-	__m128 product = _mm_dot_ps( normal, displaced, 
-		_mm_cross_ps( lineVector.simd, triangle.y_axis.simd ), displaced, 
-		_mm_cross_ps( triangle.x_axis.simd, lineVector.simd ), displaced, 
-		normal, lineVector.simd );
-
-	return { _mm_div_ps( product, _mm_set1_ps( product.m128_f32[3] ) ) };
-}
-
-vec4f Math::Box::rayCast( const vec4f& lineOrigin, const vec3f& lineVector )
-{
-	// Create a sign vector to select the corner of the box
-	__m128 comparison = _mm_cmpge_ps( lineOrigin.simd, SIMD_4f_ZERO );
-	__m128 quadrant = _mm_or_ps( _mm_and_ps( comparison, SIMD_4f_ONES ), _mm_and_ps( _mm_xor_ps( comparison, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) ), SIMD_4f_NEG ) );
-
-	// Calculate the vectors in the mirrored quadrant
-	__m128 direction = _mm_mul_ps( quadrant, lineVector.simd );
-	__m128 displaced = _mm_sub_ps( quadrant, _mm_mul_ps( quadrant, lineOrigin.simd ) );
-
-	// Calculate UV vectors
-	__m128 xProduct = _mm_cross_ps( direction, Math::axis::X<vec3f>.simd );
-	__m128 yProduct = _mm_cross_ps( direction, Math::axis::Y<vec3f>.simd );
-	__m128 zProduct = _mm_cross_ps( direction, Math::axis::Z<vec3f>.simd );
-
-	// Calculate the TUV values for 3 line-plane intersections simultaneously
-	__m128 denominator =         _mm_dot3_ps( SIMD_X_AXIS, direction, SIMD_Y_AXIS, direction, SIMD_Z_AXIS, direction );
-	__m128 tValues = _mm_div_ps( _mm_dot3_ps( SIMD_X_AXIS, displaced, SIMD_Y_AXIS, displaced, SIMD_Z_AXIS, displaced ), denominator );
-	__m128 uValues = _mm_div_ps( _mm_dot3_ps( yProduct,	   displaced, xProduct,    displaced, yProduct,    displaced ), denominator );
-	__m128 vValues = _mm_div_ps( _mm_dot3_ps( zProduct,    displaced, zProduct,    displaced, zProduct,    displaced ), denominator );
-
-	// Check if each intersection is within the bounds
-	__m128 isValid = _mm_and_ps( _mm_cmpge_ps( tValues, SIMD_4f_ZERO ), _mm_and_ps(
-		_mm_and_ps( _mm_cmpge_ps( uValues, SIMD_4f_NEG ), _mm_cmple_ps( uValues, SIMD_4f_ONES ) ), 
-		_mm_and_ps( _mm_cmpge_ps( vValues, SIMD_4f_NEG ), _mm_cmple_ps( vValues, SIMD_4f_ONES ) ) ) );
-
-	// Calculate the minimum t value
-	float t = INFINITY;
-	if( isValid.m128_u32[0] && tValues.m128_f32[0] < t ) t = tValues.m128_f32[0];
-	if( isValid.m128_u32[1] && tValues.m128_f32[1] < t ) t = tValues.m128_f32[1];
-	if( isValid.m128_u32[2] && tValues.m128_f32[2] < t ) t = tValues.m128_f32[2];
-
-	// Calculate the intersecting point
-	return { _mm_add_ps( lineOrigin.simd, _mm_mul_ps( lineVector.simd, _mm_set1_ps( t ) ) ) };
 }
 
 bool Math::Box::pointTest( const vec4f& point )
@@ -533,36 +486,36 @@ bool Math::Box::pointTest( const vec4f& point )
 	return isInside.m128_u32[0] && isInside.m128_u32[1] && isInside.m128_u32[2];
 }
 
-bool Math::Box::rayTest( const vec4f& lineOrigin, const vec3f& lineVector )
+bool Math::Box::rayTest( const vec4f& rayOrigin, const vec3f& rayVector )
 {
-	if( pointTest( lineOrigin ) || pointTest( lineOrigin + lineVector ) ) return true;
+	if( pointTest( rayOrigin ) || pointTest( rayOrigin + rayVector ) ) return true;
 
 	// Create a sign vector to select the corner of the box
-	__m128 comparison = _mm_cmpge_ps( lineOrigin.simd, SIMD_4f_ZERO );
+	__m128 comparison = _mm_cmpge_ps( rayOrigin.simd, SIMD_4f_ZERO );
 	__m128 quadrant = _mm_or_ps( _mm_and_ps( comparison, SIMD_4f_ONES ), _mm_and_ps( _mm_xor_ps( comparison, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) ), SIMD_4f_NEG ) );
 
 	// Calculate the vectors in the mirrored quadrant
-	__m128 direction = _mm_mul_ps( quadrant, lineVector.simd );
-	__m128 displaced = _mm_sub_ps( quadrant, _mm_mul_ps( quadrant, lineOrigin.simd ) );
+	__m128 vector = _mm_mul_ps( quadrant, rayVector.simd );								// l1 - l0
+	__m128 origin = _mm_sub_ps( SIMD_4f_W, _mm_mul_ps( quadrant, rayOrigin.simd ) );	// p0 - l0
 
 	// Calculate UV vectors
-	__m128 xProduct = _mm_cross_ps( direction, Math::axis::X<vec3f>.simd );
-	__m128 yProduct = _mm_cross_ps( direction, Math::axis::Y<vec3f>.simd );
-	__m128 zProduct = _mm_cross_ps( direction, Math::axis::Z<vec3f>.simd );
+	__m128 xProduct = _mm_cross_ps( vector, Math::axis::X<vec3f>.simd );
+	__m128 yProduct = _mm_cross_ps( vector, Math::axis::Y<vec3f>.simd );
+	__m128 zProduct = _mm_cross_ps( vector, Math::axis::Z<vec3f>.simd );
 
 	// Calculate the TUV values for 3 line-plane intersections simultaneously
-	__m128 denominator = _mm_dot3_ps( SIMD_X_AXIS, direction, SIMD_Y_AXIS, direction, SIMD_Z_AXIS, direction );
-	__m128 xIntersect = _mm_div_ps( _mm_dot3_ps( SIMD_X_AXIS, displaced, yProduct, displaced, zProduct, displaced ), denominator );
-	__m128 yIntersect = _mm_div_ps( _mm_dot3_ps( SIMD_Y_AXIS, displaced, xProduct, displaced, zProduct, displaced ), denominator );
-	__m128 zIntersect = _mm_div_ps( _mm_dot3_ps( SIMD_Z_AXIS, displaced, xProduct, displaced, yProduct, displaced ), denominator );
+	__m128 denominator = _mm_dot3_ps( SIMD_X_AXIS, vector, SIMD_Y_AXIS, vector, SIMD_Z_AXIS, vector );
+	__m128 t = _mm_div_ps( _mm_dot3_ps( SIMD_X_AXIS, origin, SIMD_Y_AXIS, origin, SIMD_Z_AXIS, origin ), denominator );
+	__m128 u = _mm_div_ps( _mm_dot3_ps( yProduct, origin, xProduct, origin, xProduct, origin ), denominator );
+	__m128 v = _mm_div_ps( _mm_dot3_ps( zProduct, origin, zProduct, origin, yProduct, origin ), denominator );
 
 	// Check if the intersection is within the correct bounds
-	__m128 minBounds = _mm_xyzw_ps( 0.0f, -1.0f, -1.0f, 0.0f );
 	__m128 isValid = _mm_and_ps( 
-		_mm_and_ps( _mm_cmpge_ps( xIntersect, minBounds ), _mm_cmple_ps( xIntersect, SIMD_4f_ONES ) ), _mm_and_ps(
-		_mm_and_ps( _mm_cmpge_ps( yIntersect, minBounds ), _mm_cmple_ps( yIntersect, SIMD_4f_ONES ) ),
-		_mm_and_ps( _mm_cmpge_ps( zIntersect, minBounds ), _mm_cmple_ps( zIntersect, SIMD_4f_ONES ) ) ) );
+		_mm_and_ps( _mm_cmpge_ps( t, SIMD_4f_ZERO ), _mm_cmple_ps( t, SIMD_4f_ONES ) ), _mm_and_ps(
+		_mm_and_ps( _mm_cmpge_ps( u, SIMD_4f_NEG ), _mm_cmple_ps( u, SIMD_4f_ONES ) ),
+		_mm_and_ps( _mm_cmpge_ps( v, SIMD_4f_NEG ), _mm_cmple_ps( v, SIMD_4f_ONES ) ) ) );
 
+	// Check if either of the 3 faces intersected the ray
 	return isValid.m128_u32[0] || isValid.m128_u32[1] || isValid.m128_u32[2];
 }
 
@@ -681,57 +634,6 @@ Bounds<vec3f> Math::Box::calculateAABB( const mat4x4& t )
 	return bounds;
 }
 
-mat4x4 calculateBoundingTransform( const MeshCollider& rawCollision )
-{
-	vec3f min = Math::MAX<vec3f>;
-	vec3f max = Math::MIN<vec3f>;
-
-	for( const CollisionFace& face : rawCollision )
-	{
-		const vec4f& p0 = face.transform.origin;
-		const vec4f p1 = p0 + face.transform.x_axis;
-		const vec4f p2 = p0 + face.transform.y_axis;
-
-		min = Math::min( min, p0 );
-		min = Math::min( min, p1 );
-		min = Math::min( min, p2 );
-		max = Math::max( max, p0 );
-		max = Math::max( max, p1 );
-		max = Math::max( max, p2 );
-	}
-
-	vec3f midpoint = ( max + min ) / 2.0f;
-	vec3f scale = ( max - min ) / 2.0f;
-	return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, midpoint };
-}
-
-mat4x4 calculateBoundingTransform( const std::vector<MeshCollider>& collision )
-{
-	vec3f min = Math::MAX<vec3f>;
-	vec3f max = Math::MIN<vec3f>;
-
-	for( const MeshCollider& collider : collision )
-	{
-		for( const CollisionFace& face : collider )
-		{
-			const vec4f& p0 = face.transform.origin;
-			const vec4f p1 = p0 + face.transform.x_axis;
-			const vec4f p2 = p0 + face.transform.y_axis;
-
-			min = Math::min( min, p0 );
-			min = Math::min( min, p1 );
-			min = Math::min( min, p2 );
-			max = Math::max( max, p0 );
-			max = Math::max( max, p1 );
-			max = Math::max( max, p2 );
-		}
-	}
-
-	vec3f midpoint = ( max + min ) / 2.0f;
-	vec3f scale = ( max - min ) / 2.0f;
-	return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, midpoint };
-}
-
 void CollisionLattice::addTriangle( const TransformSpace& triangle )
 {
 	Bounds<vec3f> triangleBounds;
@@ -770,16 +672,49 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 	}
 }
 
-CollisionMesh& CollisionMap::addMesh( const MeshCollider& meshCollision )
+CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) : 
+	faces( source.size() ), 
+	aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> }
 {
-	mat4x4 bounds = calculateBoundingTransform( meshCollision );
-	return meshes.emplace_back( bounds, meshCollision.faces, meshCollision.numFaces );
+	Math::extend( aabb, source );
+	bounds.transform = Math::createBoundingTransform( aabb );
+	bounds.inverse = Math::createBoundingInverseTransform( aabb );
+
+	for( size_t i = 0; i < source.size(); ++i )
+	{
+		faces[i].transform = bounds.inverse * source[i].transform;
+		faces[i].inverse = faces[i].transform.inverse();
+	}
 }
 
-CollisionLattice& CollisionMap::addLattice( const MeshCollider& meshCollision, const vec3i& dimensions )
+CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dimensions ) :
+	bounds{ Math::createBoundingTransform( aabb ), Math::createBoundingInverseTransform( aabb ) },
+	dimensions( dimensions ),
+	aabb( aabb ),
+	length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
+	units( new CollisionUnit[length] )
 {
-	mat4x4 bounds = calculateBoundingTransform( meshCollision );
-	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
+	mat4x4 expected = bounds.transform.inverse();
+
+	vec3f unitScale = 2.0f / vec3f( dimensions );
+	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
+	unitSpace.transform = bounds.transform * unitConvert;
+	unitSpace.inverse = unitSpace.transform.inverse();
+
+	unitScale.w = 1.0f;
+}
+
+CollisionMesh& CollisionMap::addMesh( const std::vector<CollisionFace>& meshCollision )
+{
+	return meshes.emplace_back( meshCollision );
+}
+
+CollisionLattice& CollisionMap::addLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions )
+{
+	Bounds<vec3f> aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> };
+	Math::extend( aabb, meshCollision );
+
+	CollisionLattice& field = fields.emplace_back( aabb, dimensions );
 
 	for( const CollisionFace& face : meshCollision )
 	{
@@ -789,12 +724,18 @@ CollisionLattice& CollisionMap::addLattice( const MeshCollider& meshCollision, c
 	return field;
 }
 
-CollisionLattice& CollisionMap::addLattice( const std::vector<MeshCollider>& meshCollision, const vec3i& dimensions )
+CollisionLattice& CollisionMap::addLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions )
 {
-	mat4x4 bounds = calculateBoundingTransform( meshCollision );
-	CollisionLattice& field = fields.emplace_back( bounds, dimensions );
+	Bounds<vec3f> aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> };
 
-	for( const MeshCollider& collider : meshCollision )
+	for( const std::vector<CollisionFace>& collider : meshCollision )
+	{
+		Math::extend( aabb, collider );
+	}
+	
+	CollisionLattice& field = fields.emplace_back( aabb, dimensions );
+
+	for( const std::vector<CollisionFace>& collider : meshCollision )
 	{
 		for( const CollisionFace& face : collider )
 		{
@@ -954,8 +895,10 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	float relDistance = maxDistance;
 	line /= maxDistance;
 	
+	/*
 	// This stores whether the line is moving towards -1.0f or 1.0f across each axis
-	vec3f constant = Math::sign( line );
+	vec3f vectorSign = Math::sign( line );
+	vec3f posLine = vectorSign * line;
 	vec3f current = origin;
 	float traveled = 0.0f;
 	
@@ -963,8 +906,7 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	while( traveled <= maxDistance )
 	{
 		// Get the current unit index
-		vec3f unitf = Math::floor( current );
-		vec3i unitIdx = vec3i( unitf );
+		vec3i unitIdx = vec3i( Math::floor( current ) );
 		size_t idx = unitIdx.u_x + ( ( unitIdx.u_y + ( unitIdx.u_z * dimensions.u_y ) ) * dimensions.u_x );
 
 		if( idx < length )
@@ -974,14 +916,14 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 		}
 
 		// Find the closest unit to increment to
-		vec3f distance = ( constant - ( current - unitf ) ) / line;
+		vec3f distance = ( 1.0f - ( vectorSign * current - Math::floor( vectorSign * current ) ) ) / posLine;
 		float t = std::min( distance.x, std::min( distance.y, distance.z ) );
 		traveled += t;
 		current += line * t;
 	}
-
-
-	/*
+	*/
+	
+	
 	// Compute the bounding box of the line
 	// TODO: This isn't optimal, it should step through each unit it intersects and return the first unit with a hit
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( Math::min( origin, origin + line ) ) ), Math::ZERO<vec3i>, dimensions );
@@ -999,7 +941,7 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 			}
 		}
 	}
-	*/
+	
 
 	if( hit )
 	{
@@ -1019,13 +961,13 @@ bool CollisionMesh::rayCast( const vec4f& point, const vec3f& ray, float& distan
 	vec3f line = bounds.inverse * ( ray * distance );
 
 	if( !Math::Box::rayTest( origin, line ) ) return false;
-	
-	// We need to make sure the distance/normal is calculated relative to the emsh space
-	bool hit = false;
+
+	// We need to make sure the distance/normal is calculated relative to the mesh space
 	float relDistance = Math::length( line );
-	vec3f relNormal;
 	line /= relDistance;
 
+	bool hit = false;
+	vec3f relNormal;
 	for( const CollisionFace& face : faces )
 	{
 		// Rays only intersect with front-facing faces
