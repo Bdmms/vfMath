@@ -119,6 +119,13 @@ namespace Math
 	namespace Triangle
 	{
 		/**
+		 * @brief Calculates the Axis Aligned Bounding Box (AABB) that fits the triangle
+		 * @param transform - transform of the triangle in the axis aligned space
+		 * @return bounding vector pair that represents the AABB
+		*/
+		Bounds<vec3f> calculateAABB( const mat4f& transform );
+
+		/**
 		 * @brief Calculates the intersecting distance of the ray against the triangle.
 		 * @param triangle - transform of triangle
 		 * @param rayOrigin - origin point of the ray
