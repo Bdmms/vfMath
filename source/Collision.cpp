@@ -919,11 +919,10 @@ bool CollisionMesh::rayCast( const vec4f& point, const vec3f& ray, float& distan
 	if( !Math::Box::rayTest( origin, line ) ) return false;
 
 	// We need to make sure the distance/normal is calculated relative to the mesh space
-	float relDistance = Math::length( line );
-	line /= relDistance;
-
-	bool hit = false;
+	float relDistance = 1.0f;
 	vec3f relNormal;
+	bool hit = false;
+
 	for( const CollisionFace& face : faces )
 	{
 		// Rays only intersect with front-facing faces
@@ -972,29 +971,53 @@ bool CollisionUnit::rayCast( const vec4f& point, const vec3f& ray, float& distan
 	return hit;
 }
 
-bool rayClip( vec4f& rayOrigin, vec3f& rayVector, const vec3f& min, const vec3f& max )
+float rayDistance( const vec4f& rayOrigin, const vec3f& rayVector, const vec3f& min, const vec3f& max )
 {
-	// TODO
+	__m128 isInside = _mm_and_ps( _mm_cmpge_ps( rayOrigin.simd, min.simd ), _mm_cmple_ps( rayOrigin.simd, max.simd ) );
+	if( isInside.m128_u32[0] && isInside.m128_u32[1] && isInside.m128_u32[2] ) return 0.0f;
+
+	vec3f t0 = ( min - rayOrigin ) / rayVector;
+	vec3f t1 = ( max - rayOrigin ) / rayVector;
+
+	float t0min = std::min( t0.x, std::min( t0.y, t0.z ) );
+	float t1min = std::min( t1.x, std::min( t1.y, t1.z ) );
+	float t0max = std::max( t0.x, std::max( t0.y, t0.z ) );
+	float t1max = std::max( t1.x, std::max( t1.y, t1.z ) );
+
+	if( t0min >= 0.0f && t0max <= t1max ) return t0max;
+	return t1min >= 0.0f ? t1max : NAN;
 }
 
 bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
 {
-	// Convert finite ray into unit space
-	vec4f origin = unitSpace.inverse * point;
-	vec3f line   = unitSpace.inverse * ( ray * distance );
+	// It's faster to test the collision bounds instead of the AABB
+	vec4f origin = bounds.inverse * point;
+	vec3f line = bounds.inverse * ( ray * distance );
+	if( !Math::Box::rayTest( origin, line ) ) return false;
 
-	// We need to make sure the distance/normal is calculated relative to the unit space
+	// Convert finite ray into unit space
+	origin = unitSpace.inverse * point;
+	line   = unitSpace.inverse * ( ray * distance );
+
+	// Clip the ray to the bounds of the unit space
+	//float traveled = rayDistance( origin, line, Math::ZERO<vec3f>, vec3f( dimensions ) );
+	//if( isnan( traveled ) ) return false;
+
+	// Note: If traveled is not NAN, then maxDistance cannot be NAN
+	//float maxDistance = relDistance;// -rayDistance( origin + line * relDistance, -line, Math::ZERO<vec3f>, vec3f( dimensions ) );
+
+	float traveled = 0.0f;
+	float maxDistance = 1.0f;
+
+	// Need to make sure the distance/normal is calculated relative to the unit space
 	bool hit = false;
 	vec3f relNormal;
-	float maxDistance = Math::length( line );
-	float relDistance = maxDistance;
-	line /= maxDistance;
+	float relDistance = 1.0f;
 
 	// This stores whether the line is moving in the direction of -1 or 1 across each axis
 	vec3i idxSign = vec3i( Math::sign( line ) );
 	vec3i idxUnit = ( idxSign + Math::ONES<vec3i> ) / 2;
-	vec3i idx = vec3i( Math::floor( origin ) );
-	float traveled = 0.0f;
+	vec3i idx = vec3i( Math::floor( origin + line * traveled ) );
 
 #ifdef VF_DEBUG_RAY_CAST
 	vec3i end = vec3i( Math::floor( origin + line * maxDistance ) );
@@ -1005,7 +1028,6 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	std::cout << "Path:\n";
 #endif
 
-	// TODO: Compute the line that is within unit space boundaries
 	// Keep going until it reaches the end of the line
 	while( traveled <= maxDistance )
 	{
@@ -1021,28 +1043,28 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 
 		// Find the closest unit to increment to
 		vec3f point = origin + line * traveled;
-		vec3f distance = ( vec3f( idx + idxUnit ) - point ) / line;
+		vec3f difference = ( vec3f( idx + idxUnit ) - point ) / line;
 
 #ifdef VF_DEBUG_RAY_CAST
 		std::cout << "distance = " << traveled << "\n";
 		std::cout << idx.x << ", " << idx.y << ", " << idx.z << "\n";
 		std::cout << point.x << ", " << point.y << ", " << point.z << "\n";
-		std::cout << distance.x << ", " << distance.y << ", " << distance.z << "\n";
+		std::cout << difference.x << ", " << difference.y << ", " << difference.z << "\n";
 #endif
 
-		if( distance.x < distance.y && distance.x < distance.z )
+		if( difference.x < difference.y && difference.x < difference.z )
 		{
-			traveled += distance.x;
+			traveled += difference.x;
 			idx.x += idxSign.x;
 		}
-		else if( distance.y < distance.x && distance.y < distance.z )
+		else if( difference.y < difference.x && difference.y < difference.z )
 		{
-			traveled += distance.y;
+			traveled += difference.y;
 			idx.y += idxSign.y;
 		}
 		else
 		{
-			traveled += distance.z;
+			traveled += difference.z;
 			idx.z += idxSign.z;
 		}
 	}
@@ -1064,13 +1086,7 @@ const TransformSpace* CollisionMap::rayCast( const vec4f& point, const vec3f& ra
 
 	for( const CollisionLattice& lattice : fields )
 	{
-		// It's faster to test the collision bounds instead of the AABB
-		vec4f origin = lattice.bounds.inverse * point;
-		vec3f line   = lattice.bounds.inverse * ray;
-
-		// Check that the ray intersects with the lattice
-		// Check that the intersection is closer than the last
-		if( Math::Box::rayTest( origin, line ) && lattice.rayCast( point, ray, distance, normal ) )
+		if( lattice.rayCast( point, ray, distance, normal ) )
 		{
 			space = &lattice.bounds;
 		}
