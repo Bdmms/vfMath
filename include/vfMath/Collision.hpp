@@ -12,16 +12,21 @@
 enum class ColliderType : unsigned char
 {
 	Cube = 0,
-	Sphere = 1,
-	Triangle = 2
+	Sphere = 1
 };
 
+/**
+ * @brief Pair of transform matrices that define transformations into and out of a space.
+*/
 struct TransformSpace
 {
 	mat4x4 transform;
 	mat4x4 inverse;
 };
 
+/**
+ * @brief Pair of values that form a range.
+*/
 template <typename T>
 struct Bounds
 {
@@ -29,16 +34,68 @@ struct Bounds
 	T max;
 };
 
+/**
+ * @brief Source object of the collision
+*/
+struct CollisionObject
+{
+	uint64_t type;
+	void* data;
+};
+
 typedef TransformSpace CollisionFace;
+typedef void ( *CollisionCallback )( const CollisionObject& a, const CollisionObject& b );
+
+/**
+ * @brief Collider containing references to volume and data stored in the collision layer
+*/
+struct Collider
+{
+	TransformSpace bounds;
+	Bounds<vec3f> aabb;
+	ColliderType type;
+};
+
+/**
+ * @brief Binding of collider and its handler 
+*/
+struct CollisionBinding
+{
+	const Collider& collider;
+	CollisionCallback handler;
+	CollisionObject object;
+};
 
 namespace Math
 {
+	/**
+	 * @brief Translates the regular and inverse transforms of the space.
+	 * @param space - transform space
+	 * @param translation - translation vector
+	*/
 	static void translate( TransformSpace& space, const vec3f& translation )
 	{
 		space.transform.origin += translation;
 		space.inverse.origin -= space.inverse * translation;
 	}
 
+	/**
+	 * @brief Tests if two bounds overlap with each other across each axis
+	 * @param a - first bound range
+	 * @param b - second bound range
+	 * @return Whether the boundaries overlap
+	*/
+	template <typename T>
+	static bool overlaps( const Bounds<T>& a, const Bounds<T>& b )
+	{
+		return overlaps( a.min, a.max, b.min, b.max );
+	}
+
+	/**
+	 * @brief Extends the bounds, such that the face is completley inside the bounds.
+	 * @param bounds - bounds range
+	 * @param face - triangle transform
+	*/
 	static void extend( Bounds<vec3f>& bounds, const CollisionFace& face )
 	{
 		const vec4f& p0 = face.transform.origin;
@@ -53,6 +110,11 @@ namespace Math
 		bounds.max = Math::max( bounds.max, p2 );
 	}
 
+	/**
+	 * @brief Extends the bounds, such that all faces are completley inside the bounds.
+	 * @param bounds - bounds range
+	 * @param faces - iterable set of faces
+	*/
 	template <typename IterableFaces>
 	static void extend( Bounds<vec3f>& bounds, const IterableFaces& faces )
 	{
@@ -62,6 +124,11 @@ namespace Math
 		}
 	}
 
+	/*
+	 * @brief Creates a transform matrix that represents the 3-dimensional bounds.
+	 * @param bounds - axis-aligned bound range
+	 * @return transform matrix
+	*/
 	static mat4x4 createBoundingTransform( const Bounds<vec3f>& bounds )
 	{
 		vec3f scale = ( bounds.max - bounds.min ) * 0.5f;
@@ -69,6 +136,11 @@ namespace Math
 		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
 	}
 
+	/*
+	 * @brief Creates an inverse transform matrix that represents the 3-dimensional bounds.
+	 * @param bounds - axis-aligned bound range
+	 * @return inverse transform matrix
+	*/
 	static mat4x4 createBoundingInverseTransform( const Bounds<vec3f>& bounds )
 	{
 		vec3f scale = 2.0f / ( bounds.max - bounds.min );
@@ -116,6 +188,23 @@ namespace Math
 		bool boxTest( const TransformSpace& box );
 	}
 
+	namespace Sphere
+	{
+		/**
+		 * @brief Tests if the arbitrary sphere intersects with the unit sphere.
+		 * @param sphere - transform space of sphere
+		 * @return Whether the sphere intersects the unit sphere
+		*/
+		bool sphereTest( const TransformSpace& sphere );
+
+		/**
+		 * @brief Tests if the arbitrary box intersects with the unit sphere.
+		 * @param box - transform space of box
+		 * @return Whether the box intersects the unit sphere
+		*/
+		bool boxTest( const TransformSpace& box );
+	}
+
 	namespace Triangle
 	{
 		/**
@@ -137,159 +226,12 @@ namespace Math
 }
 
 /**
- * @brief Structure that stores information about the collision
-*/
-struct CollisionData
-{
-	const TransformSpace* parent = nullptr;
-	vec4f position	 = Math::ZERO<vec4f>;
-	vec3f normal	 = Math::ZERO<vec3f>;
-	vec3f recoveryDirection	= Math::ZERO<vec3f>;
-	vec3f displacement = Math::ZERO<vec3f>;
-	float signedDistance = Math::MAX<float>;
-};
-
-typedef void (*CollisionTest) (CollisionData& collision, const TransformSpace& a, const TransformSpace& b);
-typedef bool (*IntersectTest) (const TransformSpace& a, const TransformSpace& b);
-
-/**
- * @brief Interface for object handling collision
-*/
-struct CollisionHandler
-{
-	/**
-	 * @brief Triggered when collision occurs
-	 * @param collision - data relevant to the collision
-	 * @param collider - opposite collider
-	*/
-	virtual void onCollision(const CollisionData& collision, TransformSpace& collider) { }
-};
-
-inline static CollisionHandler DEFAULT_COLLISION_HANDLER;
-
-/**
- * @brief Collider containing references to volume and data stored in the collision layer
-*/
-struct Collider
-{
-	TransformSpace& volume;
-	CollisionHandler& handler;
-	ColliderType type;
-	uint8_t collisionFlag;
-
-	Collider(const ColliderType type, TransformSpace& volume, CollisionHandler& handler = DEFAULT_COLLISION_HANDLER)
-		: volume(volume), handler(handler), type(type), collisionFlag(0) {}
-};
-
-/**
  * @brief Generalizes handling of collision between colliders of different types
 */
 namespace Collision
 {
-	void getCollisionData(CollisionData& collision, const Collider& a, const Collider& b);
-	CollisionTest getCollisionTest(const ColliderType a, const ColliderType b);
-
-	bool isIntersecting(const Collider& a, const Collider& b);
-	IntersectTest getIntersectTest(const ColliderType a, const ColliderType b);
-
 	std::vector<CollisionFace> createCubeMesh();
 }
-
-/**
- * @brief Interface for defining a collision layer
-*/
-struct CollisionLayer
-{
-	virtual void executeCollisionTest() = 0;
-	virtual const Collider* data() const = 0;
-	virtual size_t size() const = 0;
-};
-
-/**
- * @brief A controlled list of colliders that handles internal collisions
-*/
-class MultiTypeCollisionLayer : public CollisionLayer
-{
-	std::vector<TransformSpace> volume;
-	std::vector<Collider> colliders;
-
-public:
-	/**
-	 * @brief 
-	 * @param initCapacity 
-	*/
-	constexpr MultiTypeCollisionLayer() { }
-
-	/**
-	 * @brief 
-	 * @param initCapacity
-	*/
-	constexpr MultiTypeCollisionLayer(const size_t initCapacity)
-	{
-		volume.reserve(initCapacity);
-		colliders.reserve(initCapacity);
-	}
-
-	/**
-	 * @brief Adds the collider to the layer
-	 * @param type
-	 * @param transform
-	*/
-	Collider& addCollider(const ColliderType type, const mat4x4& transform = Math::IDENTITY<mat4x4>, CollisionHandler& handler = DEFAULT_COLLISION_HANDLER)
-	{
-		TransformSpace& objVolume = volume.emplace_back( transform, transform.inverse() );
-		return colliders.emplace_back( type, objVolume, handler );
-	}
-
-	/**
-	 * @brief Performs the test for collisions on this layer
-	*/
-	virtual void executeCollisionTest() override
-	{
-		size_t size = colliders.size();
-		size_t rsize = size - 1;
-		CollisionData collision;
-
-		for (size_t i = 0; i < rsize; ++i)
-		{
-			Collider& colliderA = colliders[i];
-
-			for (size_t j = i + 1; j < size; ++j)
-			{
-				Collider& colliderB = colliders[j];
-				Collision::getCollisionData( collision, colliderA, colliderB );
-
-				// Check if the colliders intersect
-				if ( collision.signedDistance <= 0.0f )
-				{
-					// Activate the handlers on each collider
-					colliderA.handler.onCollision(collision, colliderB.volume);
-					colliderB.handler.onCollision(collision, colliderA.volume);
-				}
-			}
-		}
-	}
-
-	virtual size_t size() const override
-	{
-		return colliders.size();
-	}
-
-	virtual const Collider* data() const override
-	{
-		return colliders.data();
-	}
-
-	constexpr std::vector<Collider>::const_iterator begin() const
-	{
-		return colliders.begin();
-	}
-
-	constexpr std::vector<Collider>::const_iterator end() const
-	{
-		return colliders.end();
-	}
-};
 
 struct CollisionUnit
 {
@@ -436,6 +378,18 @@ struct CollisionMap
 
 	void collision( TransformSpace& sphere ) const;
 	const TransformSpace* rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
+};
+
+struct CollisionLayer
+{
+	std::vector<CollisionBinding> objects;
+
+	constexpr void bind( Collider& collider, CollisionCallback handler, void* source, uint64_t type )
+	{
+		objects.emplace_back( collider, handler, CollisionObject( type, source ) );
+	}
+
+	void testCollision();
 };
 
 #endif
