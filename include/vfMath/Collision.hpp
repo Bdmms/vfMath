@@ -11,8 +11,9 @@
 */
 enum class ColliderType : unsigned char
 {
-	Cube = 0,
-	Sphere = 1
+	AABB = 0,
+	Cube = 1,
+	Sphere = 2
 };
 
 /**
@@ -39,35 +40,17 @@ struct Bounds
 */
 struct CollisionObject
 {
-	uint64_t type;
+	const uint64_t type;
 	void* data;
 };
 
 typedef TransformSpace CollisionFace;
-typedef void ( *CollisionCallback )( const CollisionObject& a, const CollisionObject& b );
-
-/**
- * @brief Collider containing references to volume and data stored in the collision layer
-*/
-struct Collider
-{
-	TransformSpace bounds;
-	Bounds<vec3f> aabb;
-	ColliderType type;
-};
-
-/**
- * @brief Binding of collider and its handler 
-*/
-struct CollisionBinding
-{
-	const Collider& collider;
-	CollisionCallback handler;
-	CollisionObject object;
-};
+typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
 
 namespace Math
 {
+	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject & a, CollisionObject & b ){};
+
 	/**
 	 * @brief Translates the regular and inverse transforms of the space.
 	 * @param space - transform space
@@ -226,6 +209,33 @@ namespace Math
 }
 
 /**
+ * @brief Collider containing references to volume and data stored in the collision layer
+*/
+struct Collider
+{
+	TransformSpace bounds;
+	Bounds<vec3f> aabb;
+	ColliderType type;
+
+	void setTransform( const mat4x4& transform )
+	{
+		bounds.transform = transform;
+		bounds.inverse = transform.inverse();
+		aabb = Math::Box::calculateAABB( transform );
+	}
+};
+
+/**
+ * @brief Binding of collider and its handler
+*/
+struct CollisionBinding
+{
+	const Collider& collider;
+	CollisionCallback handler;
+	CollisionObject object;
+};
+
+/**
  * @brief Generalizes handling of collision between colliders of different types
 */
 namespace Collision
@@ -373,8 +383,6 @@ struct CollisionMap
 	}
 
 	vec4i getPointID( const vec4f& point ) const;
-
-	void update();
 
 	void collision( TransformSpace& sphere ) const;
 	const TransformSpace* rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;

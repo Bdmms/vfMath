@@ -15,7 +15,7 @@ struct CollisionData
 };
 
 typedef void ( *CollisionTest ) ( CollisionData& collision, const TransformSpace& a, const TransformSpace& b );
-typedef bool ( *IntersectTest ) ( const TransformSpace& a, const TransformSpace& b );
+typedef bool ( *IntersectTest ) ( const Collider& a, const Collider& b );
 
 /**
  * @brief Clamps the UV coordinates to the boundary of a triangle
@@ -609,30 +609,40 @@ bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, con
 // --- Intersection Table ---
 // --------------------------
 
-bool intersect_Box_Box( const TransformSpace& a, const TransformSpace& b )
+bool intersect_AABB( const Collider& a, const Collider& b )
 {
-	return Math::Box::boxTest( { a.inverse * b.transform, b.inverse * a.transform } );
+	return Math::overlaps( a.aabb, b.aabb );
 }
 
-bool intersect_Box_Sphere( const TransformSpace& a, const TransformSpace& b )
+bool intersect_Box_Box( const Collider& a, const Collider& b )
 {
-	return Math::Sphere::boxTest( { b.inverse * a.transform, a.inverse * b.transform } );
+	return Math::overlaps( a.aabb, b.aabb ) &&
+		Math::Box::boxTest( { a.bounds.inverse * b.bounds.transform, b.bounds.inverse * a.bounds.transform } );
 }
 
-bool intersect_Sphere_Box( const TransformSpace& a, const TransformSpace& b )
+bool intersect_Box_Sphere( const Collider& a, const Collider& b )
 {
-	return Math::Sphere::boxTest( { a.inverse * b.transform, b.inverse * a.transform } );
+	return Math::overlaps( a.aabb, b.aabb ) &&
+		Math::Sphere::boxTest( { b.bounds.inverse * a.bounds.transform, a.bounds.inverse * b.bounds.transform } );
 }
 
-bool intersect_Sphere_Sphere( const TransformSpace& a, const TransformSpace& b )
+bool intersect_Sphere_Box( const Collider& a, const Collider& b )
 {
-	return Math::Sphere::sphereTest( { a.inverse * b.transform, b.inverse * a.transform } );
+	return Math::overlaps( a.aabb, b.aabb ) &&
+		Math::Sphere::boxTest( { a.bounds.inverse * b.bounds.transform, b.bounds.inverse * a.bounds.transform } );
 }
 
-const IntersectTest intersectionMatrix[2][2]
+bool intersect_Sphere_Sphere( const Collider& a, const Collider& b )
 {
-	{ intersect_Box_Box,	intersect_Box_Sphere },
-	{ intersect_Sphere_Box, intersect_Sphere_Sphere }
+	return Math::overlaps( a.aabb, b.aabb ) &&
+		Math::Sphere::sphereTest( { a.bounds.inverse * b.bounds.transform, b.bounds.inverse * a.bounds.transform } );
+}
+
+const IntersectTest intersectionMatrix[3][3]
+{
+	{ intersect_AABB, intersect_AABB,		intersect_AABB },
+	{ intersect_AABB, intersect_Box_Box,	intersect_Box_Sphere },
+	{ intersect_AABB, intersect_Sphere_Box, intersect_Sphere_Sphere }
 };
 
 // -------------------------
@@ -824,19 +834,6 @@ vec4i CollisionMap::getPointID( const vec4f& point ) const
 	}
 
 	return Math::NEGATIVE<vec4f>;
-}
-
-void CollisionMap::update()
-{
-	for( CollisionLattice& lattice : fields )
-	{
-		lattice.aabb = Math::Box::calculateAABB( lattice.bounds.transform );
-	}
-
-	for( CollisionMesh& mesh : meshes )
-	{
-		mesh.aabb = Math::Box::calculateAABB( mesh.bounds.transform );
-	}
 }
 
 void CollisionUnit::collision( TransformSpace& relativeSphere ) const
@@ -1127,20 +1124,20 @@ void CollisionLayer::testCollision()
 
 	for( size_t i = 0; i < l0; ++i )
 	{
-		const CollisionBinding& a = objects[i];
+		CollisionBinding& a = objects[i];
 		const Collider& colliderA = a.collider;
 		const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
 
 		for( size_t j = i + 1LLU; j < l1; ++j )
 		{
-			const CollisionBinding& b = objects[i];
+			CollisionBinding& b = objects[j];
 			const Collider& colliderB = b.collider;
 			const uint8_t typeB = (uint8_t)b.collider.type;
 			
-			if( Math::overlaps( colliderA.aabb, colliderB.aabb )
-				&& colTest[typeB]( colliderA.bounds, colliderB.bounds ) )
+			if( colTest[typeB]( colliderA, colliderB ) )
 			{
 				a.handler( a.object, b.object );
+				b.handler( b.object, a.object );
 			}
 		}
 	}
