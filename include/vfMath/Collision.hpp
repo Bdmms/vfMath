@@ -57,10 +57,11 @@ struct CollisionObject
 typedef TransformSpace CollisionFace;
 typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
 
+/**
+ * @brief Extension to math utilites for collision checking
+*/
 namespace Math
 {
-	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject & a, CollisionObject & b ){};
-
 	/**
 	 * @brief Translates the regular and inverse transforms of the space.
 	 * @param space - transform space
@@ -219,6 +220,16 @@ namespace Math
 }
 
 /**
+ * @brief Utility dedicated to collision checking
+*/
+namespace Collision
+{
+	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject& a, CollisionObject& b ) {};
+
+	std::vector<CollisionFace> createCubeMesh();
+}
+
+/**
  * @brief Collider containing references to volume and data stored in the collision layer
 */
 struct Collider
@@ -227,11 +238,32 @@ struct Collider
 	Bounds<vec3f> aabb;
 	ColliderType type;
 
+	constexpr Collider() :
+		bounds{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, 
+		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> }, 
+		type( ColliderType::AABB )
+	{
+
+	}
+
+	constexpr Collider( const TransformSpace& bounds, const Bounds<vec3f> aabb, ColliderType type ) :
+		bounds( bounds ),
+		aabb( aabb ),
+		type( type )
+	{
+
+	}
+
 	void setTransform( const mat4x4& transform )
 	{
 		bounds.transform = transform;
 		bounds.inverse = transform.inverse();
 		aabb = Math::Box::calculateAABB( transform );
+	}
+
+	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
+	{
+		return false;
 	}
 };
 
@@ -244,14 +276,6 @@ struct CollisionBinding
 	CollisionCallback handler;
 	CollisionObject object;
 };
-
-/**
- * @brief Generalizes handling of collision between colliders of different types
-*/
-namespace Collision
-{
-	std::vector<CollisionFace> createCubeMesh();
-}
 
 struct CollisionUnit
 {
@@ -282,7 +306,6 @@ struct ColliderSpace : public Collider
 	}
 
 	virtual void collision( TransformSpace& sphere ) const = 0;
-	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const = 0;
 };
 
 struct CollisionLattice : public ColliderSpace
@@ -293,6 +316,8 @@ struct CollisionLattice : public ColliderSpace
 	CollisionUnit* units;
 
 	CollisionLattice( const Bounds<vec3f>& bounds, const vec3i& dimensions );
+	CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions );
+	CollisionLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions );
 
 	// Copy Constructor
 	constexpr CollisionLattice( const CollisionLattice& copy ) : 
@@ -383,26 +408,6 @@ struct CollisionMesh : public ColliderSpace
 	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const override;
 };
 
-struct CollisionMap
-{
-	std::vector<CollisionLattice> fields;
-	std::vector<CollisionMesh> meshes;
-
-	CollisionMesh& addMesh( const std::vector<CollisionFace>& meshCollision );
-	CollisionLattice& addLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions );
-	CollisionLattice& addLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions );
-	
-	constexpr const CollisionUnit& getUnit( const vec4i& id ) const
-	{
-		return fields[id.w].getUnit( id );
-	}
-
-	vec4i getPointID( const vec4f& point ) const;
-
-	void collision( TransformSpace& sphere ) const;
-	bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const;
-};
-
 struct CollisionLayer
 {
 	std::vector<CollisionBinding> objects;
@@ -413,6 +418,7 @@ struct CollisionLayer
 	}
 
 	void testCollision();
+	bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const;
 };
 
 #endif

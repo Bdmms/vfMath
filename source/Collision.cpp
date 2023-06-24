@@ -765,74 +765,61 @@ CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dime
 	length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
 	units( new CollisionUnit[length] )
 {
-	mat4x4 expected = bounds.transform.inverse();
-
 	vec3f unitScale = 2.0f / vec3f( dimensions );
 	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
+	
+	unitSpace.transform = bounds.transform * unitConvert;
+	unitSpace.inverse = unitSpace.transform.inverse();
+}
+
+CollisionLattice::CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions ) :
+	ColliderSpace(),
+	dimensions( dimensions ),
+	length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
+	units( new CollisionUnit[length] )
+{
+	vec3f unitScale = 2.0f / vec3f( dimensions );
+	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
+	
+	Math::extend( aabb, meshCollision );
+
+	bounds.transform = Math::createBoundingTransform( aabb );
+	bounds.inverse = Math::createBoundingInverseTransform( aabb );
 	unitSpace.transform = bounds.transform * unitConvert;
 	unitSpace.inverse = unitSpace.transform.inverse();
 
-	unitScale.w = 1.0f;
-}
-
-CollisionMesh& CollisionMap::addMesh( const std::vector<CollisionFace>& meshCollision )
-{
-	return meshes.emplace_back( meshCollision );
-}
-
-CollisionLattice& CollisionMap::addLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions )
-{
-	Bounds<vec3f> aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> };
-	Math::extend( aabb, meshCollision );
-
-	CollisionLattice& field = fields.emplace_back( aabb, dimensions );
-
 	for( const CollisionFace& face : meshCollision )
 	{
-		field.addTriangle( face );
+		addTriangle( face );
 	}
-
-	return field;
 }
 
-CollisionLattice& CollisionMap::addLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions )
+CollisionLattice::CollisionLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions ) :
+	ColliderSpace(),
+	dimensions( dimensions ),
+	length( size_t( dimensions.x )* size_t( dimensions.y )* size_t( dimensions.z ) ),
+	units( new CollisionUnit[length] )
 {
-	Bounds<vec3f> aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> };
-
+	vec3f unitScale = 2.0f / vec3f( dimensions );
+	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
+	
 	for( const std::vector<CollisionFace>& collider : meshCollision )
 	{
 		Math::extend( aabb, collider );
 	}
-	
-	CollisionLattice& field = fields.emplace_back( aabb, dimensions );
+
+	bounds.transform = Math::createBoundingTransform( aabb );
+	bounds.inverse = Math::createBoundingInverseTransform( aabb );
+	unitSpace.transform = bounds.transform * unitConvert;
+	unitSpace.inverse = unitSpace.transform.inverse();
 
 	for( const std::vector<CollisionFace>& collider : meshCollision )
 	{
 		for( const CollisionFace& face : collider )
 		{
-			field.addTriangle( face );
+			addTriangle( face );
 		}
 	}
-
-	return field;
-}
-
-vec4i CollisionMap::getPointID( const vec4f& point ) const
-{
-	for( size_t i = 0; i < fields.size(); ++i )
-	{
-		const CollisionLattice& field = fields[i];
-		vec4i index = vec3i( Math::floor( field.unitSpace.inverse * point ) );
-		vec3i cmp = index >= Math::ZERO<vec3i> && index < field.dimensions;
-
-		if( cmp.x && cmp.y && cmp.z )
-		{
-			index.w = static_cast<uint32_t>( i );
-			return index;
-		}
-	}
-
-	return Math::NEGATIVE<vec4f>;
 }
 
 void CollisionUnit::collision( TransformSpace& relativeSphere ) const
@@ -893,29 +880,6 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 
 	// Propagate the translation of the collision back into world space
 	Math::translate( sphere, unitSpace.transform * ( relative.transform.origin - startOrigin ) );
-}
-
-void CollisionMap::collision( TransformSpace& sphere ) const
-{
-	// Compute the bounds of the sphere in world space
-	Bounds<vec3f> aabb = Math::Box::calculateAABB( sphere.transform );
-
-	// Check if the bounds overlaps with the collision before performing test
-	for( const CollisionLattice& lattice : fields )
-	{
-		if( Math::overlaps( aabb.min, aabb.max, lattice.aabb.min, lattice.aabb.max ) )
-		{
-			lattice.collision( sphere );
-		}
-	}
-
-	for( const CollisionMesh& mesh : meshes )
-	{
-		if( Math::overlaps( aabb.min, aabb.max, mesh.aabb.min, mesh.aabb.max ) )
-		{
-			mesh.collision( sphere );
-		}
-	}
 }
 
 bool CollisionMesh::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
@@ -1093,31 +1057,6 @@ bool CollisionLattice::rayCast( RayHit& result, const vec4f& point, const vec3f&
 	return false;
 }
 
-bool CollisionMap::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
-{
-	bool hit = false;
-
-	for( const CollisionLattice& lattice : fields )
-	{
-		if( lattice.rayCast( result, point, ray ) )
-		{
-			result.space = &lattice.bounds;
-			hit = true;
-		}
-	}
-
-	for( const CollisionMesh& mesh : meshes )
-	{
-		if( mesh.rayCast( result, point, ray ) )
-		{
-			result.space = &mesh.bounds;
-			hit = true;
-		}
-	}
-
-	return hit;
-}
-
 void CollisionLayer::testCollision()
 {
 	size_t l1 = objects.size();
@@ -1142,4 +1081,20 @@ void CollisionLayer::testCollision()
 			}
 		}
 	}
+}
+
+bool CollisionLayer::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
+{
+	bool hit = false;
+
+	for( const CollisionBinding& object : objects )
+	{
+		if( object.collider.rayCast( result, point, ray ) )
+		{
+			result.space = &object.collider.bounds;
+			hit = true;
+		}
+	}
+
+	return hit;
 }
