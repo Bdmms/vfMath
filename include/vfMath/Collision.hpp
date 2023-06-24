@@ -36,6 +36,16 @@ struct Bounds
 };
 
 /**
+ * @brief Data resulting from a ray intersection
+*/
+struct RayHit
+{
+	const TransformSpace* space;
+	vec3f normal;
+	float distance;
+};
+
+/**
  * @brief Source object of the collision
 */
 struct CollisionObject
@@ -251,11 +261,33 @@ struct CollisionUnit
 	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
 };
 
-struct CollisionLattice
+struct ColliderSpace : public Collider
 {
-	TransformSpace bounds;
+	constexpr ColliderSpace() :
+		Collider{ { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, { Math::MAX<vec3f>, Math::MIN<vec3f> }, ColliderType::AABB }
+	{
+
+	}
+
+	ColliderSpace( const mat4x4& transform ) : 
+		Collider{ { transform, transform.inverse() }, Math::Box::calculateAABB( transform ), ColliderType::AABB }
+	{
+
+	}
+
+	ColliderSpace( const Bounds<vec3f>& aabb ) :
+		Collider{ { Math::createBoundingTransform( aabb ), Math::createBoundingInverseTransform( aabb ) }, aabb, ColliderType::AABB }
+	{
+
+	}
+
+	virtual void collision( TransformSpace& sphere ) const = 0;
+	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const = 0;
+};
+
+struct CollisionLattice : public ColliderSpace
+{
 	TransformSpace unitSpace;
-	Bounds<vec3f> aabb;
 	vec3i dimensions;
 	size_t length;
 	CollisionUnit* units;
@@ -263,11 +295,10 @@ struct CollisionLattice
 	CollisionLattice( const Bounds<vec3f>& bounds, const vec3i& dimensions );
 
 	// Copy Constructor
-	constexpr CollisionLattice( const CollisionLattice& copy ) :
-		bounds( copy.bounds ),
+	constexpr CollisionLattice( const CollisionLattice& copy ) : 
+		ColliderSpace( copy ),
 		unitSpace( copy.unitSpace ),
 		dimensions( copy.dimensions ),
-		aabb( copy.aabb ),
 		length( copy.length ),
 		units( new CollisionUnit[length] )
 	{
@@ -276,10 +307,9 @@ struct CollisionLattice
 
 	// Move Constructor
 	constexpr CollisionLattice( CollisionLattice&& copy ) noexcept :
-		bounds( std::move( copy.bounds ) ),
+		ColliderSpace( copy ),
 		unitSpace( std::move( copy.unitSpace ) ),
 		dimensions( std::move( copy.dimensions ) ),
-		aabb( std::move( copy.aabb ) ),
 		length( copy.length ),
 		units( std::exchange( copy.units, nullptr ) )
 	{
@@ -293,8 +323,8 @@ struct CollisionLattice
 
 	void addTriangle( const TransformSpace& triangle );
 
-	void collision( TransformSpace& sphere ) const;
-	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
+	virtual void collision( TransformSpace& sphere ) const override;
+	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const override;
 
 	constexpr const CollisionUnit& getUnit( const vec4i& idx ) const
 	{
@@ -338,34 +368,19 @@ struct CollisionLattice
 	}
 };
 
-struct CollisionMesh
+struct CollisionMesh : public ColliderSpace
 {
-	TransformSpace bounds;
-	Bounds<vec3f> aabb;
 	std::vector<CollisionFace> faces;
 
 	CollisionMesh( const std::vector<CollisionFace>& source );
 
-	CollisionMesh( const mat4f& transform ) :
-		bounds{ transform, transform.inverse() },
-		aabb( Math::Box::calculateAABB( transform ) )
+	CollisionMesh( const mat4f& transform ) : ColliderSpace( transform )
 	{
 
 	}
 
-	CollisionMesh( const mat4f& transform, const CollisionFace* faceArr, size_t numFaces ) :
-		bounds{ transform, transform.inverse() },
-		aabb( Math::Box::calculateAABB( transform ) )
-	{
-		faces.reserve( numFaces );
-		for( size_t i = 0LLU; i < numFaces; ++i )
-		{
-			faces.emplace_back( bounds.inverse * faceArr[i].transform, faceArr[i].inverse * bounds.transform );
-		}
-	}
-
-	void collision( TransformSpace& relative ) const;
-	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
+	virtual void collision( TransformSpace& relative ) const override;
+	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const override;
 };
 
 struct CollisionMap
@@ -385,7 +400,7 @@ struct CollisionMap
 	vec4i getPointID( const vec4f& point ) const;
 
 	void collision( TransformSpace& sphere ) const;
-	const TransformSpace* rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
+	bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const;
 };
 
 struct CollisionLayer

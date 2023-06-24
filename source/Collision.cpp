@@ -745,8 +745,8 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 }
 
 CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) : 
-	faces( source.size() ), 
-	aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> }
+	ColliderSpace(),
+	faces( source.size() )
 {
 	Math::extend( aabb, source );
 	bounds.transform = Math::createBoundingTransform( aabb );
@@ -760,9 +760,8 @@ CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) :
 }
 
 CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dimensions ) :
-	bounds{ Math::createBoundingTransform( aabb ), Math::createBoundingInverseTransform( aabb ) },
+	ColliderSpace( aabb ),
 	dimensions( dimensions ),
-	aabb( aabb ),
 	length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
 	units( new CollisionUnit[length] )
 {
@@ -919,11 +918,11 @@ void CollisionMap::collision( TransformSpace& sphere ) const
 	}
 }
 
-bool CollisionMesh::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+bool CollisionMesh::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
 {
 	// Convert finite ray into mesh space
 	vec4f origin = bounds.inverse * point;
-	vec3f line = bounds.inverse * ( ray * distance );
+	vec3f line = bounds.inverse * ( ray * result.distance );
 
 	if( !Math::Box::rayTest( origin, line ) ) return false;
 
@@ -950,8 +949,8 @@ bool CollisionMesh::rayCast( const vec4f& point, const vec3f& ray, float& distan
 	if( hit )
 	{
 		// Convert the distance/normal back into world space
-		distance = Math::length( bounds.transform * ( line * relDistance ) );
-		normal = Math::normalize( bounds.transform * relNormal );
+		result.distance = Math::length( bounds.transform * ( line * relDistance ) );
+		result.normal = Math::normalize( bounds.transform * relNormal );
 		return true;
 	}
 
@@ -1005,16 +1004,16 @@ float rayClip( const vec4f& rayOrigin, const vec3f& rayVector, const vec3f& max 
 	return distance;
 }
 
-bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+bool CollisionLattice::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
 {
 	// It's faster to test the collision bounds instead of the AABB
 	vec4f origin = bounds.inverse * point;
-	vec3f line = bounds.inverse * ( ray * distance );
+	vec3f line = bounds.inverse * ( ray * result.distance );
 	if( !Math::Box::rayTest( origin, line ) ) return false;
 
 	// Convert finite ray into unit space
 	origin = unitSpace.inverse * point;
-	line   = unitSpace.inverse * ( ray * distance );
+	line   = unitSpace.inverse * ( ray * result.distance );
 
 	// Clip the ray to the bounds of the unit space
 	// float traveled = rayClip( origin, line, vec3f( dimensions ) );
@@ -1086,35 +1085,37 @@ bool CollisionLattice::rayCast( const vec4f& point, const vec3f& ray, float& dis
 	if( hit )
 	{
 		// Convert the distance/normal back into world space
-		distance = Math::length( unitSpace.transform * ( line * relDistance ) );
-		normal = Math::normalize( unitSpace.transform * relNormal );
+		result.distance = Math::length( unitSpace.transform * ( line * relDistance ) );
+		result.normal = Math::normalize( unitSpace.transform * relNormal );
 		return true;
 	}
 
 	return false;
 }
 
-const TransformSpace* CollisionMap::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+bool CollisionMap::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
 {
-	const TransformSpace* space = nullptr;
+	bool hit = false;
 
 	for( const CollisionLattice& lattice : fields )
 	{
-		if( lattice.rayCast( point, ray, distance, normal ) )
+		if( lattice.rayCast( result, point, ray ) )
 		{
-			space = &lattice.bounds;
+			result.space = &lattice.bounds;
+			hit = true;
 		}
 	}
 
 	for( const CollisionMesh& mesh : meshes )
 	{
-		if( mesh.rayCast( point, ray, distance, normal ) )
+		if( mesh.rayCast( result, point, ray ) )
 		{
-			space = &mesh.bounds;
+			result.space = &mesh.bounds;
+			hit = true;
 		}
 	}
 
-	return space;
+	return hit;
 }
 
 void CollisionLayer::testCollision()
