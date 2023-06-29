@@ -1,6 +1,6 @@
 #include "../include/vfMath/Collision.hpp"
 
-#if defined(VF_DEBUG_TRIANGLE_LATTICE) | defined(VF_DEBUG_RAY_CAST)
+#if defined(VF_DEBUG_TRIANGLE_LATTICE) | defined(VF_RAYCAST_DEBUG)
 #include <iostream>
 #endif
 
@@ -292,7 +292,9 @@ std::vector<CollisionFace> Collision::createCubeMesh()
 // Other Functions
 // ---------------------------
 
+#define _mm_not_ps( v ) _mm_xor_ps( v, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) )
 #define _mm_transform_ps( point, r0, r1, r2, r3 ) _mm_dot_ps( point, r0, point, r1, point, r2, point, r3 )
+#define _mm_condition_ps( cmp, a, b ) _mm_or_ps( _mm_and_ps( cmp, a ), _mm_and_ps( _mm_not_ps( cmp ), b ) )
 #define _mm_overlaps_ps( a, b, x, y ) _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( a, x ), _mm_cmple_ps( a, y ) ), _mm_and_ps( _mm_cmpge_ps( x, a ), _mm_cmple_ps( x, b ) ) );
 
 #define AABB_TRIANGLE( t, min, max )\
@@ -479,6 +481,35 @@ __m128 MIRRORED_AABB_SEPARATION_TEST( const mat4f& t, const __m128& max )
 	return _mm_cmple_ps( bounds, max );
 }
 
+bool Math::AABB::rayTest( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
+{
+	__m128 intersect0 = _mm_div_ps( _mm_sub_ps( min.simd, point.simd ), ray.simd );
+	__m128 intersect1 = _mm_div_ps( _mm_sub_ps( max.simd, point.simd ), ray.simd );
+
+	__m128 tmin = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ZERO, _mm_min_ps( intersect0, intersect1 ) );
+	__m128 tmax = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ONES, _mm_max_ps( intersect0, intersect1 ) );
+	
+	float minBounds = std::max( std::max( tmin.m128_f32[0], tmin.m128_f32[1] ), std::max( tmin.m128_f32[2], 0.0f ) );
+	float maxBounds = std::min( std::min( tmax.m128_f32[0], tmax.m128_f32[1] ), std::min( tmax.m128_f32[2], 1.0f ) );
+
+	return minBounds <= maxBounds;
+}
+
+Bounds<float> Math::AABB::rayBounds( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
+{
+	__m128 intersect0 = _mm_div_ps( _mm_sub_ps( min.simd, point.simd ), ray.simd );
+	__m128 intersect1 = _mm_div_ps( _mm_sub_ps( max.simd, point.simd ), ray.simd );
+
+	__m128 tmin = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ZERO, _mm_min_ps( intersect0, intersect1 ) );
+	__m128 tmax = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ONES, _mm_max_ps( intersect0, intersect1 ) );
+
+	return
+	{
+		std::clamp( std::max( std::max( tmin.m128_f32[0], tmin.m128_f32[1] ), tmin.m128_f32[2] ), 0.0f, 1.0f ),
+		std::clamp( std::min( std::min( tmax.m128_f32[0], tmax.m128_f32[1] ), tmax.m128_f32[2] ), 0.0f, 1.0f )
+	};
+}
+
 float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector )
 {
 	// Calculate the line-plane intersection
@@ -502,9 +533,12 @@ bool Math::Box::pointTest( const vec4f& point )
 	return isInside.m128_u32[0] && isInside.m128_u32[1] && isInside.m128_u32[2];
 }
 
-bool Math::Box::rayTest( const vec4f& rayOrigin, const vec3f& rayVector )
+bool Math::Box::rayTest( const vec4f& origin, const vec3f& ray )
 {
-	if( pointTest( rayOrigin ) || pointTest( rayOrigin + rayVector ) ) return true;
+	return Math::AABB::rayTest( Math::NEGATIVE<vec4f>, Math::ONES<vec4f>, origin, ray );
+
+	// OLD Implementation (TODO: Delete after proving new implementation)
+	/*if( pointTest(rayOrigin) || pointTest(rayOrigin + rayVector) ) return true;
 
 	// Create a sign vector to select the corner of the box
 	__m128 comparison = _mm_cmpge_ps( rayOrigin.simd, SIMD_4f_ZERO );
@@ -532,7 +566,7 @@ bool Math::Box::rayTest( const vec4f& rayOrigin, const vec3f& rayVector )
 		_mm_and_ps( _mm_cmpge_ps( v, SIMD_4f_NEG ), _mm_cmple_ps( v, SIMD_4f_ONES ) ) ) );
 
 	// Check if either of the 3 faces intersected the ray
-	return isValid.m128_u32[0] || isValid.m128_u32[1] || isValid.m128_u32[2];
+	return isValid.m128_u32[0] || isValid.m128_u32[1] || isValid.m128_u32[2];*/
 }
 
 bool Math::Box::triangleTest( const TransformSpace& triangle )
@@ -882,11 +916,11 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 	Math::translate( sphere, unitSpace.transform * ( relative.transform.origin - startOrigin ) );
 }
 
-bool CollisionMesh::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
+bool CollisionMesh::rayCast( RaySensor& ray ) const
 {
 	// Convert finite ray into mesh space
-	vec4f origin = bounds.inverse * point;
-	vec3f line = bounds.inverse * ( ray * result.distance );
+	vec4f origin = bounds.inverse * ray.origin;
+	vec3f line = bounds.inverse * ( ray.direction * ray.distance );
 
 	if( !Math::Box::rayTest( origin, line ) ) return false;
 
@@ -913,8 +947,10 @@ bool CollisionMesh::rayCast( RayHit& result, const vec4f& point, const vec3f& ra
 	if( hit )
 	{
 		// Convert the distance/normal back into world space
-		result.distance = Math::length( bounds.transform * ( line * relDistance ) );
-		result.normal = Math::normalize( bounds.transform * relNormal );
+		ray.normal = Math::normalize( bounds.transform * relNormal );
+		ray.distance = Math::length( bounds.transform * ( line * relDistance ) );
+		ray.space = &bounds;
+		ray.hit = true;
 		return true;
 	}
 
@@ -943,60 +979,30 @@ bool CollisionUnit::rayCast( const vec4f& point, const vec3f& ray, float& distan
 	return hit;
 }
 
-constexpr float CLIP_EPSILON = 1e-6f;
-
-// TODO: Clip correctly in a way that isn't prone to floating point error
-float rayClip( const vec4f& rayOrigin, const vec3f& rayVector, const vec3f& max )
+bool CollisionLattice::rayCast( RaySensor& ray ) const
 {
-	vec3f isInside = rayOrigin >= Math::ZERO<vec3f> && rayOrigin <= max;
-	if( isInside.x && isInside.y && isInside.z ) return 0.0f;
-
-	vec3f t = Math::min( -rayOrigin, max - rayOrigin ) / rayVector;
-
-	vec3f p0 = rayOrigin + rayVector * t.x;
-	vec3f p1 = rayOrigin + rayVector * t.y;
-	vec3f p2 = rayOrigin + rayVector * t.z;
-
-	vec3f c0 = p0 >= Math::ZERO<vec3f> && p0 <= max;
-	vec3f c1 = p1 >= Math::ZERO<vec3f> && p1 <= max;
-	vec3f c2 = p2 >= Math::ZERO<vec3f> && p2 <= max;
-
-	float distance = INFINITY;
-	if( c0.x && c0.y && c0.z ) distance = std::min( distance, t.x + CLIP_EPSILON );
-	if( c1.x && c1.y && c1.z ) distance = std::min( distance, t.y + CLIP_EPSILON );
-	if( c2.x && c2.y && c2.z ) distance = std::min( distance, t.z + CLIP_EPSILON );
-	return distance;
-}
-
-bool CollisionLattice::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
-{
-	// It's faster to test the collision bounds instead of the AABB
-	vec4f origin = bounds.inverse * point;
-	vec3f line = bounds.inverse * ( ray * result.distance );
-	if( !Math::Box::rayTest( origin, line ) ) return false;
-
 	// Convert finite ray into unit space
-	origin = unitSpace.inverse * point;
-	line   = unitSpace.inverse * ( ray * result.distance );
+	vec4f origin = unitSpace.inverse * ray.origin;
+	vec3f line = unitSpace.inverse * ( ray.direction * ray.distance );
 
-	// Clip the ray to the bounds of the unit space
-	// float traveled = rayClip( origin, line, vec3f( dimensions ) );
-	//float maxDistance = 1.0f - rayClip( origin + line, -line, vec3f( dimensions ) );
+	// Clip the ray within along the boundaries of the lattice, exit if the ray is outside the bounds
+	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec3f>, vec3f( dimensions ), origin, line );
+	if( rayClip.min > rayClip.max ) return false;
 
-	float traveled = 0.0f;
-	float maxDistance = 1.0f;
+	// Epsilon fixes a rounding issue when retrieving the unit index
+	float traveled = rayClip.min + Math::EPSILON<float>;
+	float maxDistance = rayClip.max - Math::EPSILON<float>;
 
-	// Need to make sure the distance/normal is calculated relative to the unit space
-	bool hit = false;
+	// Define relative parameters for use when casting rays within the units
 	vec3f relNormal;
-	float relDistance = 1.0f;
+	float relDistance = rayClip.max;
 
 	// This stores whether the line is moving in the direction of -1 or 1 across each axis
 	vec3i idxSign = vec3i( Math::sign( line ) );
 	vec3i idxUnit = ( idxSign + Math::ONES<vec3i> ) / 2;
 	vec3i idx = vec3i( Math::floor( origin + line * traveled ) );
 
-#ifdef VF_DEBUG_RAY_CAST
+#ifdef VF_RAYCAST_DEBUG
 	vec3i end = vec3i( Math::floor( origin + line * maxDistance ) );
 	std::cout << "Bounds:\n";
 	std::cout << idx.x << ", " << idx.y << ", " << idx.z << "\n";
@@ -1008,21 +1014,43 @@ bool CollisionLattice::rayCast( RayHit& result, const vec4f& point, const vec3f&
 	// Keep going until it reaches the end of the line
 	while( traveled <= maxDistance )
 	{
-		// Get the current unit index
+#ifdef VF_RAYCAST_SAFE
+		// Check that the current idx is within bounds
 		vec3i inBounds = ( idx >= Math::ZERO<vec3i> ) & ( idx < dimensions );
 
 		if( inBounds.x && inBounds.y && inBounds.z )
 		{
 			// Execute collision test
 			size_t i = idx.x + ( ( idx.y + ( idx.z * dimensions.y ) ) * dimensions.x );
-			hit |= units[i].rayCast( origin, line, relDistance, relNormal );
+			if( units[i].rayCast( origin, line, relDistance, relNormal ) )
+			{
+				// Convert the distance/normal back into world space
+				ray.normal = Math::normalize( unitSpace.transform * relNormal );
+				ray.distance = Math::length( unitSpace.transform * ( line * relDistance ) );
+				ray.space = &bounds;
+				ray.hit = true;
+				return true;
+			}
 		}
+#else
+		// Assume that the index is in bounds after clipping the ray
+		size_t i = idx.x + ( ( idx.y + ( idx.z * dimensions.y ) ) * dimensions.x );
+		if( units[i].rayCast( origin, line, relDistance, relNormal ) )
+		{
+			// Convert the distance/normal back into world space
+			ray.normal = Math::normalize( unitSpace.transform * relNormal );
+			ray.distance = Math::length( unitSpace.transform * ( line * relDistance ) );
+			ray.space = &bounds;
+			ray.hit = true;
+			return true;
+		}
+#endif
 
 		// Find the closest unit to increment to
 		vec3f point = origin + line * traveled;
 		vec3f difference = ( vec3f( idx + idxUnit ) - point ) / line;
 
-#ifdef VF_DEBUG_RAY_CAST
+#ifdef VF_RAYCAST_DEBUG
 		std::cout << "distance = " << traveled << "\n";
 		std::cout << idx.x << ", " << idx.y << ", " << idx.z << "\n";
 		std::cout << point.x << ", " << point.y << ", " << point.z << "\n";
@@ -1045,14 +1073,6 @@ bool CollisionLattice::rayCast( RayHit& result, const vec4f& point, const vec3f&
 			idx.z += idxSign.z;
 		}
 	}
-	
-	if( hit )
-	{
-		// Convert the distance/normal back into world space
-		result.distance = Math::length( unitSpace.transform * ( line * relDistance ) );
-		result.normal = Math::normalize( unitSpace.transform * relNormal );
-		return true;
-	}
 
 	return false;
 }
@@ -1062,6 +1082,7 @@ void CollisionLayer::testCollision()
 	size_t l1 = objects.size();
 	size_t l0 = l1 - 1LLU;
 
+	// Process the collisions
 	for( size_t i = 0; i < l0; ++i )
 	{
 		CollisionBinding& a = objects[i];
@@ -1081,20 +1102,13 @@ void CollisionLayer::testCollision()
 			}
 		}
 	}
-}
 
-bool CollisionLayer::rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
-{
-	bool hit = false;
-
-	for( const CollisionBinding& object : objects )
+	// Process the sensors after the object may have moved
+	for( RaySensor* sensor : sensors )
 	{
-		if( object.collider.rayCast( result, point, ray ) )
+		for( const CollisionBinding& object : objects )
 		{
-			result.space = &object.collider.bounds;
-			hit = true;
+			object.collider.rayCast( *sensor );
 		}
 	}
-
-	return hit;
 }

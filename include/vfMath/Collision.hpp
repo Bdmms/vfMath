@@ -36,13 +36,16 @@ struct Bounds
 };
 
 /**
- * @brief Data resulting from a ray intersection
+ * @brief Sensor used to retrieve distance along a ray
 */
-struct RayHit
+struct RaySensor
 {
-	const TransformSpace* space;
+	vec4f origin;
+	vec3f direction;
 	vec3f normal;
+	const TransformSpace* space;
 	float distance;
+	bool hit;
 };
 
 /**
@@ -141,6 +144,27 @@ namespace Math
 		vec3f translation = ( bounds.max + bounds.min ) * ( -0.5f * scale );
 		translation.w = 1.0f;
 		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
+	}
+
+	namespace AABB
+	{
+		/**
+		 * @brief Tests if the finite ray intersects with the axis-aligned bounding box.
+		 * @param aabb - axis-aligned bounding box
+		 * @param rayOrigin - origin point of the ray
+		 * @param rayVector - displacement vector to the end of the ray
+		 * @return Whether the ray intersects the unit cube
+		*/
+		bool rayTest( const vec3f& min, const vec3f& max, const vec4f& rayOrigin, const vec3f& rayVector );
+
+		/**
+		 * @brief Calculates the entry and exit distances where the ray intersects with the axis-aligned bounding box.
+		 * @param aabb - axis-aligned bounding box
+		 * @param rayOrigin - origin point of the ray
+		 * @param rayVector - displacement vector to the end of the ray
+		 * @return minimum and maximum values along the ray vector
+		*/
+		Bounds<float> rayBounds( const vec3f& min, const vec3f& max, const vec4f& rayOrigin, const vec3f& rayVector );
 	}
 
 	namespace Box
@@ -261,7 +285,7 @@ struct Collider
 		aabb = Math::Box::calculateAABB( transform );
 	}
 
-	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const
+	virtual bool rayCast( RaySensor& ray ) const
 	{
 		return false;
 	}
@@ -349,7 +373,7 @@ struct CollisionLattice : public ColliderSpace
 	void addTriangle( const TransformSpace& triangle );
 
 	virtual void collision( TransformSpace& sphere ) const override;
-	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const override;
+	virtual bool rayCast( RaySensor& ray ) const override;
 
 	constexpr const CollisionUnit& getUnit( const vec4i& idx ) const
 	{
@@ -405,20 +429,36 @@ struct CollisionMesh : public ColliderSpace
 	}
 
 	virtual void collision( TransformSpace& relative ) const override;
-	virtual bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const override;
+	virtual bool rayCast( RaySensor& ray ) const override;
 };
 
 struct CollisionLayer
 {
 	std::vector<CollisionBinding> objects;
+	std::vector<RaySensor*> sensors;
 
 	constexpr void bind( Collider& collider, CollisionCallback handler, void* source, uint64_t type )
 	{
 		objects.emplace_back( collider, handler, CollisionObject( type, source ) );
 	}
 
+	constexpr void unbind( Collider& collider )
+	{
+		// TODO:
+		// std::erase_if( objects, [ptr = &collider]( CollisionBinding& value ) { return &value.collider == ptr; } );
+	}
+
+	constexpr void addSensor( RaySensor& sensor )
+	{
+		sensors.emplace_back( &sensor );
+	}
+
+	constexpr void removeSensor( RaySensor& sensor )
+	{
+		std::erase_if( sensors, [ptr = &sensor]( RaySensor* value ) { return value == ptr; });
+	}
+
 	void testCollision();
-	bool rayCast( RayHit& result, const vec4f& point, const vec3f& ray ) const;
 };
 
 #endif
