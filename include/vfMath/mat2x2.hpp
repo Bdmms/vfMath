@@ -103,6 +103,6 @@ union mat2x2
 	return mat2x2{ _mm_add_ps( _mm_mul_ps( b0, b1 ), _mm_mul_ps( b2, b3 ) ) };
 }
 
-typedef mat4x4 mat2f;
+typedef mat2x2 mat2f;
 
 #endif

@@ -627,13 +627,15 @@ bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, con
 	vec4f clamped = bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
 	mat4x4 relFace = sphere.inverse * face.transform;
 
-	vec3f compNormal = Math::axis::W<vec4f> -( relFace.origin + relFace.x_axis * uvs.x + relFace.y_axis * uvs.y );
-	vec3f compCombined = Math::axis::W<vec4f> -( relFace.origin + relFace.x_axis * clamped.x + relFace.y_axis * clamped.y );
+	vec3f compNormal = relFace.origin + relFace.x_axis * uvs.x + relFace.y_axis * uvs.y;
+	vec3f compCombined = relFace.origin + relFace.x_axis * clamped.x + relFace.y_axis * clamped.y;
 	vec3f compSurface = compCombined - compNormal;
+	float surfaceDistance2 = Math::dot_3D( compSurface, compSurface );
+	float normalDistance2 = Math::dot_3D( compNormal, compNormal );
+	
+	if( surfaceDistance2 > 1.0f ) return false;
 
-	if( Math::length2( compSurface ) > 1.0f ) return false;
-
-	float x = sqrtf( 1.0f - Math::length2( compSurface ) ) - Math::length( compNormal );
+	float x = sqrtf( 1.0f - surfaceDistance2 ) - sqrtf( normalDistance2 );
 	displacement = sphere.transform * ( Math::normalize( relFace.z_axis ) * x );
 
 	return Math::dot_3D( compCombined, compCombined ) <= 1.0f;
