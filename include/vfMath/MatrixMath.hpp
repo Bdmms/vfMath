@@ -11,20 +11,20 @@
 */
 namespace Math
 {
-	template<> inline constexpr static mat2x2 ZERO<mat2x2> = { 0.f, 0.f, 0.f, 0.f };
-	template<> inline constexpr static mat4x4 ZERO<mat4x4> = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
+	template<> inline constexpr static mat2f ZERO<mat2f> = { 0.f, 0.f, 0.f, 0.f };
+	template<> inline constexpr static mat4f ZERO<mat4f> = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 
-	template<> inline constexpr static mat2x2 ONES<mat2x2> = { 1.f, 1.f, 1.f, 1.f };
-	template<> inline constexpr static mat4x4 ONES<mat4x4> = { 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f };
+	template<> inline constexpr static mat2f ONES<mat2f> = { 1.f, 1.f, 1.f, 1.f };
+	template<> inline constexpr static mat4f ONES<mat4f> = { 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f };
 
-	template<> inline constexpr static mat2x2 IDENTITY<mat2x2> = { 1.f, 0.f, 0.f, 1.f };
-	template<> inline constexpr static mat4x4 IDENTITY<mat4x4> = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
+	template<> inline constexpr static mat2f IDENTITY<mat2f> = { 1.f, 0.f, 0.f, 1.f };
+	template<> inline constexpr static mat4f IDENTITY<mat4f> = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
 
 	/**
 	 * @brief Truncates a 4x4 matrix into a 3x3 matrix
 	 * @param matrix - source matrix
 	*/
-	constexpr mat4x4 cast_mat3x3( const mat4x4& matrix )
+	constexpr mat4f cast_mat3f( const mat4f& matrix )
 	{
 		return { matrix.x_axis, matrix.y_axis, matrix.z_axis, ZERO<vec4f> };
 	}
@@ -34,69 +34,34 @@ namespace Math
 	 * @param dst - destination matrix
 	 * @param src - source matrix
 	*/
-	constexpr void copy_mat3x3( mat4x4& dst, const mat4x4& src )
+	constexpr void copy_mat3f( mat4f& dst, const mat4f& src )
 	{
 		std::copy( src.m, src.m + 12, dst.m );
 	}
 
-	/* TODO: Test if it works
-	static void inverse3x3(mat3x3& dst, const mat3x3& mat)
+	/**
+	 * @brief Inverses the 3x3 matrix of a 4x4 matrix and copies it to another 4x4 matrix.
+	 * @param dst - destination matrix
+	 * @param src - source matrix
+	*/
+	static void inverse_mat3f( mat4f& dst, const mat4f& src )
 	{
-		dst.simd[0] = _mm_sub_ps(_mm_mul_ps(_mm_permute_ps(mat.simd[1], swizzle::YXX), _mm_permute_ps(mat.simd[2], swizzle::ZZY)),
-			_mm_mul_ps(_mm_permute_ps(mat.simd[1], swizzle::ZZY), _mm_permute_ps(mat.simd[2], swizzle::YXX)));
-		dst.simd[1] = _mm_sub_ps(_mm_mul_ps(_mm_permute_ps(mat.simd[0], swizzle::YXX), _mm_permute_ps(mat.simd[2], swizzle::ZZY)),
-			_mm_mul_ps(_mm_permute_ps(mat.simd[0], swizzle::ZZY), _mm_permute_ps(mat.simd[2], swizzle::YXX)));
-		dst.simd[2] = _mm_sub_ps(_mm_mul_ps(_mm_permute_ps(mat.simd[0], swizzle::YXX), _mm_permute_ps(mat.simd[1], swizzle::ZZY)),
-			_mm_mul_ps(_mm_permute_ps(mat.simd[0], swizzle::ZZY), _mm_permute_ps(mat.simd[1], swizzle::YXX)));
-
 		constexpr static __m128 m0 = { 1.0f, -1.0f, 1.0f, 0.0f };
 		constexpr static __m128 m1 = { -1.0f, 1.0f, -1.0f, 0.0f };
-		__m128 det = _mm_set1_ps(Math::dot(mat.col[0], dst.col[0]));
-		dst.simd[0] = _mm_div_ps(_mm_mul_ps(dst.simd[0], m0), det);
-		dst.simd[1] = _mm_div_ps(_mm_mul_ps(dst.simd[1], m1), det);
-		dst.simd[2] = _mm_div_ps(_mm_mul_ps(dst.simd[2], m0), det);
-	}*/
 
-	/**
-	 * @brief Creates a copy of the matrix translated
-	 * @param matrix - source transform
-	 * @param translation - displacement vector
-	 * @return translated transform
-	*/
-	static mat4x4 translate( const mat4x4& matrix, const vec3f& translation )
-	{
-		mat4x4 copy = matrix;
-		copy.origin += translation;
-		return copy;
-	}
+		__m128 adj0 = _mm_mul_ps( m0, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[1], swizzle::YXX ), _mm_permute_ps( src.simd[2], swizzle::ZZY ) ),
+			_mm_mul_ps( _mm_permute_ps( src.simd[1], swizzle::ZZY ), _mm_permute_ps( src.simd[2], swizzle::YXX ) ) ) );
+		__m128 adj1 = _mm_mul_ps( m1, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::YXX ), _mm_permute_ps( src.simd[2], swizzle::ZZY ) ),
+			_mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::ZZY ), _mm_permute_ps( src.simd[2], swizzle::YXX ) ) ) );
+		__m128 adj2 = _mm_mul_ps( m0, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::YXX ), _mm_permute_ps( src.simd[1], swizzle::ZZY ) ),
+			_mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::ZZY ), _mm_permute_ps( src.simd[1], swizzle::YXX ) ) ) );
 
-	/**
-	 * @brief Creates a copy of the matrix scaled around its origin
-	 * @param matrix - source transform
-	 * @param scale - scale vector
-	 * @return scaled transform
-	*/
-	static mat2x2 scale( const mat2x2& matrix, const vec2f scale )
-	{
-		mat2x2 copy = matrix;
-		copy.x_axis *= scale.x;
-		copy.y_axis *= scale.y;
-		return copy;
-	}
+		const __m128& srcC = src.col[0].simd;
 
-	/**
-	 * @brief Creates a copy of the matrix scaled around its origin
-	 * @param matrix - source transform
-	 * @param scale - scale vector
-	 * @return scaled transform
-	*/
-	static mat4x4 scale( const mat4x4& matrix, const vec3f& scale )
-	{
-		mat4x4 copy = matrix;
-		copy.x_axis *= scale.x;
-		copy.y_axis *= scale.y;
-		copy.z_axis *= scale.z;
-		return copy;
+		__m128 det = _mm_set1_ps( srcC.m128_f32[0] * adj0.m128_f32[0] + srcC.m128_f32[1] * adj0.m128_f32[1] + srcC.m128_f32[2] * adj0.m128_f32[2] );
+		dst.simd[0] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::XXX ), det );
+		dst.simd[1] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::YYY ), det );
+		dst.simd[2] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::ZZZ ), det );
 	}
 
 	/**
@@ -104,7 +69,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param translation - translation vector
 	*/
-	constexpr void setTranslation( mat4x4& matrix, const vec3f& translation )
+	constexpr void setTranslation( mat4f& matrix, const vec3f& translation )
 	{
 		matrix.m[12] = translation.x;
 		matrix.m[13] = translation.y;
@@ -114,9 +79,9 @@ namespace Math
 	/**
 	 * @brief Sets the rotation of the matrix
 	 * @param matrix - 2D transform matrix
-	 * @param rotation - rotation angle
+	 * @param rotation - rotation angle [rad]
 	*/
-	static void setRotation( mat2x2& matrix, float rotation )
+	static void setRotation( mat2f& matrix, float rotation )
 	{
 		matrix.m[0] = cosf( rotation );
 		matrix.m[1] = sinf( rotation );
@@ -127,9 +92,9 @@ namespace Math
 	/**
 	 * @brief Sets the rotation of the matrix (Overwrites the 3x3 matrix)
 	 * @param matrix - transform matrix
-	 * @param rotation - euler rotation vector
+	 * @param rotation - euler rotation vector [rad]
 	*/
-	static void setRotation( mat4x4& matrix, const euler& rotation )
+	static void setRotation( mat4f& matrix, const euler& rotation )
 	{
 		vec3f s = Math::sin( rotation );
 		vec3f c = Math::cos( rotation );
@@ -151,7 +116,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	static void setRotation( mat4x4& matrix, const quat& q )
+	static void setRotation( mat4f& matrix, const quat& q )
 	{
 		matrix.m[0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
 		matrix.m[1] = 2.0f * ( q.x * q.y + q.w * q.z );
@@ -167,11 +132,24 @@ namespace Math
 	}
 
 	/**
+	 * @brief Sets the inverse rotation of the matrix
+	 * @param matrix - 2D transform matrix
+	 * @param rotation - rotation angle [rad]
+	*/
+	static void setRotationInverse( mat2f& matrix, float rotation )
+	{
+		matrix.m[0] = cosf( rotation );
+		matrix.m[1] = -matrix.m[1];
+		matrix.m[2] = sinf( rotation );
+		matrix.m[3] = matrix.m[0];
+	}
+
+	/**
 	 * @brief Sets the inverse rotation of the matrix (Overwrites the 3x3 matrix)
 	 * @param matrix - transform matrix
-	 * @param rotation - euler rotation vector
+	 * @param rotation - euler rotation vector [rad]
 	*/
-	static void setRotationInverse( mat4x4& matrix, const euler& rotation )
+	static void setRotationInverse( mat4f& matrix, const euler& rotation )
 	{
 		vec3f s = Math::sin( rotation );
 		vec3f c = Math::cos( rotation );
@@ -193,7 +171,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	constexpr void setRotationInverse( mat4x4& matrix, const quat& q )
+	constexpr void setRotationInverse( mat4f& matrix, const quat& q )
 	{
 		matrix.m[0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
 		matrix.m[4] = 2.0f * ( q.x * q.y + q.w * q.z );
@@ -210,10 +188,10 @@ namespace Math
 
 	/*
 	 * @brief Sets the 2D transform of the 2x2 matrix
-	 * @param rotation - rotation angle
+	 * @param rotation - rotation angle [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat2x2& matrix, const float rotation, const vec2f scale )
+	static void setTransform( mat2f& matrix, const float rotation, const vec2f scale )
 	{
 		setRotation( matrix, rotation );
 		matrix.m[0] *= scale.x;
@@ -226,10 +204,10 @@ namespace Math
 	 * @brief Sets the transform of the matrix
 	 * @param matrix - transform matrix
 	 * @param translation - translation vector
-	 * @param rotation - rotation vector
+	 * @param rotation - euler rotation vector [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat4x4& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
+	static void setTransform( mat4f& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
 	{
 		setRotation( matrix, rotation );
 		matrix.col[0] *= scale.x;
@@ -245,7 +223,7 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat4x4& matrix, const vec3f translation, const quat& q, const vec3f& scale )
+	static void setTransform( mat4f& matrix, const vec3f translation, const quat& q, const vec3f& scale )
 	{
 		setRotation( matrix, q );
 		matrix.col[0] *= scale.x;
@@ -254,14 +232,28 @@ namespace Math
 		setTranslation( matrix, translation );
 	}
 
+	/*
+	 * @brief Sets the inverse 2D transform of the 2x2 matrix
+	 * @param rotation - rotation angle [rad]
+	 * @param scale - scaling vector
+	*/
+	static void setTransformInverse( mat2f& matrix, const float rotation, const vec2f scale )
+	{
+		setRotationInverse( matrix, rotation );
+		matrix.m[0] /= scale.x;
+		matrix.m[1] /= scale.y;
+		matrix.m[2] /= scale.x;
+		matrix.m[3] /= scale.y;
+	}
+
 	/**
 	 * @brief Sets the inverse transform of the matrix
 	 * @param matrix - transform matrix
 	 * @param translation - translation vector
-	 * @param rotation - rotation vector
+	 * @param rotation - euler rotation vector [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransformInverse( mat4x4& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
+	static void setTransformInverse( mat4f& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
 	{
 		setRotationInverse( matrix, rotation );
 		matrix.col[0] /= scale;
@@ -279,7 +271,7 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	static void setTransformInverse( mat4x4& matrix, const vec3f& translation, const quat& q, const vec3f& scale )
+	static void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q, const vec3f& scale )
 	{
 		setRotationInverse( matrix, q );
 		matrix.col[0] /= scale;
@@ -295,7 +287,7 @@ namespace Math
 	 * @param rotation - normalized rotation matrix
 	 * @return quaternion rotation
 	*/
-	static quat toQuat( const mat4x4& rotation )
+	static quat toQuat( const mat4f& rotation )
 	{
 		// TODO: This may flip signs
 		float a = rotation[0] - rotation[5] - rotation[10];
@@ -340,7 +332,7 @@ namespace Math
 	 * @param rotation - rotation matrix
 	 * @return Axis angle vector
 	*/
-	[[nodiscard]] static AxisAngle toAxisAngle( const mat4x4& rotation )
+	[[nodiscard]] static AxisAngle toAxisAngle( const mat4f& rotation )
 	{
 		vec3f diagonal = 0.5f * vec3f{ rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
 		float angle = acosf( diagonal.x + diagonal.y + diagonal.z - 0.5f );
@@ -349,27 +341,13 @@ namespace Math
 	}
 
 	/**
-	 * @brief Converts rotation matrix to a quaternion.
-	 * Note: matrix must be a valid rotation matrix
-	 * @param rotation - rotation matrix
-	 * @return quaternion rotation
-	*/
-	/*[[nodiscard]] static quat toQuat(const mat4x4& rotation)
-	{
-		vec3f diagonal = { rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
-		float c = 0.5f * ( diagonal.x + diagonal.y + diagonal.z - 1.0f );
-
-		return Math::rotationAround<quat>( ( diagonal - vec3f{ c, c, c } ) / ( 1.0f - c ), acosf( c ) );
-	}*/
-
-	/**
 	 * @brief Decomposes an affine transform into its components
 	 * @param matrix - affine transform matrix
 	 * @param position - translation component
 	 * @param rotation - rotation component
 	 * @param scale - scale component
 	*/
-	static void decompose( const mat4x4& matrix, vec4f& position, quat& rotation, vec3f& scale )
+	static void decompose( const mat4f& matrix, vec4f& position, quat& rotation, vec3f& scale )
 	{
 		scale = Math::parallel::length( matrix.x_axis, matrix.y_axis, matrix.z_axis );
 		rotation = toQuat( { matrix.x_axis / scale.x, matrix.y_axis / scale.y, matrix.z_axis / scale.z, Math::axis::W<vec4f> } );
@@ -383,7 +361,7 @@ namespace Math
 	 * @param center - view target vector
 	 * @param up - view up vector
 	*/
-	static void lookAt( mat4x4& mat, const vec4f& eye, const vec4f& center, const vec3f& up )
+	static void lookAt( mat4f& mat, const vec4f& eye, const vec4f& center, const vec3f& up )
 	{
 		vec3f f = Math::normalize( eye - center );
 		vec3f s = Math::normalize( Math::cross( up, f ) );
@@ -401,11 +379,11 @@ namespace Math
 	 * @param position - translation component (optional)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4x4 lookToX( const vec3f& forward, const vec3f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
+	[[nodiscard]] static mat4f lookToX( const vec3f& forward, const vec3f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
 	{
 		vec4f z_axis = Math::normalize( Math::cross( forward, trackAxis ) );
 		vec4f y_axis = Math::cross( z_axis, forward );
-		return mat4x4{ forward, y_axis, z_axis, position };
+		return mat4f{ forward, y_axis, z_axis, position };
 	}
 
 	/**
@@ -413,7 +391,7 @@ namespace Math
 	 * @param forward - forward orientation (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4x4 lookToX( const vec3f& forward )
+	[[nodiscard]] static mat4f lookToX( const vec3f& forward )
 	{
 		return lookToX( forward, Math::cross( Math::axis::X<vec4f>, forward ) );
 	}
@@ -425,11 +403,11 @@ namespace Math
 	 * @param position - translation component (optional)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4x4 lookToY( const vec3f& forward, const vec3f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
+	[[nodiscard]] static mat4f lookToY( const vec3f& forward, const vec3f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
 	{
 		vec4f z_axis = Math::normalize( Math::cross( trackAxis, forward ) );
 		vec4f x_axis = Math::cross( forward, z_axis );
-		return mat4x4{ x_axis, forward, z_axis, position };
+		return mat4f{ x_axis, forward, z_axis, position };
 	}
 
 	/**
@@ -437,7 +415,7 @@ namespace Math
 	 * @param forward - forward orientation (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4x4 lookToY( const vec3f& forward )
+	[[nodiscard]] static mat4f lookToY( const vec3f& forward )
 	{
 		return lookToY( forward, Math::cross( Math::axis::Y<vec4f>, forward ) );
 	}
@@ -449,11 +427,11 @@ namespace Math
 	 * @param position - translation component (optional)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4x4 lookToZ( const vec3f& forward, const vec3f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
+	[[nodiscard]] static mat4f lookToZ( const vec3f& forward, const vec3f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
 	{
 		vec4f x_axis = Math::normalize( Math::cross( trackAxis, forward ) );
 		vec4f y_axis = Math::cross( forward, x_axis );
-		return mat4x4{ x_axis, y_axis, forward, position };
+		return mat4f{ x_axis, y_axis, forward, position };
 	}
 
 	/**
@@ -461,7 +439,7 @@ namespace Math
 	 * @param forward - forward orientation (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4x4 lookToZ( const vec3f& forward )
+	[[nodiscard]] static mat4f lookToZ( const vec3f& forward )
 	{
 		return lookToX( forward, Math::cross( Math::axis::Z<vec4f>, forward ) );
 	}
@@ -469,10 +447,10 @@ namespace Math
 	/**
 	 * @brief Generates a rotation matrix that rotates around an axis
 	 * @param axis - axis of the rotation (normalized)
-	 * @param angle - angle of the rotation
+	 * @param angle - angle of the rotation [rad]
 	 * @return rotation matrix
 	*/
-	template<> [[nodiscard]] static mat4x4 rotationAround( const vec3f& axis, const float angle )
+	template<> [[nodiscard]] static mat4f rotationAround( const vec3f& axis, const float angle )
 	{
 		float sin = sinf( angle );
 		float cos = cosf( angle );
@@ -492,11 +470,11 @@ namespace Math
 	 * @param to - final vector (normalized)
 	 * @return rotation matrix
 	*/
-	template<> [[nodiscard]] static mat4x4 rotationBetween( const vec3f& from, const vec3f& to )
+	template<> [[nodiscard]] static mat4f rotationBetween( const vec3f& from, const vec3f& to )
 	{
 		float product = dot_3D( from, to );
-		if( product > 0.999999f ) return Math::IDENTITY<mat4x4>;
-		if( product < -0.999999f ) return rotationAround<mat4x4>( orthogonal( from ), PI<float> );
+		if( product > 0.999999f ) return Math::IDENTITY<mat4f>;
+		if( product < -0.999999f ) return rotationAround<mat4f>( orthogonal( from ), PI<float> );
 
 		vec3f axis = Math::normalize( Math::cross( from, to ) );
 		float cos = Math::dot( from, to );
@@ -521,7 +499,7 @@ namespace Math
 	 * @param zNear - boundary of closest z
 	 * @param zFar - boundary of farthest z
 	*/
-	static void setOrthographic( mat4x4& mat, const float left, const float right, const float bottom, const float top, const float zNear, const float zFar )
+	static void setOrthographic( mat4f& mat, const float left, const float right, const float bottom, const float top, const float zNear, const float zFar )
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
 		mat.m[0] = 2.0f / ( right - left );
@@ -543,12 +521,12 @@ namespace Math
 	/**
 	 * @brief Generates perspective matrix
 	 * @param mat - projection matrix
-	 * @param fovy - field of view
+	 * @param fovy - field of view [rad]
 	 * @param aspect - aspect ratio
 	 * @param zNear - near plane distance
 	 * @param zFar - far plane distance
 	*/
-	static void setPerspective( mat4x4& mat, float fovy, float aspect, float zNear, float zFar )
+	static void setPerspective( mat4f& mat, float fovy, float aspect, float zNear, float zFar )
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
 		float tanHalfFovy = tanf( fovy / 2.0f );
@@ -576,7 +554,7 @@ namespace Math
 	 * @param t - weight
 	 * @return weighted matrix
 	*/
-	template<> [[nodiscard]] static mat4x4 lerp( const mat4x4& a, const mat4x4& b, const float t )
+	template<> [[nodiscard]] static mat4f lerp( const mat4f& a, const mat4f& b, const float t )
 	{
 #if ENABLE_INSTRUCTIONS_AVX512
 		return { _mm512_fmadd_ps( _mm512_sub_ps( b.avx512, a.avx512 ), _mm512_set1_ps( t ), a.avx512 ) };
@@ -599,7 +577,7 @@ namespace Math
 #endif
 	}
 
-	static void slerp( mat4x4& result, const mat4x4& a, const mat4x4& b, const float t )
+	static void slerp( mat4f& result, const mat4f& a, const mat4f& b, const float t )
 	{
 		// Calculate rotation between a and b
 		__m128 c0 = _mm_dot3_ps( a.x_axis.simd, b.x_axis.simd, a.y_axis.simd, b.x_axis.simd, a.z_axis.simd, b.x_axis.simd );
@@ -630,55 +608,46 @@ namespace Math
 		result.z_axis.simd = _mm_dot3_ps( r0a, c2, r1a, c2, r2a, c2 );
 	}
 
-	/*static void tlerp(mat4x4& result, const mat4x4& a, const mat4x4& b, const float t)
+	/**
+	 * @brief Creates a copy of the matrix translated
+	 * @param matrix - source transform
+	 * @param translation - displacement vector
+	 * @return translated transform
+	*/
+	static mat4f translate( const mat4f& matrix, const vec3f& translation )
 	{
-		// Calculate transform between a and b
-		__m128 c0 = _mm_dot3_ps( a.x_axis.simd, b.x_axis.simd, a.y_axis.simd, b.x_axis.simd, a.z_axis.simd, b.x_axis.simd );
-		__m128 c1 = _mm_dot3_ps( a.x_axis.simd, b.y_axis.simd, a.y_axis.simd, b.y_axis.simd, a.z_axis.simd, b.y_axis.simd );
-		__m128 c2 = _mm_dot3_ps( a.x_axis.simd, b.z_axis.simd, a.y_axis.simd, b.z_axis.simd, a.z_axis.simd, b.z_axis.simd );
-
-		// Normalize matrix
-		__m128 length = _mm_mag3_ps( c0, c1, c2 );
-		c0 = _mm_div_ps( c0, _mm_set1_ps( length.m128_f32[0] ) );
-		c1 = _mm_div_ps( c1, _mm_set1_ps( length.m128_f32[1] ) );
-		c2 = _mm_div_ps( c2, _mm_set1_ps( length.m128_f32[2] ) );
-
-		// Calculate the axis of rotation
-		__m128 diagonal = _mm_mul_ps( _mm_set1_ps( 0.5f ), _mm_xyzw_ps( c0.m128_f32[0], c1.m128_f32[1], c2.m128_f32[2], 0.0f ) );
-		float angle = acosf( diagonal.m128_f32[0] + diagonal.m128_f32[1] + diagonal.m128_f32[2] - 0.5f );
-		__m128 axis = _mm_div_ps( _mm_sub_ps( _mm_xyzw_ps( c1.m128_f32[2], c2.m128_f32[0], c0.m128_f32[1], 0.0f ), _mm_xyzw_ps( c2.m128_f32[1], c0.m128_f32[2], c1.m128_f32[0], 0.0f ) ), _mm_set1_ps( 2.0f * sinf( angle ) ) );
-
-		float c = cosf( angle * t );
-		__m128 vc = _mm_mul_ps( axis, _mm_set1_ps( 1.0f - c ) );
-		__m128 vs = _mm_mul_ps( axis, _mm_set1_ps( sinf( angle * t ) ) );
-
-		// Create new weighted transform
-		__m128 scale = _mm_fmadd_ps( _mm_sub_ps( length, SIMD_4f_ONES ), _mm_set1_ps( t ), SIMD_4f_ONES );
-		c0 = _mm_mul_ps( _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[0] ), _mm_xyzw_ps( c, vs.m128_f32[2], -vs.m128_f32[1], 0.0f ) ), _mm_set1_ps( scale.m128_f32[0] ) );
-		c1 = _mm_mul_ps( _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[1] ), _mm_xyzw_ps( -vs.m128_f32[2], c, vs.m128_f32[0], 0.0f ) ), _mm_set1_ps( scale.m128_f32[1] ) );
-		c2 = _mm_mul_ps( _mm_fmadd_ps( axis, _mm_set1_ps( vc.m128_f32[2] ), _mm_xyzw_ps( vs.m128_f32[1], -vs.m128_f32[0], c, 0.0f ) ), _mm_set1_ps( scale.m128_f32[2] ) );
-
-		// Apply weighted rotation to a
-		__m128 r0a = _mm_xyzw_ps( a.x_axis.x, a.y_axis.x, a.z_axis.x, 0.0f );
-		__m128 r1a = _mm_xyzw_ps( a.x_axis.y, a.y_axis.y, a.z_axis.y, 0.0f );
-		__m128 r2a = _mm_xyzw_ps( a.x_axis.z, a.y_axis.z, a.z_axis.z, 0.0f );
-
-		result.x_axis.simd = _mm_dot3_ps( r0a, c0, r1a, c0, r2a, c0 );
-		result.y_axis.simd = _mm_dot3_ps( r0a, c1, r1a, c1, r2a, c1 );
-		result.z_axis.simd = _mm_dot3_ps( r0a, c2, r1a, c2, r2a, c2 );
-		result.origin.simd = _mm_fmadd_ps( _mm_sub_ps( b.origin.simd, a.origin.simd ), _mm_set1_ps( t ), a.origin.simd );
-	}*/
+		mat4f copy = matrix;
+		copy.origin += translation;
+		return copy;
+	}
 
 	/**
-	 * @brief Normalizes the first 3 columns of the matrix. For affine transformations,
-	 * this operation removes scaling from the transform.
-	 * @param transform - matrix transform
-	 * @return normalized affine transformation
+	 * @brief Creates a copy of the matrix scaled around its origin
+	 * @param matrix - source transform
+	 * @param scale - scale vector
+	 * @return scaled transform
 	*/
-	static mat4x4 normalize( const mat4x4& transform )
+	static mat2f scale( const mat2f& matrix, const vec2f scale )
 	{
-		vec3f len = Math::parallel::length( transform.x_axis, transform.y_axis, transform.z_axis );
-		return { transform.x_axis / len.x, transform.y_axis / len.y, transform.z_axis / len.z, transform.origin };
+		mat2f copy = matrix;
+		copy.x_axis *= scale.x;
+		copy.y_axis *= scale.y;
+		return copy;
+	}
+
+	/**
+	 * @brief Creates a copy of the matrix scaled around its origin
+	 * @param matrix - source transform
+	 * @param scale - scale vector
+	 * @return scaled transform
+	*/
+	static mat4f scale( const mat4f& matrix, const vec3f& scale )
+	{
+		mat4f copy = matrix;
+		copy.x_axis *= scale.x;
+		copy.y_axis *= scale.y;
+		copy.z_axis *= scale.z;
+		return copy;
 	}
 
 	/**
@@ -686,56 +655,140 @@ namespace Math
 	*/
 	namespace create
 	{
-		constexpr mat4x4 translation( const vec3f& trans )
+		/**
+		 * @brief Creates a 3D translation matrix.
+		 * @param trans - translation vector
+		 * @return translation matrix
+		*/
+		constexpr mat4f translation( const vec3f& trans )
 		{
-			mat4x4 m = Math::IDENTITY<mat4x4>;
+			mat4f m = Math::IDENTITY<mat4f>;
 			setTranslation( m, trans );
 			return m;
 		}
 
-		static mat4x4 rotation( const euler& rot )
+		/**
+		 * @brief Creates a 2D rotation matrix.
+		 * @param rot - rotation angle [rad]
+		 * @return rotation matrix
+		*/
+		static mat2f rotation( const float rot )
 		{
-			mat4x4 m = Math::IDENTITY<mat4x4>;
+			mat2f m;
 			setRotation( m, rot );
 			return m;
 		}
 
-		static mat4x4 rotation( const quat& q )
+		/**
+		 * @brief Creates a 3D rotation matrix.
+		 * @param rot - rotation euler angles [rad]
+		 * @return rotation matrix
+		*/
+		static mat4f rotation( const euler& rot )
 		{
-			mat4x4 m = Math::IDENTITY<mat4x4>;
+			mat4f m = Math::IDENTITY<mat4f>;
+			setRotation( m, rot );
+			return m;
+		}
+
+		/**
+		 * @brief Creates a 3D rotation matrix.
+		 * @param rot - rotation quaternion
+		 * @return rotation matrix
+		*/
+		static mat4f rotation( const quat& q )
+		{
+			mat4f m = Math::IDENTITY<mat4f>;
 			setRotation( m, q );
 			return m;
 		}
 
-		constexpr mat4x4 scale( const vec3f& sc )
+		/**
+		 * @brief Creates a 2D scale matrix.
+		 * @param sc - scale vector
+		 * @return scale matrix
+		*/
+		constexpr mat2f scale( const vec2f sc )
 		{
-			return mat4x4{ sc.x, 0.0f, 0.0f, 0.0f, 0.0f, sc.y, 0.0f, 0.0f, 0.0f, 0.0f, sc.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+			return mat2f{ sc.x, 0.0f, 0.0f, sc.y };
 		}
 
-		static mat4x4 transform( const vec3f translation, const euler& rotation, const vec3f& scale )
+		/**
+		 * @brief Creates a 3D scale matrix.
+		 * @param sc - scale vector
+		 * @return scale matrix
+		*/
+		constexpr mat4f scale( const vec3f& sc )
 		{
-			mat4x4 m = Math::IDENTITY<mat4x4>;
+			return mat4f{ sc.x, 0.0f, 0.0f, 0.0f, 0.0f, sc.y, 0.0f, 0.0f, 0.0f, 0.0f, sc.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+		}
+
+		/**
+		 * @brief Creates a 2D transform matrix.
+		 * @param rotation - rotation angle [rad]
+		 * @param scale - scale vector
+		 * @return transform matrix
+		*/
+		static mat2f transform( const float rotation, const vec2f scale )
+		{
+			mat2f m;
+			setTransform( m, rotation, scale );
+			return m;
+		}
+
+		/**
+		 * @brief Creates a 3D transform matrix.
+		 * @param translation - translation vector
+		 * @param rot - rotation euler angles [rad]
+		 * @param scale - scale vector
+		 * @return transform matrix
+		*/
+		static mat4f transform( const vec3f translation, const euler& rotation, const vec3f& scale )
+		{
+			mat4f m = Math::IDENTITY<mat4f>;
 			setTransform( m, translation, rotation, scale );
 			return m;
 		}
 
-		static mat4x4 transform( const vec3f translation, const quat& rotation, const vec3f& scale )
+		/**
+		 * @brief Creates a 3D transform matrix.
+		 * @param translation - translation vector
+		 * @param rot - rotation quaternion
+		 * @param scale - scale vector
+		 * @return transform matrix
+		*/
+		static mat4f transform( const vec3f translation, const quat& rotation, const vec3f& scale )
 		{
-			mat4x4 m = Math::IDENTITY<mat4x4>;
+			mat4f m = Math::IDENTITY<mat4f>;
 			setTransform( m, translation, rotation, scale );
 			return m;
 		}
 
-		static mat4x4 view( const vec3f& position, const vec3f& view, const vec3f& up )
+		/**
+		 * @brief Creates a view matrix.
+		 * @param position - position of camera
+		 * @param center - position of target
+		 * @param up - camera orientation axis
+		 * @return view matrix
+		*/
+		static mat4f view( const vec3f& position, const vec3f& center, const vec3f& up )
 		{
-			mat4x4 m = Math::IDENTITY<mat4x4>;
-			lookAt( m, position, view, up );
+			mat4f m = Math::IDENTITY<mat4f>;
+			lookAt( m, position, center, up );
 			return m;
 		}
 
-		static mat4x4 perspective( float fovy, float aspect, float zNear, float zFar )
+		/**
+		 * @brief Creates a camera perspective matrix.
+		 * @param fovy - field of view [rad]
+		 * @param aspect - aspect ratio
+		 * @param zNear - near plane depth
+		 * @param zFar - far plane depth
+		 * @return perspective matrix
+		*/
+		static mat4f perspective( float fovy, float aspect, float zNear, float zFar )
 		{
-			mat4x4 m = Math::ZERO<mat4x4>;
+			mat4f m = Math::ZERO<mat4f>;
 			setPerspective( m, fovy, aspect, zNear, zFar );
 			return m;
 		}
@@ -747,7 +800,7 @@ namespace Math
 	 * @param max - maximum matrix
 	 * @return random matrix
 	*/
-	template<> [[nodiscard]] static mat4x4 random( const mat4x4& min, const mat4x4& max )
+	template<> [[nodiscard]] static mat4f random( const mat4f& min, const mat4f& max )
 	{
 		return {
 			Math::random<vec4f>( min.col[0], max.col[0] ),
@@ -761,9 +814,9 @@ namespace Math
 	 * @brief Generates a random rotation matrix
 	 * @return random rotation matrix
 	*/
-	template<> [[nodiscard]] static mat4x4 randomRotation()
+	template<> [[nodiscard]] static mat4f randomRotation()
 	{
-		return rotationAround<mat4x4>( randomDirection<vec3f>(), rand() * RAND_CONVERT_TAU );
+		return rotationAround<mat4f>( randomDirection<vec3f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**
@@ -774,7 +827,7 @@ namespace Math
 	 * @param maxScale - maximum scaling bounds 
 	 * @return random transform matrix
 	*/
-	static mat4x4 randomTransform( const vec3f& minTrans = ZERO<vec4f>, const vec3f& maxTrans = ZERO<vec4f>, const vec3f& minScale = ONES<vec4f>, const vec3f& maxScale = ONES<vec4f> )
+	static mat4f randomTransform( const vec3f& minTrans = ZERO<vec4f>, const vec3f& maxTrans = ZERO<vec4f>, const vec3f& minScale = ONES<vec4f>, const vec3f& maxScale = ONES<vec4f> )
 	{
 		vec3f translation = Math::random( minTrans, maxTrans );
 		euler rotation = Math::random( ZERO<euler>, TWO_PI<euler> );
@@ -790,7 +843,7 @@ namespace Math
 	 * @param maxScale - maximum scaling bounds 
 	 * @return random transform matrix
 	*/
-	static mat4x4 randomTransformAxes( const vec3f& minTrans = ZERO<vec4f>, const vec3f& maxTrans = ZERO<vec4f>, const vec3f& minScale = ONES<vec4f>, const vec3f& maxScale = ONES<vec4f> )
+	static mat4f randomTransformAxes( const vec3f& minTrans = ZERO<vec4f>, const vec3f& maxTrans = ZERO<vec4f>, const vec3f& minScale = ONES<vec4f>, const vec3f& maxScale = ONES<vec4f> )
 	{
 		vec4f origin = Math::random( minTrans, maxTrans );
 		return {

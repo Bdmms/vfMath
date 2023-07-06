@@ -3,7 +3,7 @@
 
 vec4f::operator vec4i() const
 {
-	return { _mm_cvtps_epi32(simd) };
+	return { _mm_cvtps_epi32( simd ) };
 }
 
 vec2f::operator vec4f() const
@@ -18,7 +18,7 @@ vec2f::operator vec2i() const
 
 vec4i::operator vec4f() const
 {
-	return { _mm_cvtepi32_ps(simd) };
+	return { _mm_cvtepi32_ps( simd ) };
 }
 
 vec2i::operator vec4i() const

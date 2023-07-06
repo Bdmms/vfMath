@@ -1,6 +1,7 @@
 #include "../include/vfMath/Perlin.hpp"
 #include "../include/vfMath/VectorMath.hpp"
 
+// Random Sequence
 unsigned char PERMUTATIONS[] = { 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,
                       103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0,
                       26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56,
@@ -17,36 +18,41 @@ unsigned char PERMUTATIONS[] = { 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96
                       157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205,
                       93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180 };
 
-vec2f randomGradient(const vec2i ip)
+// Generates a random direction vector at the point
+vec2f randomDirection( const vec2i ipoint )
 {
-    const unsigned w = 8 * sizeof(unsigned);
-    const unsigned s = w / 2;
-    unsigned a = ip.x;
-    unsigned b = ip.y;
+    constexpr uint32_t HALF_BIT_LENGTH = 16;
+    constexpr float DIVISOR = float( Math::MAX<int> + 1u );
 
-    a *= 3284157443; 
-    b ^= (a << s) | (a >> (w - s));
-    b *= 1911520717; 
-    a ^= (b << s) | (b >> (w - s));
-    a *= 2048419325;
-    float random = a * (3.14159265f / ~(~0u >> 1));
+    uint32_t a = ipoint.u_x;
+    uint32_t b = ipoint.u_y;
 
-    return vec2f{ sinf(random), cosf(random) };
+    a *= 0xC3C04403u;
+    b ^= ( a << HALF_BIT_LENGTH ) | ( a >> HALF_BIT_LENGTH );
+    b *= 0x71EF7DCDu;
+    a ^= ( b << HALF_BIT_LENGTH ) | ( b >> HALF_BIT_LENGTH );
+    a *= 0x7A1865FDu;
+    float angle = Math::PI<float> * ( a / DIVISOR );
+
+    return vec2f{ sinf( angle ), cosf( angle ) };
 }
 
-float grad2D(const vec2i ip, const vec2f point)
+// Calculates the product between the point and the base point direction
+float grad2D( const vec2i basePoint, const vec2f point )
 {
-    return Math::dot(randomGradient(ip), point - (vec2f)ip);
+    return Math::dot( randomDirection( basePoint ), point - (vec2f)basePoint );
 }
 
-float Perlin::perlin2D(const vec2f point)
+float Perlin::perlin2D( const vec2f point )
 {
     vec2i ip = (vec2i)point;
-    vec2f s = point - (vec2f)ip;
+    vec2f weight = point - (vec2f)ip;
 
-    vec2f n0 = { grad2D(ip,                 point), grad2D(ip + vec2i{ 0, 1 }, point) };
-    vec2f n1 = { grad2D(ip + vec2i{ 1, 0 }, point), grad2D(ip + vec2i{ 1, 1 }, point) };
-    vec2f i = Math::lerp(n0, n1, s.x);
-
-    return (i.y - i.x) * s.y + i.x;
+    // Calculate the noise at each of the 4 corners of the region
+    vec2f n0 = { grad2D( ip,                 point ), grad2D( ip + vec2i{ 0, 1 }, point ) };
+    vec2f n1 = { grad2D( ip + vec2i{ 1, 0 }, point ), grad2D( ip + vec2i{ 1, 1 }, point ) };
+    
+    // Interpolate the result between the 4 corners
+    vec2f result = Math::lerp( n0, n1, weight.x );
+    return Math::lerp( result.x, result.y, weight.y );
 }
