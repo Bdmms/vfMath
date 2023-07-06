@@ -6,8 +6,6 @@
 #include "vec4f.hpp"
 #include "vec4i.hpp"
 
-typedef vec4f vec3f;
-typedef vec4i vec3i;
 typedef vec3f AxisAngle;
 
 // TODO:
@@ -104,6 +102,26 @@ namespace Math
 	}
 
 	/**
+	 * @brief Evaluates the vector as true or false
+	 * @param v - integer vector
+	 * @return true if all components are non-zero
+	*/
+	[[nodiscard]] constexpr static bool evaluate( const vec2i v )
+	{
+		return v.x && v.y;
+	}
+
+	/**
+	 * @brief Evaluates the vector as true or false
+	 * @param v - integer vector
+	 * @return true if all components are non-zero
+	*/
+	[[nodiscard]] constexpr static bool evaluate( const vec4i& v )
+	{
+		return v.simd.m128i_u32[0] && v.simd.m128i_u32[1] && v.simd.m128i_u32[2] && v.simd.m128i_u32[3];
+	}
+
+	/**
 	 * @brief Returns a composite value depending on the input condition vector
 	 * @param input - condition input vector
 	 * @param trueVal - vector components returned on true input
@@ -128,6 +146,45 @@ namespace Math
 	}
 
 	/**
+	 * @brief Returns a composite value depending on the input condition vector
+	 * @param input - condition input vector
+	 * @param trueVal - vector components returned on true input
+	 * @param falseVal - vector components returned on false input
+	 * @return output vector
+	*/
+	[[nodiscard]] static vec2i condition( const vec2i input, const vec2i trueVal, const vec2i falseVal )
+	{
+		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
+	}
+
+	/**
+	 * @brief Returns a composite value depending on the input condition vector
+	 * @param input - condition input vector
+	 * @param trueVal - vector components returned on true input
+	 * @param falseVal - vector components returned on false input
+	 * @return output vector
+	*/
+	[[nodiscard]] static vec4i condition( const vec4i& input, const vec4i& trueVal, const vec4i& falseVal )
+	{
+		return ( input & trueVal ) + ( ( ~input ) & falseVal );
+	}
+
+	/**
+	 * @brief Checks if two overlapping boundaries overlap
+	 * @param min0 - minimum of first bounds
+	 * @param max0 - maximum of first bounds
+	 * @param min1 - minimum of second bounds
+	 * @param max1 - maximum of second bounds
+	 * @return Whether the two boundaries overlap
+	*/
+	[[nodiscard]] constexpr bool overlaps( const vec2f& min0, const vec2f& max0, const vec2f& min1, const vec2f& max1 )
+	{
+		bool a = ( min0.x >= min1.x && min0.x <= max1.x ) || ( min1.x >= min0.x && min1.x <= max0.x );
+		bool b = ( min0.y >= min1.y && min0.y <= max1.y ) || ( min1.y >= min0.y && min1.y <= max0.y );
+		return a && b;
+	}
+
+	/**
 	 * @brief Checks if two overlapping boundaries overlap
 	 * @param min0 - minimum of first bounds
 	 * @param max0 - maximum of first bounds
@@ -136,6 +193,32 @@ namespace Math
 	 * @return Whether the two boundaries overlap
 	*/
 	[[nodiscard]] constexpr bool overlaps( const vec4f& min0, const vec4f& max0, const vec4f& min1, const vec4f& max1 )
+	{
+		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+	}
+
+	/**
+	 * @brief Checks if two overlapping boundaries overlap
+	 * @param min0 - minimum of first bounds
+	 * @param max0 - maximum of first bounds
+	 * @param min1 - minimum of second bounds
+	 * @param max1 - maximum of second bounds
+	 * @return Whether the two boundaries overlap
+	*/
+	[[nodiscard]] constexpr bool overlaps( const vec2i& min0, const vec2i& max0, const vec2i& min1, const vec2i& max1 )
+	{
+		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+	}
+
+	/**
+	 * @brief Checks if two overlapping boundaries overlap
+	 * @param min0 - minimum of first bounds
+	 * @param max0 - maximum of first bounds
+	 * @param min1 - minimum of second bounds
+	 * @param max1 - maximum of second bounds
+	 * @return Whether the two boundaries overlap
+	*/
+	[[nodiscard]] constexpr bool overlaps( const vec4i& min0, const vec4i& max0, const vec4i& min1, const vec4i& max1 )
 	{
 		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
 	}
@@ -174,12 +257,45 @@ namespace Math
 	}
 
 	/**
+	 * @brief Calculates the 2D dot product of this vector with another vector
+	 * @param a - first vector
+	 * @param b - second vector
+	 * @return dot product result
+	*/
+	[[nodiscard]] constexpr int dot( const vec2i a, const vec2i b )
+	{
+		return a.x * b.x + a.y * b.y;
+	}
+
+	/**
+	 * @brief Calculates the 4D dot product of this vector with another vector
+	 * @param a - first vector
+	 * @param b - second vector
+	 * @return dot product result
+	*/
+	[[nodiscard]] constexpr int dot( const vec4i& a, const vec4i& b )
+	{
+		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+	}
+
+	/**
 	 * @brief Calculates the 3D dot product of this vector with another vector
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return dot product result
 	*/
 	[[nodiscard]] constexpr float dot_3D( const vec4f& a, const vec4f& b )
+	{
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
+	/**
+	 * @brief Calculates the 3D dot product of this vector with another vector
+	 * @param a - first vector
+	 * @param b - second vector
+	 * @return dot product result
+	*/
+	[[nodiscard]] constexpr int dot_3D( const vec4i& a, const vec4i& b )
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
@@ -221,6 +337,24 @@ namespace Math
 	 * @return squared length of the vector
 	*/
 	[[nodiscard]] constexpr float length2( const vec4f& v )
+	{
+		return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
+	}
+
+	/**
+	 * @brief Calculates the squared length of the vector
+	 * @return squared length of the vector
+	*/
+	[[nodiscard]] constexpr int length2( const vec2i v )
+	{
+		return v.x * v.x + v.y * v.y;
+	}
+
+	/**
+	 * @brief Calculates the squared length of the vector
+	 * @return squared length of the vector
+	*/
+	[[nodiscard]] constexpr int length2( const vec4i& v )
 	{
 		return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
 	}
@@ -357,6 +491,30 @@ namespace Math
 	}
 
 	/**
+	 * @brief Truncates all elements the vector between 0 and 1
+	 * @param value - initial vector
+	 * @param min - minimum vector of clamp (optional)
+	 * @param max - maximum vector of clamp (optional)
+	 * @return clamped vector
+	*/
+	[[nodiscard]] constexpr vec2i clamp( const vec2i vector, const vec2i min = ZERO<vec2i>, const vec2i max = ONES<vec2i> )
+	{
+		return { std::clamp( vector.x, min.x, max.x ), std::clamp( vector.y, min.y, max.y ) };
+	}
+
+	/**
+	 * @brief Truncates all elements the vector between 0 and 1
+	 * @param value - initial vector
+	 * @param min - minimum vector of clamp (optional)
+	 * @param max - maximum vector of clamp (optional)
+	 * @return clamped vector
+	*/
+	[[nodiscard]] static vec4i clamp( const vec4i vector, const vec4i min = ZERO<vec4i>, const vec4i& max = ONES<vec4i> )
+	{
+		return { _mm_max_epi32( _mm_min_epi32( vector.simd, max.simd ), min.simd ) };
+	}
+
+	/**
 	 * @brief Rounds the vector down
 	 * @param a - vector
 	 * @return rounded vector
@@ -444,6 +602,17 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
+	[[nodiscard]] constexpr vec2i min( const vec2i vector, const vec2i min )
+	{
+		return { std::min( vector.x, min.x ), std::min( vector.y, min.y ) };
+	}
+
+	/**
+	 * @brief Truncates the vector by a minimum
+	 * @param vector - vector
+	 * @param min - minimum vector
+	 * @return absolute vector
+	*/
 	[[nodiscard]] static vec4i min( const vec4i& vector, const vec4i& min )
 	{
 		return { _mm_min_epi32( vector.simd, min.simd ) };
@@ -469,6 +638,17 @@ namespace Math
 	[[nodiscard]] static vec4f max( const vec4f& vector, const vec4f& max )
 	{
 		return { _mm_max_ps( vector.simd, max.simd ) };
+	}
+
+	/**
+	 * @brief Truncates the vector by a maximum
+	 * @param vector - vector
+	 * @param max - maximum vector
+	 * @return absolute vector
+	*/
+	[[nodiscard]] constexpr vec2i max( const vec2i vector, const vec2i max )
+	{
+		return { std::max( vector.x, max.x ), std::max( vector.y, max.y ) };
 	}
 
 	/**
@@ -520,7 +700,28 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f abs( const vec4f& a )
 	{
-		return { _mm_sqrt_ps( _mm_mul_ps( a.simd, a.simd ) ) };
+		return condition( a >= ZERO<vec4f>, a, -a );
+		//return { _mm_sqrt_ps( _mm_mul_ps( a.simd, a.simd ) ) };
+	}
+
+	/**
+	 * @brief Calculates the absolute of a vector
+	 * @param a - vector
+	 * @return absolute vector
+	*/
+	[[nodiscard]] static vec2i abs( const vec2i a )
+	{
+		return { std::abs( a.x ), std::abs( a.y ) };
+	}
+
+	/**
+	 * @brief Calculates the absolute of a vector
+	 * @param a - vector
+	 * @return absolute vector
+	*/
+	[[nodiscard]] static vec4i abs( const vec4i& a )
+	{
+		return condition( a >= ZERO<vec4i>, a, -a );
 	}
 
 	/**
@@ -544,13 +745,23 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the sine of the vector
-	 * @param a - vector
-	 * @return sin vector
+	 * @brief Determines the sign of the vector's components in the form of 1 or -1
+	 * @param vector - vector components
+	 * @return sign of the vector components
 	*/
-	[[nodiscard]] static vec2f sin(const vec2f v)
+	[[nodiscard]] constexpr vec2i sign( const vec2i vector )
 	{
-		return { sinf(v.x), sinf(v.y) };
+		return { Math::sign( vector.x ), Math::sign( vector.y ) };
+	}
+
+	/**
+	 * @brief Determines the sign of the vector's components in the form of 1 or -1
+	 * @param vector - vector components
+	 * @return sign of the vector components
+	*/
+	[[nodiscard]] static vec4i sign( const vec4i& vector )
+	{
+		return Math::condition( vector >= Math::ZERO<vec4i>, Math::ONES<vec4i>, Math::NEGATIVE<vec4i> );
 	}
 
 	/**
@@ -558,9 +769,19 @@ namespace Math
 	 * @param a - vector
 	 * @return sin vector
 	*/
-	[[nodiscard]] static vec4f sin(const vec4f& v)
+	[[nodiscard]] static vec2f sin( const vec2f v )
 	{
-		return { _mm_sin_ps(v.simd) };
+		return { sinf( v.x ), sinf( v.y ) };
+	}
+
+	/**
+	 * @brief Calculates the sine of the vector
+	 * @param a - vector
+	 * @return sin vector
+	*/
+	[[nodiscard]] static vec4f sin( const vec4f& v )
+	{
+		return { _mm_sin_ps( v.simd ) };
 	}
 
 	/**
@@ -568,9 +789,9 @@ namespace Math
 	 * @param a - vector
 	 * @return cos vector
 	*/
-	[[nodiscard]] static vec2f cos(const vec2f v)
+	[[nodiscard]] static vec2f cos( const vec2f v )
 	{
-		return { cosf(v.x), cosf(v.y) };
+		return { cosf( v.x ), cosf( v.y ) };
 	}
 
 	/**
@@ -578,9 +799,9 @@ namespace Math
 	 * @param a - vector
 	 * @return cos vector
 	*/
-	[[nodiscard]] static vec4f cos(const vec4f& v)
+	[[nodiscard]] static vec4f cos( const vec4f& v )
 	{
-		return { _mm_cos_ps(v.simd) };
+		return { _mm_cos_ps( v.simd ) };
 	}
 
 	/**
@@ -588,9 +809,9 @@ namespace Math
 	 * @param a - vector
 	 * @return tan vector
 	*/
-	[[nodiscard]] static vec2f tan(const vec2f v)
+	[[nodiscard]] static vec2f tan( const vec2f v )
 	{
-		return { tanf(v.x), tanf(v.y) };
+		return { tanf( v.x ), tanf( v.y ) };
 	}
 
 	/**
@@ -598,9 +819,9 @@ namespace Math
 	 * @param a - vector
 	 * @return tan vector
 	*/
-	[[nodiscard]] static vec4f tan(const vec4f& v)
+	[[nodiscard]] static vec4f tan( const vec4f& v )
 	{
-		return { _mm_tan_ps(v.simd) };
+		return { _mm_tan_ps( v.simd ) };
 	}
 
 	/**
@@ -609,9 +830,9 @@ namespace Math
 	 * @param b - exponent vector
 	 * @return resulting vector
 	*/
-	[[nodiscard]] static vec2f pow(const vec2f a, const vec2f b)
+	[[nodiscard]] static vec2f pow( const vec2f a, const vec2f b )
 	{
-		return { powf(a.x, b.x), powf(a.y, b.y) };
+		return { powf( a.x, b.x ), powf( a.y, b.y ) };
 	}
 
 	/**
@@ -620,9 +841,9 @@ namespace Math
 	 * @param b - exponent vector
 	 * @return resulting vector
 	*/
-	[[nodiscard]] static vec4f pow(const vec4f& a, const vec4f& b)
+	[[nodiscard]] static vec4f pow( const vec4f& a, const vec4f& b )
 	{
-		return { _mm_pow_ps(a.simd, b.simd) };
+		return { _mm_pow_ps( a.simd, b.simd ) };
 	}
 
 	/**

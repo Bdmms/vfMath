@@ -32,21 +32,29 @@ union vec4i
 	vec4i& operator-=( const vec4i& b ) noexcept { simd = _mm_sub_epi32( simd, b.simd ); return *this; }
 	vec4i& operator*=( const vec4i& b ) noexcept { simd = _mm_mul_epi32( simd, b.simd ); return *this; }
 	vec4i& operator/=( const vec4i& b ) noexcept { simd = _mm_div_epi32( simd, b.simd ); return *this; }
+
+	vec4i& operator+=( const int b ) noexcept { simd = _mm_add_epi32( simd, _mm_set1_epi32( b ) ); return *this; }
+	vec4i& operator-=( const int b ) noexcept { simd = _mm_sub_epi32( simd, _mm_set1_epi32( b ) ); return *this; }
 	vec4i& operator*=( const int b ) noexcept { simd = _mm_mul_epi32( simd, _mm_set1_epi32( b ) ); return *this; }
 	vec4i& operator/=( const int b ) noexcept { simd = _mm_div_epi32( simd, _mm_set1_epi32( b ) ); return *this; }
 
-	[[nodiscard]] vec4i operator-() { return { _mm_mul_epi32( simd, _mm_set1_epi32( -1 ) ) }; }
-	[[nodiscard]] vec4i operator~() { return { _mm_xor_epi32( simd, SIMD_4i_NEG ) }; }
+	// Unary Operators
+	[[nodiscard]] vec4i operator-() const { return { _mm_mul_epi32( simd, _mm_set1_epi32( -1 ) ) }; }
+	[[nodiscard]] vec4i operator~() const { return { _mm_xor_epi32( simd, SIMD_4i_NEG ) }; }
 
 	// Logical Operators
 	vec4i& operator&=( const vec4i& b ) noexcept { simd = _mm_and_si128( simd, b.simd ); return *this; }
 	vec4i& operator|=( const vec4i& b ) noexcept { simd = _mm_or_si128( simd, b.simd ); return *this; }
 	vec4i& operator^=( const vec4i& b ) noexcept { simd = _mm_xor_si128( simd, b.simd ); return *this; }
 
+	vec4i& operator&=( const int b ) noexcept { simd = _mm_and_si128( simd, _mm_set1_epi32( b ) ); return *this; }
+	vec4i& operator|=( const int b ) noexcept { simd = _mm_or_si128( simd, _mm_set1_epi32( b ) ); return *this; }
+	vec4i& operator^=( const int b ) noexcept { simd = _mm_xor_si128( simd, _mm_set1_epi32( b ) ); return *this; }
+
 	// Conversions
-	[[nodiscard]] operator vec2i& ( ) noexcept { return reinterpret_cast<vec2i&>( *this ); }
-	[[nodiscard]] operator const vec2i& ( ) const noexcept { return reinterpret_cast<const vec2i&>( *this ); }
-	[[nodiscard]] operator vec4f() const;
+	[[nodiscard]] explicit operator vec2i& ( ) noexcept { return reinterpret_cast<vec2i&>( *this ); }
+	[[nodiscard]] explicit operator const vec2i& ( ) const noexcept { return reinterpret_cast<const vec2i&>( *this ); }
+	[[nodiscard]] explicit operator vec4f() const;
 };
 
 // Arithmetic Operators
@@ -54,16 +62,52 @@ union vec4i
 [[nodiscard]] static vec4i operator-( const vec4i& a, const vec4i& b ) noexcept { return { _mm_sub_epi32( a.simd, b.simd ) }; }
 [[nodiscard]] static vec4i operator*( const vec4i& a, const vec4i& b ) noexcept { return { _mm_mul_epi32( a.simd, b.simd ) }; }
 [[nodiscard]] static vec4i operator/( const vec4i& a, const vec4i& b ) noexcept { return { _mm_div_epi32( a.simd, b.simd ) }; }
+
+[[nodiscard]] static vec4i operator+( const vec4i& a, const int b ) noexcept { return { _mm_add_epi32( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator-( const vec4i& a, const int b ) noexcept { return { _mm_sub_epi32( a.simd, _mm_set1_epi32( b ) ) }; }
 [[nodiscard]] static vec4i operator*( const vec4i& a, const int b ) noexcept { return { _mm_mul_epi32( a.simd, _mm_set1_epi32( b ) ) }; }
 [[nodiscard]] static vec4i operator/( const vec4i& a, const int b ) noexcept { return { _mm_div_epi32( a.simd, _mm_set1_epi32( b ) ) }; }
+
+[[nodiscard]] static vec4i operator+( const int a, const vec4i& b ) noexcept { return { _mm_add_epi32( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator-( const int a, const vec4i& b ) noexcept { return { _mm_sub_epi32( _mm_set1_epi32( a ), b.simd ) }; }
 [[nodiscard]] static vec4i operator*( const int a, const vec4i& b ) noexcept { return { _mm_mul_epi32( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator/( const int a, const vec4i& b ) noexcept { return { _mm_div_epi32( _mm_set1_epi32( a ), b.simd ) }; }
 
 // Comparison Operators
-//[[nodiscard]] static vec4i operator==( const vec4i& a, const vec4i& b ) noexcept { return { _mm_cmpeq_epi32( a.simd, b.simd ) }; }
+[[nodiscard]] static vec4i operator>=( const vec4i& a, const vec4i& b ) noexcept { return { _mm_cmpge_epi32_mask( a.simd, b.simd ) }; }
+[[nodiscard]] static vec4i operator<=( const vec4i& a, const vec4i& b ) noexcept { return { _mm_cmple_epi32_mask( a.simd, b.simd ) }; }
+[[nodiscard]] static vec4i operator>( const vec4i& a, const vec4i& b ) noexcept { return { _mm_cmpgt_epi32_mask( a.simd, b.simd ) }; }
+[[nodiscard]] static vec4i operator<( const vec4i& a, const vec4i& b ) noexcept { return { _mm_cmplt_epi32_mask( a.simd, b.simd ) }; }
+[[nodiscard]] static vec4i operator&&( const vec4i& a, const vec4i& b ) noexcept { return { _mm_and_si128( a.simd, b.simd ) }; }
+[[nodiscard]] static vec4i operator||( const vec4i& a, const vec4i& b ) noexcept { return { _mm_or_si128( a.simd, b.simd ) }; }
+
+[[nodiscard]] static vec4i operator>=( const vec4i& a, const int b ) noexcept { return { _mm_cmpge_epi32_mask( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator<=( const vec4i& a, const int b ) noexcept { return { _mm_cmple_epi32_mask( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator>( const vec4i& a, const int b ) noexcept { return { _mm_cmpgt_epi32_mask( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator<( const vec4i& a, const int b ) noexcept { return { _mm_cmplt_epi32_mask( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator&&( const vec4i& a, const int b ) noexcept { return { _mm_and_si128( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator||( const vec4i& a, const int b ) noexcept { return { _mm_or_si128( a.simd, _mm_set1_epi32( b ) ) }; }
+
+[[nodiscard]] static vec4i operator>=( const int a, const vec4i& b ) noexcept { return { _mm_cmpge_epi32_mask( _mm_set1_epi32( a ), b.simd)}; }
+[[nodiscard]] static vec4i operator<=( const int a, const vec4i& b ) noexcept { return { _mm_cmple_epi32_mask( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator>( const int a, const vec4i& b ) noexcept { return { _mm_cmpgt_epi32_mask( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator<( const int a, const vec4i& b ) noexcept { return { _mm_cmplt_epi32_mask( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator&&( const int a, const vec4i& b ) noexcept { return { _mm_and_si128( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator||( const int a, const vec4i& b ) noexcept { return { _mm_or_si128( _mm_set1_epi32( a ), b.simd ) }; }
 
 // Logical Operators
 [[nodiscard]] static vec4i operator&( const vec4i& a, const vec4i& b ) noexcept { return { _mm_and_si128( a.simd, b.simd ) }; }
 [[nodiscard]] static vec4i operator|( const vec4i& a, const vec4i& b ) noexcept { return { _mm_or_si128( a.simd, b.simd ) }; }
 [[nodiscard]] static vec4i operator^( const vec4i& a, const vec4i& b ) noexcept { return { _mm_xor_si128( a.simd, b.simd ) }; }
+
+[[nodiscard]] static vec4i operator&( const vec4i& a, const int b ) noexcept { return { _mm_and_si128( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator|( const vec4i& a, const int b ) noexcept { return { _mm_or_si128( a.simd, _mm_set1_epi32( b ) ) }; }
+[[nodiscard]] static vec4i operator^( const vec4i& a, const int b ) noexcept { return { _mm_xor_si128( a.simd, _mm_set1_epi32( b ) ) }; }
+
+[[nodiscard]] static vec4i operator&( const int a, const vec4i& b ) noexcept { return { _mm_and_si128( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator|( const int a, const vec4i& b ) noexcept { return { _mm_or_si128( _mm_set1_epi32( a ), b.simd ) }; }
+[[nodiscard]] static vec4i operator^( const int a, const vec4i& b ) noexcept { return { _mm_xor_si128( _mm_set1_epi32( a ), b.simd ) }; }
+
+typedef vec4i vec3i;
 
 #endif

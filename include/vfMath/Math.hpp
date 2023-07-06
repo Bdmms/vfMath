@@ -129,6 +129,16 @@ namespace Math
 	}
 
 	/**
+	 * @brief Determines the sign of the value in the form of 1 or -1.
+	 * @param value - integer value
+	 * @return sign of the value
+	*/
+	[[nodiscard]] constexpr int sign( const int value )
+	{
+		return value >= 0 ? 1 : -1;
+	}
+
+	/**
 	 * @brief Truncates the value between 0 and 1.
 	 * @param value - initial value
 	 * @param min - minimum value of clamp (optional)

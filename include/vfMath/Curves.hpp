@@ -3,27 +3,28 @@
 #define VF_CURVES_HPP
 
 #include "VectorMath.hpp"
-#include <array>
+#include "mat4x4.hpp"
+#include <vector>
 
 namespace Math
 {
 	constexpr float CURVE_SAMPLE_MIN = 0.0f;
 	constexpr float CURVE_SAMPLE_MAX = 1.0f - Math::EPSILON<float>;
 
-	constexpr mat4x4 BASIS_BEZIER		= { 1.0f, 0.0f, 0.0f, 0.0f, -3.0f, 3.0f, 0.0f, 0.0f, 3.0f, -6.0f, 3.0f,  0.0f, -1.0f, 3.0f, -3.0f, 1.0f };
-	constexpr mat4x4 BASIS_CATMULL_ROM	= { 0.0f, 2.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 2.0f, -5.0f, 4.0f, -1.0f, -1.0f, 3.0f, -3.0f, 1.0f };
-	constexpr mat4x4 BASIS_BSPLINE		= { 1.0f, 4.0f, 1.0f, 0.0f, -3.0f, 0.0f, 3.0f, 0.0f, 3.0f, -6.0f, 3.0f,  0.0f, -1.0f, 3.0f, -3.0f, 1.0f };
+	constexpr mat4f BASIS_BEZIER		= { 1.0f, 0.0f, 0.0f, 0.0f, -3.0f, 3.0f, 0.0f, 0.0f, 3.0f, -6.0f, 3.0f,  0.0f, -1.0f, 3.0f, -3.0f, 1.0f };
+	constexpr mat4f BASIS_CATMULL_ROM	= { 0.0f, 2.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 2.0f, -5.0f, 4.0f, -1.0f, -1.0f, 3.0f, -3.0f, 1.0f };
+	constexpr mat4f BASIS_BSPLINE		= { 1.0f, 4.0f, 1.0f, 0.0f, -3.0f, 0.0f, 3.0f, 0.0f, 3.0f, -6.0f, 3.0f,  0.0f, -1.0f, 3.0f, -3.0f, 1.0f };
 
 	constexpr float FACTOR_BEZIER = 1.0f;
 	constexpr float FACTOR_CATMULL_ROM = 0.5f;
 	constexpr float FACTOR_BSPLINE = 1.0f / 6.0f;
 }
 
-template <const mat4x4 Basis, const float Factor>
+template <const mat4f Basis, const float Factor>
 struct KnotCurve : public std::vector<vec4f>
 {
 	/**
-	 * @brief Samples the curve at a scalar point
+	 * @brief Samples the value of the curve at a scalar point
 	 * @param t - sample scalar between 0.0 and 1.0
 	 * @return sampled vector at scalar point
 	*/
