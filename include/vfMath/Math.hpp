@@ -85,16 +85,6 @@ namespace Math
 	}
 
 	/**
-	 * @brief Wrapper function used to handle boolean evaluations
-	 * @param value - boolean value
-	 * @return evaluated value
-	*/
-	[[nodiscard]] constexpr static bool evaluate( const bool value )
-	{
-		return value;
-	}
-
-	/**
 	 * @brief Returns two different values depending on the input.
 	 * @param input - condition input
 	 * @param trueVal - value returned on true input

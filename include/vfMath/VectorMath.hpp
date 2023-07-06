@@ -82,46 +82,6 @@ namespace Math
 	};
 
 	/**
-	 * @brief Evaluates the vector as true or false
-	 * @param v - floating-point vector
-	 * @return true if all components are non-zero
-	*/
-	[[nodiscard]] constexpr static bool evaluate( const vec2f v )
-	{
-		return v.x && v.y;
-	}
-
-	/**
-	 * @brief Evaluates the vector as true or false
-	 * @param v - floating-point vector
-	 * @return true if all components are non-zero
-	*/
-	[[nodiscard]] constexpr static bool evaluate( const vec4f& v )
-	{
-		return v.simd.m128_u32[0] && v.simd.m128_u32[1] && v.simd.m128_u32[2] && v.simd.m128_u32[3];
-	}
-
-	/**
-	 * @brief Evaluates the vector as true or false
-	 * @param v - integer vector
-	 * @return true if all components are non-zero
-	*/
-	[[nodiscard]] constexpr static bool evaluate( const vec2i v )
-	{
-		return v.x && v.y;
-	}
-
-	/**
-	 * @brief Evaluates the vector as true or false
-	 * @param v - integer vector
-	 * @return true if all components are non-zero
-	*/
-	[[nodiscard]] constexpr static bool evaluate( const vec4i& v )
-	{
-		return v.simd.m128i_u32[0] && v.simd.m128i_u32[1] && v.simd.m128i_u32[2] && v.simd.m128i_u32[3];
-	}
-
-	/**
 	 * @brief Returns a composite value depending on the input condition vector
 	 * @param input - condition input vector
 	 * @param trueVal - vector components returned on true input
@@ -142,7 +102,7 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f condition( const vec4f& input, const vec4f& trueVal, const vec4f& falseVal )
 	{
-		return ( input & trueVal ) + ( ( ~input ) & falseVal );
+		return ( input & trueVal ) | ( ( ~input ) & falseVal );
 	}
 
 	/**
@@ -166,7 +126,7 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4i condition( const vec4i& input, const vec4i& trueVal, const vec4i& falseVal )
 	{
-		return ( input & trueVal ) + ( ( ~input ) & falseVal );
+		return ( input & trueVal ) | ( ( ~input ) & falseVal );
 	}
 
 	/**
@@ -194,7 +154,7 @@ namespace Math
 	*/
 	[[nodiscard]] constexpr bool overlaps( const vec4f& min0, const vec4f& max0, const vec4f& min1, const vec4f& max1 )
 	{
-		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+		return bool( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
 	}
 
 	/**
@@ -207,7 +167,7 @@ namespace Math
 	*/
 	[[nodiscard]] constexpr bool overlaps( const vec2i& min0, const vec2i& max0, const vec2i& min1, const vec2i& max1 )
 	{
-		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+		return bool( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
 	}
 
 	/**
@@ -220,7 +180,7 @@ namespace Math
 	*/
 	[[nodiscard]] constexpr bool overlaps( const vec4i& min0, const vec4i& max0, const vec4i& min1, const vec4i& max1 )
 	{
-		return Math::evaluate( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+		return bool( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
 	}
 
 	/**
@@ -458,7 +418,7 @@ namespace Math
 	/**
 	 * @brief Reflects a vector across another
 	 * @param a - ray vector
-	 * @param b - normal vector
+	 * @param b - normal vector (normalized)
 	 * @return reflected vector
 	*/
 	template<typename T> [[nodiscard]] constexpr T reflect( const T& a, const T& b )

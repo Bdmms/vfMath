@@ -47,6 +47,7 @@ union vec2i
 	constexpr vec2i& operator^=( const int b ) noexcept { x ^= b; y ^= b; return *this; }
 
 	// Conversions
+	[[nodiscard]] explicit constexpr operator bool() const { return x && y; }
 	[[nodiscard]] explicit operator vec4i() const;
 	[[nodiscard]] explicit operator vec2f() const;
 };

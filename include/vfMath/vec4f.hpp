@@ -45,7 +45,12 @@ union vec4f
 	vec4f& operator|=( const vec4f& b ) noexcept { simd = _mm_or_ps( simd, b.simd ); return *this; }
 	vec4f& operator^=( const vec4f& b ) noexcept { simd = _mm_xor_ps( simd, b.simd ); return *this; }
 
+	vec4f& operator&=( const float b ) noexcept { simd = _mm_and_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	vec4f& operator|=( const float b ) noexcept { simd = _mm_or_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	vec4f& operator^=( const float b ) noexcept { simd = _mm_xor_ps( simd, _mm_set1_ps( b ) ); return *this; }
+
 	// Conversions
+	[[nodiscard]] explicit constexpr operator bool() const { return x && y && z && w; }
 	[[nodiscard]] explicit operator vec2f& ( ) noexcept { return reinterpret_cast<vec2f&>( *this ); }
 	[[nodiscard]] explicit operator const vec2f& ( ) const noexcept { return reinterpret_cast<const vec2f&>( *this ); }
 	[[nodiscard]] explicit operator vec4i() const;
@@ -92,6 +97,14 @@ union vec4f
 [[nodiscard]] static vec4f operator&( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( a.simd, b.simd ) ); }
 [[nodiscard]] static vec4f operator|( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( a.simd, b.simd ) ); }
 [[nodiscard]] static vec4f operator^( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_xor_ps( a.simd, b.simd ) ); }
+
+[[nodiscard]] static vec4f operator&( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( a.simd, _mm_set1_ps( b ) ) ); }
+[[nodiscard]] static vec4f operator|( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( a.simd, _mm_set1_ps( b ) ) ); }
+[[nodiscard]] static vec4f operator^( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_xor_ps( a.simd, _mm_set1_ps( b ) ) ); }
+
+[[nodiscard]] static vec4f operator&( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( _mm_set1_ps( a ), b.simd ) ); }
+[[nodiscard]] static vec4f operator|( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( _mm_set1_ps( a ), b.simd ) ); }
+[[nodiscard]] static vec4f operator^( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_xor_ps( _mm_set1_ps( a ), b.simd ) ); }
 
 typedef vec4f vec3f;
 
