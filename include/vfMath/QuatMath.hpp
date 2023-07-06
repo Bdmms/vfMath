@@ -153,8 +153,8 @@ namespace Math
 	*/
 	[[nodiscard]] static float angleBetween( const quat& a, const quat& b )
 	{
-		// TODO: This is wrong
-		return acosf( Math::dot_3D( Math::rotate( Math::axis::X<vec3f>, a ), Math::rotate( Math::axis::X<vec3f>, b ) ) );
+		quat q = b * a.inverse();
+		return 2.0f * atan2f( sqrtf( q.x * q.x + q.y * q.y + q.z * q.z ), q.w );
 	}
 
 	/**
@@ -165,7 +165,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static quat random<quat>( const quat& min, const quat& max )
 	{
-		quat q = { ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ) };
+		quat q = { ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ) };
 		return min + q * ( max - min );
 	}
 
@@ -175,7 +175,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static quat randomRotation<quat>()
 	{
-		return rotationAround<quat>( randomDirection<vec3f>(), random<float>( 0.0f, Math::TWO_PI<float> ) );
+		return rotationAround<quat>( randomDirection<vec3f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**

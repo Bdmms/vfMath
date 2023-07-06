@@ -48,6 +48,7 @@ namespace Math
 	template<> inline constexpr static float HALF_PI<float> = 0.5f * PI<float>;
 
 	constexpr float RAND_MAX_FLOAT = 32767.0f;
+	constexpr float RAND_CONVERT_HALFPI = HALF_PI<float> / 32767.0f;
 	constexpr float RAND_CONVERT_PI = PI<float> / 32767.0f;
 	constexpr float RAND_CONVERT_TAU = TWO_PI<float> / 32767.0f;
 

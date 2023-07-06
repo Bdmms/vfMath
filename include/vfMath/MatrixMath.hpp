@@ -763,7 +763,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static mat4x4 randomRotation()
 	{
-		return rotationAround<mat4x4>( randomDirection<vec3f>(), random<float>( 0.0f, TWO_PI<float> ) );
+		return rotationAround<mat4x4>( randomDirection<vec3f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**

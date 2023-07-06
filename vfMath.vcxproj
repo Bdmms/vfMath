@@ -160,7 +160,7 @@
   <ItemGroup>
     <ClInclude Include="include\vfMath\Collision.hpp" />
     <ClInclude Include="include\vfMath\Curves.hpp" />
-    <ClInclude Include="include\vfMath\Euler.hpp" />
+    <ClInclude Include="include\vfMath\euler.hpp" />
     <ClInclude Include="include\vfMath\EulerMath.hpp" />
     <ClInclude Include="include\vfMath\format.hpp" />
     <ClInclude Include="include\vfMath\mat2x2.hpp" />

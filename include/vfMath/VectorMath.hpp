@@ -1095,7 +1095,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static vec4f random<vec4f>( const vec4f& min, const vec4f& max )
 	{
-		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( (float)RAND_MAX ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
+		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
 	}
 
 	/**
@@ -1135,7 +1135,7 @@ namespace Math
 	template<> [[nodiscard]] static vec3f randomDirection<vec3f>()
 	{
 		float alpha = rand() * RAND_CONVERT_TAU;
-		float beta = rand() * RAND_CONVERT_PI;
+		float beta = rand() * RAND_CONVERT_PI - RAND_CONVERT_HALFPI;
 		float cosBeta = cosf( beta );
 		return { cosf( alpha ) * cosBeta, sinf( alpha ) * cosBeta, sinf( beta ), 0.0f };
 	}

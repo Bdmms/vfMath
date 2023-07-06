@@ -4,18 +4,18 @@
 
 #include "vec4f.hpp"
 
-static __m128 _mm_hamilton_ps(const __m128& q0, const __m128& q1)
+static __m128 _mm_hamilton_ps( const __m128& q0, const __m128& q1 )
 {
-	constexpr static __m128 mskx = {  1.0f,  1.0f, -1.0f, 1.0f };
+	constexpr static __m128 mskx = { 1.0f,  1.0f, -1.0f, 1.0f };
 	constexpr static __m128 msky = { -1.0f,  1.0f,  1.0f, 1.0f };
-	constexpr static __m128 mskz = {  1.0f, -1.0f,  1.0f, 1.0f };
+	constexpr static __m128 mskz = { 1.0f, -1.0f,  1.0f, 1.0f };
 	constexpr static __m128 mskw = { -1.0f, -1.0f, -1.0f, 1.0f };
 
 	return _mm_dot_ps(
-		_mm_mul_ps(q0, mskx), _mm_permute_ps(q1, swizzle::WZYX),
-		_mm_mul_ps(q0, msky), _mm_permute_ps(q1, swizzle::ZWXY),
-		_mm_mul_ps(q0, mskz), _mm_permute_ps(q1, swizzle::YXWZ),
-		_mm_mul_ps(q0, mskw), _mm_permute_ps(q1, swizzle::XYZW)
+		_mm_mul_ps( q0, mskx ), _mm_permute_ps( q1, swizzle::WZYX ),
+		_mm_mul_ps( q0, msky ), _mm_permute_ps( q1, swizzle::ZWXY ),
+		_mm_mul_ps( q0, mskz ), _mm_permute_ps( q1, swizzle::YXWZ ),
+		_mm_mul_ps( q0, mskw ), _mm_permute_ps( q1, swizzle::XYZW )
 	);
 
 	/*
@@ -34,13 +34,13 @@ union quat
 	struct { float x, y, z, w; };
 
 	// Operators
-	quat& operator+=(const quat& b) noexcept { simd = _mm_add_ps(simd, b.simd); return *this; }
-	quat& operator-=(const quat& b) noexcept { simd = _mm_sub_ps(simd, b.simd); return *this; }
-	quat& operator*=(const quat& b) noexcept { simd = _mm_hamilton_ps(simd, b.simd); return *this; }
-	quat& operator*=(const float b) noexcept { simd = _mm_mul_ps(simd, _mm_set1_ps(b)); return *this; }
-	quat& operator/=(const float b) noexcept { simd = _mm_div_ps(simd, _mm_set1_ps(b)); return *this; }
+	quat& operator+=( const quat& b ) noexcept { simd = _mm_add_ps( simd, b.simd ); return *this; }
+	quat& operator-=( const quat& b ) noexcept { simd = _mm_sub_ps( simd, b.simd ); return *this; }
+	quat& operator*=( const quat& b ) noexcept { simd = _mm_hamilton_ps( simd, b.simd ); return *this; }
+	quat& operator*=( const float b ) noexcept { simd = _mm_mul_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	quat& operator/=( const float b ) noexcept { simd = _mm_div_ps( simd, _mm_set1_ps( b ) ); return *this; }
 
-	[[nodiscard]] quat operator-() const { return quat{ _mm_mul_ps(simd, _mm_set1_ps(-1.0f)) }; }
+	[[nodiscard]] quat operator-() const { return quat{ _mm_mul_ps( simd, _mm_set1_ps( -1.0f ) ) }; }
 
 	/**
 	 * @brief Calculates the squared norm of the quaternion
@@ -57,16 +57,7 @@ union quat
 	*/
 	[[nodiscard]] float norm() const noexcept
 	{
-		return sqrtf(x * x + y * y + z * z + w * w);
-	}
-
-	/**
-	 * @brief Calculates the conjugate of the quaternion
-	 * @return conjugate of the quaternion
-	*/
-	[[nodiscard]] quat conjugate() const noexcept
-	{
-		return { _mm_mul_ps(simd, _mm_xyzw_ps(-1.0f, -1.0f, -1.0f, 1.0f) ) };
+		return sqrtf( x * x + y * y + z * z + w * w );
 	}
 
 	/**
@@ -75,15 +66,16 @@ union quat
 	*/
 	[[nodiscard]] quat inverse() const noexcept
 	{
-		return { _mm_div_ps(_mm_mul_ps(simd, _mm_xyzw_ps(-1.0f, -1.0f, -1.0f, 1.0f)), _mm_set1_ps(norm2())) };
+		return { _mm_mul_ps( simd, _mm_xyzw_ps( -1.0f, -1.0f, -1.0f, 1.0f ) ) };
 	}
 };
 
-[[nodiscard]] static quat operator+(const quat& a, const quat& b) noexcept { return { _mm_add_ps(a.simd, b.simd) }; }
-[[nodiscard]] static quat operator-(const quat& a, const quat& b) noexcept { return { _mm_sub_ps(a.simd, b.simd) }; }
-[[nodiscard]] static quat operator*(const quat& a, const quat& b) noexcept { return { _mm_hamilton_ps(a.simd, b.simd) }; }
-[[nodiscard]] static quat operator*(const quat& a, const float b) noexcept { return { _mm_mul_ps(a.simd, _mm_set1_ps(b)) }; }
-[[nodiscard]] static quat operator/(const quat& a, const float b) noexcept { return { _mm_div_ps(a.simd, _mm_set1_ps(b)) }; }
-[[nodiscard]] static quat operator*(const float a, const quat& b) noexcept { return { _mm_mul_ps(_mm_set1_ps(a), b.simd) }; }
+[[nodiscard]] static quat operator+( const quat& a, const quat& b ) noexcept { return { _mm_add_ps( a.simd, b.simd ) }; }
+[[nodiscard]] static quat operator-( const quat& a, const quat& b ) noexcept { return { _mm_sub_ps( a.simd, b.simd ) }; }
+[[nodiscard]] static quat operator*( const quat& a, const quat& b ) noexcept { return { _mm_hamilton_ps( a.simd, b.simd ) }; }
+
+[[nodiscard]] static quat operator*( const quat& a, const float b ) noexcept { return { _mm_mul_ps( a.simd, _mm_set1_ps( b ) ) }; }
+[[nodiscard]] static quat operator/( const quat& a, const float b ) noexcept { return { _mm_div_ps( a.simd, _mm_set1_ps( b ) ) }; }
+[[nodiscard]] static quat operator*( const float a, const quat& b ) noexcept { return { _mm_mul_ps( _mm_set1_ps( a ), b.simd ) }; }
 
 #endif

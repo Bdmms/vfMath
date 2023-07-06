@@ -3,7 +3,7 @@
 #define VF_EULER_MATH_HPP
 
 #include "VectorMath.hpp"
-#include "Euler.hpp"
+#include "euler.hpp"
 
 /**
  * @brief Utilities for Euler Angles
@@ -11,7 +11,7 @@
 namespace Math
 {
 	template<> inline constexpr static euler ZERO<euler> = { 0.0f, 0.0f, 0.0f, 0.0f };
-	template<> inline constexpr static euler ONES<euler> = { 1.0f, 1.0f, 1.0f, 1.0f };
+	template<> inline constexpr static euler ONES<euler> = { 1.0f, 1.0f, 1.0f, 0.0f };
 	template<> inline constexpr static euler IDENTITY<euler> = { 0.0f, 0.0f, 0.0f, 0.0f };
 	template<> inline constexpr static euler NEGATIVE<euler> = { -1.0f, -1.0f, -1.0f, 0.0f };
 	template<> inline constexpr static euler MIN<euler> = { MIN<float>, MIN<float>, MIN<float>, 0.0f };
@@ -19,18 +19,6 @@ namespace Math
 	template<> inline constexpr static euler PI<euler> = { PI<float>, PI<float>, PI<float>, 0.0f };
 	template<> inline constexpr static euler TWO_PI<euler> = { TWO_PI<float>, TWO_PI<float>, TWO_PI<float>, 0.0f };
 	template<> inline constexpr static euler HALF_PI<euler> = { HALF_PI<float>, HALF_PI<float>, HALF_PI<float>, 0.0f };
-
-	/**
-	 * @brief Generates rotation between two axes
-	 * @tparam T - rotation type
-	 * @param from - initial axis (normalized)
-	 * @param to - final axis (normalized)
-	 * @return rotation between axes
-	*/
-	template<> [[nodiscard]] static euler rotationBetween( const vec3f& from, const vec3f& to )
-	{
-		return { _mm_sub_ps( to.simd, from.simd ) };
-	}
 
 	/**
 	 * @brief Generates euler rotation around an axis
@@ -49,6 +37,21 @@ namespace Math
 			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z ),
 			0.0f
 		};
+	}
+
+	/**
+	 * @brief Generates rotation between two axes
+	 * @tparam T - rotation type
+	 * @param from - initial axis (normalized)
+	 * @param to - final axis (normalized)
+	 * @return rotation between axes
+	*/
+	template<> [[nodiscard]] static euler rotationBetween( const vec3f& from, const vec3f& to )
+	{
+		float product = dot_3D( from, to );
+		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
+		if( product < -0.999999f ) return rotationAround<euler>( orthogonal( from ), Math::PI<float> );
+		return rotationAround<euler>( normalize( cross( from, to ) ), acosf( product ) );
 	}
 
 	/**
@@ -110,7 +113,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static euler random<euler>( const euler& min, const euler& max )
 	{
-		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( (float)RAND_MAX ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
+		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), 0 ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
 	}
 
 	/**
