@@ -29,17 +29,25 @@ static __m128 _mm_hamilton_ps( const __m128& q0, const __m128& q1 )
 
 union quat
 {
+	using ElementType = float;
+	static constexpr uint32_t ElementSize = 4u;
+
 	__m128 simd;
 	float v[4];
 	struct { float x, y, z, w; };
 
-	// Operators
+	// Array Operators
+	constexpr float operator[]( uint32_t i ) const { return v[i]; }
+	constexpr float& operator[]( uint32_t i ) { return v[i]; }
+
+	// Arithmetic Operators
 	quat& operator+=( const quat& b ) noexcept { simd = _mm_add_ps( simd, b.simd ); return *this; }
 	quat& operator-=( const quat& b ) noexcept { simd = _mm_sub_ps( simd, b.simd ); return *this; }
 	quat& operator*=( const quat& b ) noexcept { simd = _mm_hamilton_ps( simd, b.simd ); return *this; }
 	quat& operator*=( const float b ) noexcept { simd = _mm_mul_ps( simd, _mm_set1_ps( b ) ); return *this; }
 	quat& operator/=( const float b ) noexcept { simd = _mm_div_ps( simd, _mm_set1_ps( b ) ); return *this; }
 
+	// Unary Operators
 	[[nodiscard]] quat operator-() const { return quat{ _mm_mul_ps( simd, _mm_set1_ps( -1.0f ) ) }; }
 
 	/**
@@ -70,6 +78,7 @@ union quat
 	}
 };
 
+// Arithmetic Operators
 [[nodiscard]] static quat operator+( const quat& a, const quat& b ) noexcept { return { _mm_add_ps( a.simd, b.simd ) }; }
 [[nodiscard]] static quat operator-( const quat& a, const quat& b ) noexcept { return { _mm_sub_ps( a.simd, b.simd ) }; }
 [[nodiscard]] static quat operator*( const quat& a, const quat& b ) noexcept { return { _mm_hamilton_ps( a.simd, b.simd ) }; }

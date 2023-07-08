@@ -6,7 +6,7 @@
 #include "vec4i.hpp"
 #include "mat2x2.hpp"
 #include "mat4x4.hpp"
-#include "Euler.hpp"
+#include "euler.hpp"
 #include "quaternion.hpp"
 #include <iostream>
 #include <format>

@@ -13,6 +13,7 @@
 union vec4f
 {
 	using ElementType = float;
+	static constexpr uint32_t ElementSize = 4u;
 
 	__m128 simd;
 	float v[4];

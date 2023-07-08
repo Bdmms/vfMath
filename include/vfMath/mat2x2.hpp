@@ -9,6 +9,9 @@
 */
 union mat2x2
 {
+	using ElementType = float;
+	static constexpr uint32_t ElementSize = 4u;
+
 	__m128 simd;
 	vec2f col[2];
 	struct { vec2f x_axis, y_axis; };

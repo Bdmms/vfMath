@@ -10,6 +10,7 @@
 union vec2i
 {
 	using ElementType = int;
+	static constexpr uint32_t ElementSize = 2u;
 
 	int v[2];
 	__m64 simd;

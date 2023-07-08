@@ -10,6 +10,7 @@
 union vec4i
 {
 	using ElementType = int;
+	static constexpr uint32_t ElementSize = 4u;
 
 	int v[4];
 	__m128i simd;

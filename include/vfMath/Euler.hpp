@@ -9,6 +9,7 @@
 union euler
 {
 	using ElementType = float;
+	static constexpr uint32_t ElementSize = 3u;
 
 	__m128 simd;
 	float v[4];
