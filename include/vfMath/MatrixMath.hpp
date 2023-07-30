@@ -132,6 +132,31 @@ namespace Math
 	}
 
 	/**
+	 * @brief Sets the rotation of the matrix (Overwrites the 3x3 matrix)
+	 * @param matrix - transform matrix
+	 * @param rotation - axis-angle rotation
+	*/
+	static void setRotation( mat4f& matrix, const AxisAngle& rotation )
+	{
+		float angle = Math::length( rotation );
+		if( angle < Math::EPSILON<float> )
+		{
+			copy_mat3f( matrix, Math::IDENTITY<mat4f> );
+		}
+		else
+		{
+			vec3f axis = rotation / angle;
+			float sin = sinf( angle );
+			float cos = cosf( angle );
+			vec3f tpose = ( 1.0f - cos ) * axis;
+
+			matrix.simd[0] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
+			matrix.simd[1] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
+			matrix.simd[2] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+		}
+	}
+
+	/**
 	 * @brief Sets the inverse rotation of the matrix
 	 * @param matrix - 2D transform matrix
 	 * @param rotation - rotation angle [rad]

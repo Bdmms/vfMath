@@ -39,19 +39,19 @@ static vec4f clampTriangleUV( const vec4f& uv )
 	return bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
 }
 
-/*
-constexpr uint8_t maxIndex(const vec3f& vector)
+constexpr uint8_t maxIndex( const vec3f& vector )
 {
-	if (vector.x >= vector.y)	return vector.z >= vector.x ? 2u : 0u;
+	if( vector.x >= vector.y )	return vector.z >= vector.x ? 2u : 0u;
 	else						return vector.z >= vector.y ? 2u : 1u;
 }
 
-constexpr uint8_t minIndex(const vec3f& vector)
+constexpr uint8_t minIndex( const vec3f& vector )
 {
-	if (vector.x <= vector.y)	return vector.z <= vector.x ? 2u : 0u;
+	if( vector.x <= vector.y )	return vector.z <= vector.x ? 2u : 0u;
 	else						return vector.z <= vector.y ? 2u : 1u;
 }
 
+/*
 bool raycast_Sphere(vec3f& entering, vec3f& exiting, const vec3f& origin, const vec3f& line)
 {
 	vec3f displacement = origin - Math::axis::W<vec4f>;
@@ -641,6 +641,73 @@ bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, con
 	return Math::dot_3D( compCombined, compCombined ) <= 1.0f;
 }
 
+bool Math::Box::sphereCollision( vec3f& displacement, const TransformSpace& sphere )
+{
+	const mat4x4& boxSpace = sphere.inverse;
+	const vec4f& origin = sphere.transform.origin;
+
+	vec3f clamped = Math::clamp( origin, Math::NEGATIVE<vec3f>, Math::ONES<vec3f> );
+	vec3f quadrant = Math::sign( origin );
+
+	vec3f rx = boxSpace.x_axis * clamped.x;
+	vec3f ry = boxSpace.y_axis * clamped.y;
+	vec3f rz = boxSpace.z_axis * clamped.z;
+
+	vec3f vectorBoxSpace[3] = {
+		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.x_axis * quadrant.x ) + ry + rz,
+		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.y_axis * quadrant.y ) + rz + rx,
+		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.z_axis * quadrant.z ) + rx + ry
+	};
+	vec3f lengthBoxSpace = Math::parallel::length( vectorBoxSpace[0], vectorBoxSpace[1], vectorBoxSpace[2] );
+
+	uint8_t idx = minIndex( lengthBoxSpace );
+	displacement = sphere.transform * vectorBoxSpace[idx];
+	float distance2 = Math::length2( displacement );
+	float radius2 = Math::length2( sphere.transform * ( vectorBoxSpace[idx] / lengthBoxSpace[idx] ) );
+
+	return distance2 <= radius2;
+}
+
+bool Math::Sphere::boxCollision( vec3f& displacement, const TransformSpace& box )
+{
+	const mat4x4& sphereSpace = box.inverse;
+
+	vec3f boxPoint = Math::clamp( sphereSpace.origin, { -1.0f, -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f } );
+	vec3f spherePoint = box.transform * boxPoint;
+	float distance2 = Math::dot_3D( spherePoint, spherePoint );
+	
+	if( distance2 > Math::EPSILON<float> )
+	{
+		// Calculate displacement from "revised" point
+		displacement = spherePoint - ( spherePoint / sqrtf( distance2 ) );
+	}
+	else
+	{
+		// Arbitrarily displace along the x-axis
+		displacement = Math::axis::X<vec3f>;
+	}
+
+	return distance2 <= 1.0f;
+}
+
+bool Math::Sphere::sphereCollision( vec3f& displacement, const TransformSpace& sphere )
+{
+	displacement = sphere.transform.origin;
+	displacement.w = 0.0f;
+
+	float distance = Math::length( displacement );
+	if( distance <= Math::EPSILON<float> )
+	{
+		displacement = Math::axis::X<vec3f>;
+		return true;
+	}
+
+	float radius = 1.0f + Math::length( sphere.transform * Math::normalize( sphere.inverse * displacement ) );
+
+	displacement *= ( radius - distance );
+	return distance < radius;
+}
+
 // --------------------------
 // --- Intersection Table ---
 // --------------------------
@@ -1088,14 +1155,14 @@ void CollisionLayer::testCollision()
 	for( size_t i = 0; i < l0; ++i )
 	{
 		CollisionBinding& a = objects[i];
-		const Collider& colliderA = a.collider;
+		const Collider& colliderA = a.object.collider;
 		const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
 
 		for( size_t j = i + 1LLU; j < l1; ++j )
 		{
 			CollisionBinding& b = objects[j];
-			const Collider& colliderB = b.collider;
-			const uint8_t typeB = (uint8_t)b.collider.type;
+			const Collider& colliderB = b.object.collider;
+			const uint8_t typeB = (uint8_t)colliderB.type;
 			
 			if( colTest[typeB]( colliderA, colliderB ) )
 			{
@@ -1108,9 +1175,9 @@ void CollisionLayer::testCollision()
 	// Process the sensors after the object may have moved
 	for( RaySensor* sensor : sensors )
 	{
-		for( const CollisionBinding& object : objects )
+		for( const CollisionBinding& pair : objects )
 		{
-			object.collider.rayCast( *sensor );
+			pair.object.collider.rayCast( *sensor );
 		}
 	}
 }

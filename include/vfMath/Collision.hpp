@@ -48,17 +48,7 @@ struct RaySensor
 	bool hit;
 };
 
-/**
- * @brief Source object of the collision
-*/
-struct CollisionObject
-{
-	const uint64_t type;
-	void* data;
-};
-
 typedef TransformSpace CollisionFace;
-typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
 
 /**
  * @brief Extension to math utilites for collision checking
@@ -204,6 +194,14 @@ namespace Math
 		 * @return Whether the box intersects the unit cube
 		*/
 		bool boxTest( const TransformSpace& box );
+
+		/**
+		 * @brief Calculates the displacement of an arbitrary sphere intersecting with the unit cube.
+		 * @param displacement - write destination of displacement vector
+		 * @param sphere - transform space of sphere
+		 * @return Whether the sphere intersects the unit cube
+		*/
+		bool sphereCollision( vec3f& displacement, const TransformSpace& sphere );
 	}
 
 	namespace Sphere
@@ -221,6 +219,22 @@ namespace Math
 		 * @return Whether the box intersects the unit sphere
 		*/
 		bool boxTest( const TransformSpace& box );
+
+		/**
+		 * @brief Calculates the displacement of an arbitrary box intersecting with the unit sphere.
+		 * @param displacement - write destination of displacement vector
+		 * @param sphere - transform space of box
+		 * @return Whether the box intersects the unit sphere
+		*/
+		bool boxCollision( vec3f& displacement, const TransformSpace& box );
+
+		/**
+		 * @brief Calculates the displacement of an arbitrary sphere intersecting with the unit sphere.
+		 * @param displacement - write destination of displacement vector
+		 * @param sphere - transform space of sphere
+		 * @return Whether the sphere intersects the unit sphere
+		*/
+		bool sphereCollision( vec3f& displacement, const TransformSpace& sphere );
 	}
 
 	namespace Triangle
@@ -244,16 +258,6 @@ namespace Math
 }
 
 /**
- * @brief Utility dedicated to collision checking
-*/
-namespace Collision
-{
-	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject& a, CollisionObject& b ) {};
-
-	std::vector<CollisionFace> createCubeMesh();
-}
-
-/**
  * @brief Collider containing references to volume and data stored in the collision layer
 */
 struct Collider
@@ -263,8 +267,8 @@ struct Collider
 	ColliderType type;
 
 	constexpr Collider() :
-		bounds{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, 
-		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> }, 
+		bounds{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> },
+		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> },
 		type( ColliderType::AABB )
 	{
 
@@ -292,11 +296,32 @@ struct Collider
 };
 
 /**
+ * @brief Source object of the collision
+*/
+struct CollisionObject
+{
+	const Collider& collider;
+	const uint64_t type;
+	void* data;
+};
+
+typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
+
+/**
+ * @brief Utility dedicated to collision checking
+*/
+namespace Collision
+{
+	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject& a, CollisionObject& b ) {};
+
+	std::vector<CollisionFace> createCubeMesh();
+}
+
+/**
  * @brief Binding of collider and its handler
 */
 struct CollisionBinding
 {
-	const Collider& collider;
 	CollisionCallback handler;
 	CollisionObject object;
 };
@@ -437,12 +462,12 @@ struct CollisionLayer
 	std::vector<CollisionBinding> objects;
 	std::vector<RaySensor*> sensors;
 
-	constexpr void bind( Collider& collider, CollisionCallback handler, void* source, uint64_t type )
+	constexpr void bind( const Collider& collider, CollisionCallback handler, void* source, uint64_t type )
 	{
-		objects.emplace_back( collider, handler, CollisionObject( type, source ) );
+		objects.emplace_back( handler, CollisionObject( collider, type, source ) );
 	}
 
-	constexpr void unbind( Collider& collider )
+	constexpr void unbind( const Collider& collider )
 	{
 		// TODO:
 		// std::erase_if( objects, [ptr = &collider]( CollisionBinding& value ) { return &value.collider == ptr; } );
