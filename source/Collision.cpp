@@ -371,7 +371,8 @@ constexpr __m128 SIMD_BOX_P5 = { -1.0f, 1.0f, -1.0f, 1.0f };
 constexpr __m128 SIMD_BOX_P6 = { -1.0f, -1.0f, 1.0f, 1.0f };
 constexpr __m128 SIMD_BOX_P7 = { -1.0f, -1.0f, -1.0f, 1.0f };
 
-constexpr float P_EPSILON = 2E-7f;
+// Epsilon used when compiling triangles in lattice
+constexpr float P_EPSILON = 2E-5f;
 constexpr float N_EPSILON = -P_EPSILON;
 constexpr float ONE_EPSILON = 1.0f + P_EPSILON;
 
@@ -577,7 +578,9 @@ bool Math::Box::triangleTest( const TransformSpace& triangle )
 
 	AABB_TRIANGLE( tri, min, max );
 
-	__m128 overlaps = _mm_overlaps_ps( min, max, SIMD_4f_NEG, SIMD_4f_ONES );
+	__m128 minBounds = _mm_xyzw_ps( -ONE_EPSILON, -ONE_EPSILON, -ONE_EPSILON, 0.0f );
+	__m128 maxBounds = _mm_xyzw_ps(  ONE_EPSILON,  ONE_EPSILON,  ONE_EPSILON, 0.0f );
+	__m128 overlaps = _mm_overlaps_ps( min, max, minBounds, maxBounds );
 	if( !( overlaps.m128_f32[0] && overlaps.m128_f32[1] && overlaps.m128_f32[2] ) ) return false;
 	
 	// Test box overlapping triangle
@@ -623,6 +626,8 @@ bool Math::Sphere::boxTest( const TransformSpace& box )
 bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, const TransformSpace& face )
 {
 	vec3f uvs = face.inverse * sphere.transform.origin;
+	if( uvs.x + uvs.y > 1.0f || uvs.x < 0.0f || uvs.y < 0.0f ) return false;
+
 	vec4f bounded = Math::max( uvs, Math::ZERO<vec4f> );
 	vec4f clamped = bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
 	mat4x4 relFace = sphere.inverse * face.transform;
@@ -775,8 +780,8 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 	Bounds<vec3f> triangleBounds;
 	AABB_TRIANGLE( relative.transform, triangleBounds.min.simd, triangleBounds.max.simd );
 
-	vec3i minIdx = Math::clamp( vec3i( Math::floor( triangleBounds.min ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
-	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  triangleBounds.max ) ), Math::ONES<vec3i>, dimensions );
+	vec3i minIdx = Math::clamp( vec3i( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
+	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec3i>, dimensions );
 	minIdx.w = 0;
 	maxIdx.w = 0;
 

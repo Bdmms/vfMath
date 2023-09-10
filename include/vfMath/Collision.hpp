@@ -6,6 +6,12 @@
 #include <vector>
 #include <list>
 
+struct RaySensor;
+struct Collider;
+struct CollisionObject;
+
+typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
+
 /**
  * @brief Enum of supported collider types
 */
@@ -33,19 +39,6 @@ struct Bounds
 {
 	T min;
 	T max;
-};
-
-/**
- * @brief Sensor used to retrieve distance along a ray
-*/
-struct RaySensor
-{
-	vec4f origin;
-	vec3f direction;
-	vec3f normal;
-	const TransformSpace* space;
-	float distance;
-	bool hit;
 };
 
 typedef TransformSpace CollisionFace;
@@ -258,6 +251,19 @@ namespace Math
 }
 
 /**
+ * @brief Sensor used to retrieve distance along a ray
+*/
+struct RaySensor
+{
+	vec4f origin;
+	vec3f direction;
+	vec3f normal;
+	const TransformSpace* space;
+	float distance;
+	bool hit;
+};
+
+/**
  * @brief Collider containing references to volume and data stored in the collision layer
 */
 struct Collider
@@ -304,8 +310,6 @@ struct CollisionObject
 	const uint64_t type;
 	void* data;
 };
-
-typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
 
 /**
  * @brief Utility dedicated to collision checking
