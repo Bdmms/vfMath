@@ -55,6 +55,26 @@ namespace Math
 	}
 
 	/**
+	 * @brief Converts from degrees to radians.
+	 * @param degrees - angle in degrees
+	 * @return angle in radians
+	*/
+	[[nodiscard]] static euler toRadians( const euler& degrees )
+	{
+		return degrees * ( Math::PI<float> / 180.0f );
+	}
+
+	/**
+	 * @brief Converts from radians to degrees.
+	 * @param radians - angle in radians
+	 * @return angle in degrees
+	*/
+	[[nodiscard]] static euler toDegrees( const euler& radians )
+	{
+		return radians * ( 180.0f / Math::PI<float> );
+	}
+
+	/**
 	 * @brief Calculates the sine of the euler angles
 	 * @param a - euler angles
 	 * @return sin vector

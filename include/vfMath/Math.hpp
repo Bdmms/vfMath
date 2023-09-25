@@ -64,6 +64,26 @@ namespace Math
 	}
 
 	/**
+	 * @brief Converts from degrees to radians.
+	 * @param degrees - angle in degrees
+	 * @return angle in radians
+	*/
+	[[nodiscard]] constexpr float toRadians( const float degrees )
+	{
+		return degrees * Math::PI<float> / 180.0f;
+	}
+
+	/**
+	 * @brief Converts from radians to degrees.
+	 * @param radians - angle in radians
+	 * @return angle in degrees
+	*/
+	[[nodiscard]] constexpr float toDegrees( const float radians )
+	{
+		return radians * 180.0f / Math::PI<float>;
+	}
+
+	/**
 	 * @brief Equivalent to absolute value
 	 * @param val - value
 	 * @return absolute value
