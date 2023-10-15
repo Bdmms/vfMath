@@ -5,6 +5,7 @@
 #include "MatrixMath.hpp"
 #include <vector>
 #include <list>
+#include <mutex>
 
 struct RaySensor;
 struct Collider;
@@ -306,8 +307,8 @@ struct Collider
 */
 struct CollisionObject
 {
-	const Collider& collider;
-	const uint64_t type;
+	const Collider* collider;
+	uint64_t type;
 	void* data;
 };
 
@@ -465,29 +466,16 @@ struct CollisionLayer
 {
 	std::vector<CollisionBinding> objects;
 	std::vector<RaySensor*> sensors;
-
-	constexpr void bind( const Collider& collider, CollisionCallback handler, void* source, uint64_t type )
-	{
-		objects.emplace_back( handler, CollisionObject( collider, type, source ) );
-	}
-
-	constexpr void unbind( const Collider& collider )
-	{
-		// TODO:
-		// std::erase_if( objects, [ptr = &collider]( CollisionBinding& value ) { return &value.collider == ptr; } );
-	}
-
-	constexpr void addSensor( RaySensor& sensor )
-	{
-		sensors.emplace_back( &sensor );
-	}
-
-	constexpr void removeSensor( RaySensor& sensor )
-	{
-		std::erase_if( sensors, [ptr = &sensor]( RaySensor* value ) { return value == ptr; });
-	}
+	std::mutex collisionLock;
 
 	void testCollision();
+
+	void bind( const Collider& collider, CollisionCallback handler, void* source, uint64_t type );
+	void unbind( const Collider& collider, CollisionCallback handler );
+	void unbind( const Collider& collider );
+
+	void addSensor( RaySensor& sensor );
+	void removeSensor( RaySensor& sensor );
 };
 
 #endif

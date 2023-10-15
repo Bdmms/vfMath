@@ -1154,6 +1154,8 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 
 void CollisionLayer::testCollision()
 {
+	collisionLock.lock();
+
 	size_t l1 = objects.size();
 	size_t l0 = l1 - 1LLU;
 
@@ -1161,13 +1163,13 @@ void CollisionLayer::testCollision()
 	for( size_t i = 0; i < l0; ++i )
 	{
 		CollisionBinding& a = objects[i];
-		const Collider& colliderA = a.object.collider;
+		const Collider& colliderA = *a.object.collider;
 		const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
 
 		for( size_t j = i + 1LLU; j < l1; ++j )
 		{
 			CollisionBinding& b = objects[j];
-			const Collider& colliderB = b.object.collider;
+			const Collider& colliderB = *b.object.collider;
 			const uint8_t typeB = (uint8_t)colliderB.type;
 			
 			if( colTest[typeB]( colliderA, colliderB ) )
@@ -1183,7 +1185,48 @@ void CollisionLayer::testCollision()
 	{
 		for( const CollisionBinding& pair : objects )
 		{
-			pair.object.collider.rayCast( *sensor );
+			pair.object.collider->rayCast( *sensor );
 		}
 	}
+
+	collisionLock.unlock();
+}
+
+
+void CollisionLayer::bind( const Collider& collider, CollisionCallback handler, void* source, uint64_t type )
+{
+	collisionLock.lock();
+	objects.emplace_back( handler, CollisionObject( &collider, type, source ) );
+	collisionLock.unlock();
+}
+
+void CollisionLayer::unbind( const Collider& collider, CollisionCallback handler )
+{
+	collisionLock.lock();
+	std::erase_if( objects, [ptr = &collider, handler = handler]( CollisionBinding& value ) 
+	{ 
+		return value.object.collider == ptr && value.handler == handler; 
+	} );
+	collisionLock.unlock();
+}
+
+void CollisionLayer::unbind( const Collider& collider )
+{
+	collisionLock.lock();
+	std::erase_if( objects, [ptr = &collider]( CollisionBinding& value ) { return value.object.collider == ptr; } );
+	collisionLock.unlock();
+}
+
+void CollisionLayer::addSensor( RaySensor& sensor )
+{
+	collisionLock.lock();
+	sensors.emplace_back( &sensor );
+	collisionLock.unlock();
+}
+
+void CollisionLayer::removeSensor( RaySensor& sensor )
+{
+	collisionLock.lock();
+	std::erase_if( sensors, [ptr = &sensor]( RaySensor* value ) { return value == ptr; } );
+	collisionLock.unlock();
 }
