@@ -697,20 +697,21 @@ bool Math::Sphere::boxCollision( vec3f& displacement, const TransformSpace& box 
 
 bool Math::Sphere::sphereCollision( vec3f& displacement, const TransformSpace& sphere )
 {
-	displacement = sphere.transform.origin;
-	displacement.w = 0.0f;
+	vec3f vector = sphere.transform.origin;
+	vector.w = 0.0f;
 
-	float distance = Math::length( displacement );
+	float distance = Math::length( vector );
 	if( distance <= Math::EPSILON<float> )
 	{
 		displacement = Math::axis::X<vec3f>;
 		return true;
 	}
 
-	float radius = 1.0f + Math::length( sphere.transform * Math::normalize( sphere.inverse * displacement ) );
+	float radius = Math::length( sphere.transform * Math::normalize( sphere.inverse * vector ) );
+	float signedDistance = ( ( 1.0f + radius ) - distance );
 
-	displacement *= ( radius - distance );
-	return distance < radius;
+	displacement = vector * ( signedDistance / distance );
+	return distance < 1.0f + radius;
 }
 
 // --------------------------
