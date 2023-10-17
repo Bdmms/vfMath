@@ -1157,25 +1157,28 @@ void CollisionLayer::testCollision()
 	collisionLock.lock();
 
 	size_t l1 = objects.size();
-	size_t l0 = l1 - 1LLU;
-
-	// Process the collisions
-	for( size_t i = 0; i < l0; ++i )
+	if( l1 >= 2LLU )
 	{
-		CollisionBinding& a = objects[i];
-		const Collider& colliderA = *a.object.collider;
-		const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
+		size_t l0 = l1 - 1LLU;
 
-		for( size_t j = i + 1LLU; j < l1; ++j )
+		// Process the collisions
+		for( size_t i = 0; i < l0; ++i )
 		{
-			CollisionBinding& b = objects[j];
-			const Collider& colliderB = *b.object.collider;
-			const uint8_t typeB = (uint8_t)colliderB.type;
-			
-			if( colTest[typeB]( colliderA, colliderB ) )
+			CollisionBinding& a = objects[i];
+			const Collider& colliderA = *a.object.collider;
+			const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
+
+			for( size_t j = i + 1LLU; j < l1; ++j )
 			{
-				a.handler( a.object, b.object );
-				b.handler( b.object, a.object );
+				CollisionBinding& b = objects[j];
+				const Collider& colliderB = *b.object.collider;
+				const uint8_t typeB = (uint8_t)colliderB.type;
+
+				if( colTest[typeB]( colliderA, colliderB ) )
+				{
+					a.handler( a.object, b.object );
+					b.handler( b.object, a.object );
+				}
 			}
 		}
 	}
