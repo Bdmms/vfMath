@@ -153,6 +153,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="source\Algorithm.cpp" />
     <ClCompile Include="source\Collision.cpp" />
     <ClCompile Include="source\Perlin.cpp" />
     <ClCompile Include="source\vec.cpp" />
@@ -171,6 +172,7 @@
     <ClInclude Include="include\vfMath\quaternion.hpp" />
     <ClInclude Include="include\vfMath\QuatMath.hpp" />
     <ClInclude Include="include\vfMath\swizzle.hpp" />
+    <ClInclude Include="include\vfMath\Transform2D.hpp" />
     <ClInclude Include="include\vfMath\vec.hpp" />
     <ClInclude Include="include\vfMath\vec2f.hpp" />
     <ClInclude Include="include\vfMath\vec2i.hpp" />

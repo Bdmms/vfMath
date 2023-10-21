@@ -53,7 +53,7 @@ union mat2x2
 	 * @brief Calculates the determinant of this matrix
 	 * @return determinant
 	*/
-	[[nodiscard]] constexpr float determinant()
+	[[nodiscard]] constexpr float determinant() const
 	{
 		return m[0] * m[3] - m[1] * m[2];
 	}
@@ -62,7 +62,7 @@ union mat2x2
 	 * @brief Creates a transposed matrix
 	 * @return transposed matrix
 	*/
-	[[nodiscard]] constexpr mat2x2 transpose()
+	[[nodiscard]] constexpr mat2x2 transpose() const
 	{
 		return mat2x2{ m[0], m[2], m[1], m[3] };
 	}
@@ -71,7 +71,7 @@ union mat2x2
 	 * @brief Creates an inverse matrix
 	 * @return inverse matrix
 	*/
-	[[nodiscard]] mat2x2 inverse()
+	[[nodiscard]] mat2x2 inverse() const
 	{
 		return mat2x2{ _mm_div_ps( _mm_xyzw_ps( m[3], -m[2], -m[1], m[0] ), _mm_set1_ps( determinant() ) ) };
 	}
