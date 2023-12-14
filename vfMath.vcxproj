@@ -153,7 +153,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="source\Algorithm.cpp" />
     <ClCompile Include="source\Collision.cpp" />
     <ClCompile Include="source\Perlin.cpp" />
     <ClCompile Include="source\vec.cpp" />

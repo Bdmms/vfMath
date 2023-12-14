@@ -720,30 +720,30 @@ bool Math::Sphere::sphereCollision( vec3f& displacement, const TransformSpace& s
 
 bool intersect_AABB( const Collider& a, const Collider& b )
 {
-	return Math::overlaps( a.aabb, b.aabb );
+	return Math::overlaps3D( a.aabb, b.aabb );
 }
 
 bool intersect_Box_Box( const Collider& a, const Collider& b )
 {
-	return Math::overlaps( a.aabb, b.aabb ) &&
+	return Math::overlaps3D( a.aabb, b.aabb ) &&
 		Math::Box::boxTest( { a.bounds.inverse * b.bounds.transform, b.bounds.inverse * a.bounds.transform } );
 }
 
 bool intersect_Box_Sphere( const Collider& a, const Collider& b )
 {
-	return Math::overlaps( a.aabb, b.aabb ) &&
+	return Math::overlaps3D( a.aabb, b.aabb ) &&
 		Math::Sphere::boxTest( { b.bounds.inverse * a.bounds.transform, a.bounds.inverse * b.bounds.transform } );
 }
 
 bool intersect_Sphere_Box( const Collider& a, const Collider& b )
 {
-	return Math::overlaps( a.aabb, b.aabb ) &&
+	return Math::overlaps3D( a.aabb, b.aabb ) &&
 		Math::Sphere::boxTest( { a.bounds.inverse * b.bounds.transform, b.bounds.inverse * a.bounds.transform } );
 }
 
 bool intersect_Sphere_Sphere( const Collider& a, const Collider& b )
 {
-	return Math::overlaps( a.aabb, b.aabb ) &&
+	return Math::overlaps3D( a.aabb, b.aabb ) &&
 		Math::Sphere::sphereTest( { a.bounds.inverse * b.bounds.transform, b.bounds.inverse * a.bounds.transform } );
 }
 

@@ -135,13 +135,11 @@ namespace Math
 	 * @param max0 - maximum of first bounds
 	 * @param min1 - minimum of second bounds
 	 * @param max1 - maximum of second bounds
-	 * @return Whether the two boundaries overlap
+	 * @return Boolean vector for whether the two boundaries overlap 
 	*/
-	[[nodiscard]] constexpr bool overlaps( const vec2f& min0, const vec2f& max0, const vec2f& min1, const vec2f& max1 )
+	[[nodiscard]] static vec4f overlaps( const vec4f& min0, const vec4f& max0, const vec4f& min1, const vec4f& max1 )
 	{
-		bool a = ( min0.x >= min1.x && min0.x <= max1.x ) || ( min1.x >= min0.x && min1.x <= max0.x );
-		bool b = ( min0.y >= min1.y && min0.y <= max1.y ) || ( min1.y >= min0.y && min1.y <= max0.y );
-		return a && b;
+		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
 	}
 
 	/**
@@ -152,9 +150,9 @@ namespace Math
 	 * @param max1 - maximum of second bounds
 	 * @return Whether the two boundaries overlap
 	*/
-	[[nodiscard]] constexpr bool overlaps( const vec4f& min0, const vec4f& max0, const vec4f& min1, const vec4f& max1 )
+	[[nodiscard]] constexpr vec2i overlaps( const vec2i& min0, const vec2i& max0, const vec2i& min1, const vec2i& max1 )
 	{
-		return bool( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
 	}
 
 	/**
@@ -165,22 +163,9 @@ namespace Math
 	 * @param max1 - maximum of second bounds
 	 * @return Whether the two boundaries overlap
 	*/
-	[[nodiscard]] constexpr bool overlaps( const vec2i& min0, const vec2i& max0, const vec2i& min1, const vec2i& max1 )
+	[[nodiscard]] static vec4i overlaps( const vec4i& min0, const vec4i& max0, const vec4i& min1, const vec4i& max1 )
 	{
-		return bool( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
-	}
-
-	/**
-	 * @brief Checks if two overlapping boundaries overlap
-	 * @param min0 - minimum of first bounds
-	 * @param max0 - maximum of first bounds
-	 * @param min1 - minimum of second bounds
-	 * @param max1 - maximum of second bounds
-	 * @return Whether the two boundaries overlap
-	*/
-	[[nodiscard]] constexpr bool overlaps( const vec4i& min0, const vec4i& max0, const vec4i& min1, const vec4i& max1 )
-	{
-		return bool( ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 ) );
+		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
 	}
 
 	/**

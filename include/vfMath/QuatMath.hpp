@@ -179,6 +179,36 @@ namespace Math
 	}
 
 	/**
+	 * @brief Calculates the quaternion rotation needed to rotate the identity matrix to the specified orientation.
+	 * @param initial - current direction of axis (normalized)
+	 * @param target - expected direction of axis (normalized)
+	 * @param trackAxis - direction of tracked axis (normalized)
+	 * @return quaternion rotation
+	*/
+	static quat lookTo( const vec3f& initial, const vec3f& target, const vec3f& trackAxis )
+	{
+		vec3f projectedInitial = initial - Math::dot_3D( initial, trackAxis ) * trackAxis;
+		vec3f projectedTarget = target - Math::dot_3D( target, trackAxis ) * trackAxis;
+
+		float magnitudeInitial = sqrtf( Math::dot_3D( projectedInitial, projectedInitial ) );
+		float magnitudeTarget = sqrtf( Math::dot_3D( projectedTarget, projectedTarget ) );
+
+		// Normalize projected vectors
+		if( magnitudeInitial <= EPSILON<float> || magnitudeTarget <= EPSILON<float> ) return Math::IDENTITY<quat>;
+		
+		projectedTarget /= magnitudeTarget;
+		projectedInitial /= magnitudeInitial;
+
+		vec3f axis = Math::cross( projectedInitial, projectedTarget );
+		float magnitude = sqrtf( Math::dot_3D( axis, axis ) );
+
+		if( magnitude <= EPSILON<float> ) return Math::IDENTITY<quat>;
+
+		float angle = acosf( dot_3D( projectedInitial, projectedTarget ) );
+		return rotationAround<quat>( axis / magnitude, angle );
+	}
+
+	/**
 	 * @brief Performs spherical interpolation between two quaternions
 	 * @param q0 - first quaternion
 	 * @param q1 - second quaternion

@@ -61,15 +61,38 @@ namespace Math
 	}
 
 	/**
+	 * @brief Tests if two bounds overlap with each other
+	 * @param a - first bound range
+	 * @param b - second bound range
+	 * @return Whether the boundaries overlap
+	*/
+	static bool overlaps( const Bounds<float>& a, const Bounds<float>& b )
+	{
+		return overlaps( a.min, a.max, b.min, b.max );
+	}
+
+	/**
 	 * @brief Tests if two bounds overlap with each other across each axis
 	 * @param a - first bound range
 	 * @param b - second bound range
 	 * @return Whether the boundaries overlap
 	*/
-	template <typename T>
-	static bool overlaps( const Bounds<T>& a, const Bounds<T>& b )
+	static bool overlaps3D( const Bounds<vec4f>& a, const Bounds<vec4f>& b )
 	{
-		return overlaps( a.min, a.max, b.min, b.max );
+		vec4f result = overlaps( a.min, a.max, b.min, b.max );
+		return result.x && result.y && result.z;
+	}
+
+	/**
+	 * @brief Tests if two bounds overlap with each other across each axis
+	 * @param a - first bound range
+	 * @param b - second bound range
+	 * @return Whether the boundaries overlap
+	*/
+	static bool overlaps3D( const Bounds<vec4i>& a, const Bounds<vec4i>& b )
+	{
+		vec4i result = overlaps( a.min, a.max, b.min, b.max );
+		return result.x && result.y && result.z;
 	}
 
 	/**
@@ -248,6 +271,34 @@ namespace Math
 		 * @return Whether the triangle intersects the unit cube
 		*/
 		float rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector );
+	}
+
+	static vec2f intersection2D( vec2f originA, vec2f lineA, vec2f originB, vec2f lineB )
+	{
+		// p + rt
+		// q + su
+		float dx = originB.x - originA.x;
+		float dy = originB.y - originA.y;
+		float dp = lineA.x * lineB.y - lineA.y * lineB.x;
+
+		// t = ( q - p ) x s / ( r x s )
+		float t = ( dx * lineB.y - dy * lineB.x ) / dp;
+		// u = ( q - p ) x r / ( r x s )
+		float u = ( dx * lineA.y - dy * lineA.x ) / dp;
+		return { t, u };
+	}
+
+	static vec2f intersection3D( const vec4f& originA, const vec4f& lineA, const vec4f& originB, const vec4f& lineB )
+	{
+		vec3f normal = normalize( cross( lineA, lineB ) );
+		vec3f tangent = normalize( lineA );
+		vec3f bitangent = cross( normal, tangent );
+		vec3f displacement = originB - originA;
+
+		vec4f p = Math::parallel::dot( displacement, tangent, displacement, bitangent, lineB, tangent, lineB, bitangent );
+		if( p.w <= Math::EPSILON<float> ) return { 0.0f, 0.0f };
+
+		return { p.x - p.y * p.z / p.w, -p.y / p.w };
 	}
 }
 
