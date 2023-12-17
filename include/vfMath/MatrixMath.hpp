@@ -308,6 +308,20 @@ namespace Math
 	}
 
 	/**
+	 * @brief Sets the inverse transform of the matrix
+	 * @param matrix - transform matrix
+	 * @param translation - translation vector
+	 * @param q - quaternion rotation
+	*/
+	static void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q )
+	{
+		setRotationInverse( matrix, q );
+		matrix.m[12] = -dot( matrix.col[0], translation );
+		matrix.m[13] = -dot( matrix.col[1], translation );
+		matrix.m[14] = -dot( matrix.col[2], translation );
+	}
+
+	/**
 	 * @brief Converts a rotation matrix into a quaternion.
 	 * @param rotation - normalized rotation matrix
 	 * @return quaternion rotation

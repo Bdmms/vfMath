@@ -10,9 +10,20 @@
 #include "quaternion.hpp"
 #include <iostream>
 #include <format>
+#include <string>
 
 namespace vf
 {
+	static std::string toString( int value )
+	{
+		return std::to_string( value );
+	}
+
+	static std::string toString( float value )
+	{
+		return std::format( "{:.3f}", value );
+	}
+
 	static std::string toString( const vec2i& vector )
 	{
 		return std::format( "{}, {}", vector.x, vector.y );
@@ -50,7 +61,7 @@ namespace vf
 
 	static std::string toString( const mat4f& matrix )
 	{
-		return std::format( "{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}", 
+		return std::format( "\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}", 
 			matrix[0], matrix[4], matrix[8], matrix[12],
 			matrix[1], matrix[5], matrix[9], matrix[13],
 			matrix[2], matrix[6], matrix[10], matrix[14],
