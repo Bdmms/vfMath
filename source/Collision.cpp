@@ -1165,17 +1165,21 @@ void CollisionLayer::testCollision()
 		for( size_t i = 0; i < l0; ++i )
 		{
 			CollisionBinding& a = objects[i];
-			const Collider& colliderA = *a.object.collider;
+			Collider& colliderA = *a.object.collider;
 			const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
+			if( colliderA.flags & Collider::DISABLED ) continue;
 
 			for( size_t j = i + 1LLU; j < l1; ++j )
 			{
 				CollisionBinding& b = objects[j];
-				const Collider& colliderB = *b.object.collider;
+				Collider& colliderB = *b.object.collider;
 				const uint8_t typeB = (uint8_t)colliderB.type;
+				if( colliderB.flags & Collider::DISABLED ) continue;
 
 				if( colTest[typeB]( colliderA, colliderB ) )
 				{
+					colliderA.flags |= Collider::COLLIDED;
+					colliderB.flags |= Collider::COLLIDED;
 					a.handler( a.object, b.object );
 					b.handler( b.object, a.object );
 				}
@@ -1196,7 +1200,7 @@ void CollisionLayer::testCollision()
 }
 
 
-void CollisionLayer::bind( const Collider& collider, CollisionCallback handler, void* source, uint64_t type )
+void CollisionLayer::bind( Collider& collider, CollisionCallback handler, void* source, uint64_t type )
 {
 	collisionLock.lock();
 	objects.emplace_back( handler, CollisionObject( &collider, type, source ) );

@@ -16,7 +16,7 @@ typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
 /**
  * @brief Enum of supported collider types
 */
-enum class ColliderType : unsigned char
+enum class ColliderType : uint8_t
 {
 	AABB = 0,
 	Cube = 1,
@@ -28,8 +28,8 @@ enum class ColliderType : unsigned char
 */
 struct TransformSpace
 {
-	mat4x4 transform;
-	mat4x4 inverse;
+	mat4f transform;
+	mat4f inverse;
 };
 
 /**
@@ -320,14 +320,29 @@ struct RaySensor
 */
 struct Collider
 {
+	enum ColliderFlags : uint8_t
+	{
+		ENABLED    = 0x00u,	// Default state for a collider
+		DISABLED   = 0x01u,	// Indicates the collider will not trigger collisions
+		COLLIDED   = 0x02u,	// Indicates that at least one collision occurred with this collider
+		STATIC	   = 0x04u,	// Indicates that the collider cannot be transformed on collision
+		PASSIVE    = 0x08u,	// Indicates that the collider cannot transform another collider on collision
+		TRANSLATED = 0x10u,	// Indicates that the collider has translated during the collision test
+		ROTATED    = 0x20u,	// Indicates that the collider has rotated during the collision test
+		SCALED	   = 0x40u,	// Indicates that the collider has changed size during the collision test
+		SELECTED   = 0x80u	// Indicates that the collider is selected
+	};
+
 	TransformSpace bounds;
 	Bounds<vec3f> aabb;
 	ColliderType type;
+	uint8_t flags;
 
 	constexpr Collider() :
 		bounds{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> },
 		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> },
-		type( ColliderType::AABB )
+		type( ColliderType::AABB ),
+		flags( ENABLED )
 	{
 
 	}
@@ -335,7 +350,8 @@ struct Collider
 	constexpr Collider( const TransformSpace& bounds, const Bounds<vec3f> aabb, ColliderType type ) :
 		bounds( bounds ),
 		aabb( aabb ),
-		type( type )
+		type( type ),
+		flags( ENABLED )
 	{
 
 	}
@@ -358,7 +374,7 @@ struct Collider
 */
 struct CollisionObject
 {
-	const Collider* collider;
+	Collider* collider;
 	uint64_t type;
 	void* data;
 };
@@ -521,7 +537,7 @@ struct CollisionLayer
 
 	void testCollision();
 
-	void bind( const Collider& collider, CollisionCallback handler, void* source, uint64_t type );
+	void bind( Collider& collider, CollisionCallback handler, void* source, uint64_t type );
 	void unbind( const Collider& collider, CollisionCallback handler );
 	void unbind( const Collider& collider );
 
