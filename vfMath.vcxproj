@@ -172,6 +172,7 @@
     <ClInclude Include="include\vfMath\QuatMath.hpp" />
     <ClInclude Include="include\vfMath\swizzle.hpp" />
     <ClInclude Include="include\vfMath\Transform2D.hpp" />
+    <ClInclude Include="include\vfMath\Transform3D.hpp" />
     <ClInclude Include="include\vfMath\vec.hpp" />
     <ClInclude Include="include\vfMath\vec2f.hpp" />
     <ClInclude Include="include\vfMath\vec2i.hpp" />

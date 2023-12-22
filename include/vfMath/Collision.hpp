@@ -2,7 +2,7 @@
 #ifndef WB_COLLISION_HPP
 #define WB_COLLISION_HPP
 
-#include "MatrixMath.hpp"
+#include "Transform3D.hpp"
 #include <vector>
 #include <list>
 #include <mutex>
@@ -24,15 +24,6 @@ enum class ColliderType : uint8_t
 };
 
 /**
- * @brief Pair of transform matrices that define transformations into and out of a space.
-*/
-struct TransformSpace
-{
-	mat4f transform;
-	mat4f inverse;
-};
-
-/**
  * @brief Pair of values that form a range.
 */
 template <typename T>
@@ -49,17 +40,6 @@ typedef TransformSpace CollisionFace;
 */
 namespace Math
 {
-	/**
-	 * @brief Translates the regular and inverse transforms of the space.
-	 * @param space - transform space
-	 * @param translation - translation vector
-	*/
-	static void translate( TransformSpace& space, const vec3f& translation )
-	{
-		space.transform.origin += translation;
-		space.inverse.origin -= space.inverse * translation;
-	}
-
 	/**
 	 * @brief Tests if two bounds overlap with each other
 	 * @param a - first bound range

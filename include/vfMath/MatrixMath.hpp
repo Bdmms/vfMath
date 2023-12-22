@@ -281,12 +281,13 @@ namespace Math
 	static void setTransformInverse( mat4f& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
 	{
 		setRotationInverse( matrix, rotation );
-		matrix.col[0] /= scale;
-		matrix.col[1] /= scale;
-		matrix.col[2] /= scale;
-		matrix.m[12] = -dot( matrix.col[0], translation );
-		matrix.m[13] = -dot( matrix.col[1], translation );
-		matrix.m[14] = -dot( matrix.col[2], translation );
+		vec3f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
+		matrix.x_axis /= copiedScale;
+		matrix.y_axis /= copiedScale;
+		matrix.z_axis /= copiedScale;
+		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
+		matrix.m[13] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
+		matrix.m[14] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
 	}
 
 	/**
@@ -299,12 +300,13 @@ namespace Math
 	static void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q, const vec3f& scale )
 	{
 		setRotationInverse( matrix, q );
-		matrix.col[0] /= scale;
-		matrix.col[1] /= scale;
-		matrix.col[2] /= scale;
-		matrix.m[12] = -dot( matrix.col[0], translation );
-		matrix.m[13] = -dot( matrix.col[1], translation );
-		matrix.m[14] = -dot( matrix.col[2], translation );
+		vec3f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
+		matrix.x_axis /= copiedScale;
+		matrix.y_axis /= copiedScale;
+		matrix.z_axis /= copiedScale;
+		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
+		matrix.m[13] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
+		matrix.m[14] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
 	}
 
 	/**
@@ -316,9 +318,9 @@ namespace Math
 	static void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q )
 	{
 		setRotationInverse( matrix, q );
-		matrix.m[12] = -dot( matrix.col[0], translation );
-		matrix.m[13] = -dot( matrix.col[1], translation );
-		matrix.m[14] = -dot( matrix.col[2], translation );
+		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
+		matrix.m[13] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
+		matrix.m[14] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
 	}
 
 	/**
