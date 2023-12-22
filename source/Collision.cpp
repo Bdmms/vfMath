@@ -1077,6 +1077,15 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	vec3i idxUnit = ( idxSign + Math::ONES<vec3i> ) / 2;
 	vec3i idx = vec3i( Math::floor( origin + line * traveled ) );
 
+	// Check that the starting idx is within bounds (Fail-safe)
+	bool xInBounds = idx.x >= 0 && idx.x < dimensions.x;
+	bool yInBounds = idx.y >= 0 && idx.y < dimensions.y;
+	bool zInBounds = idx.z >= 0 && idx.z < dimensions.z;
+	if( !( xInBounds && yInBounds && zInBounds ) )
+	{
+		return false;
+	}
+
 #ifdef VF_RAYCAST_DEBUG
 	vec3i end = vec3i( Math::floor( origin + line * maxDistance ) );
 	std::cout << "Bounds:\n";
