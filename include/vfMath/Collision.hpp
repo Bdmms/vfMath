@@ -148,6 +148,14 @@ namespace Math
 		bool boxTest( const TransformSpace& box );
 
 		/**
+		 * @brief Tests if the arbitrary box intersects with the unit cube.
+		 * This differs from boxTest() by dividing projected points by their w coordinate.
+		 * @param box - transform space of box
+		 * @return Whether the box intersects the unit cube
+		*/
+		bool projectedBoxTest( const TransformSpace& box );
+
+		/**
 		 * @brief Calculates the displacement of an arbitrary sphere intersecting with the unit cube.
 		 * @param displacement - write destination of displacement vector
 		 * @param sphere - transform space of sphere

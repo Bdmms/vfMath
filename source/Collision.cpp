@@ -482,6 +482,51 @@ __m128 MIRRORED_AABB_SEPARATION_TEST( const mat4f& t, const __m128& max )
 	return _mm_cmple_ps( bounds, max );
 }
 
+__m128 PROJECTED_AABB_SEPARATION_TEST( const mat4f& t, const __m128& min, const __m128& max )
+{
+	__m128 point = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	__m128 minBounds = point;
+	__m128 maxBounds = point;
+
+	point = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	point = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	point = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	point = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	point = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	point = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	point = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
+	minBounds = _mm_min_ps( minBounds, point );
+	maxBounds = _mm_max_ps( maxBounds, point );
+
+	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min ), _mm_cmple_ps( minBounds, max ) ), _mm_and_ps( _mm_cmpge_ps( min, minBounds ), _mm_cmple_ps( min, maxBounds ) ) );
+}
+
 bool Math::AABB::rayTest( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
 {
 	__m128 intersect0 = _mm_div_ps( _mm_sub_ps( min.simd, point.simd ), ray.simd );
@@ -598,6 +643,16 @@ bool Math::Box::boxTest( const TransformSpace& box )
 	if( !( overlaps.m128_f32[0] && overlaps.m128_f32[1] && overlaps.m128_f32[2] ) ) return false;
 
 	overlaps = MIRRORED_AABB_SEPARATION_TEST( box.inverse, SIMD_4f_ONES );
+	return overlaps.m128_u32[0] && overlaps.m128_u32[1] && overlaps.m128_u32[2];
+}
+
+bool Math::Box::projectedBoxTest( const TransformSpace& box )
+{
+	// Test regular overlap
+	__m128 overlaps = PROJECTED_AABB_SEPARATION_TEST( box.transform, SIMD_4f_NEG, SIMD_4f_ONES );
+	if( !( overlaps.m128_f32[0] && overlaps.m128_f32[1] && overlaps.m128_f32[2] ) ) return false;
+
+	overlaps = PROJECTED_AABB_SEPARATION_TEST( box.inverse, SIMD_4f_NEG, SIMD_4f_ONES );
 	return overlaps.m128_u32[0] && overlaps.m128_u32[1] && overlaps.m128_u32[2];
 }
 
