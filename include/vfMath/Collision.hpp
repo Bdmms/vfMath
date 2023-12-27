@@ -23,16 +23,6 @@ enum class ColliderType : uint8_t
 	Sphere = 2
 };
 
-/**
- * @brief Pair of values that form a range.
-*/
-template <typename T>
-struct Bounds
-{
-	T min;
-	T max;
-};
-
 typedef TransformSpace CollisionFace;
 
 /**
@@ -40,41 +30,6 @@ typedef TransformSpace CollisionFace;
 */
 namespace Math
 {
-	/**
-	 * @brief Tests if two bounds overlap with each other
-	 * @param a - first bound range
-	 * @param b - second bound range
-	 * @return Whether the boundaries overlap
-	*/
-	static bool overlaps( const Bounds<float>& a, const Bounds<float>& b )
-	{
-		return overlaps( a.min, a.max, b.min, b.max );
-	}
-
-	/**
-	 * @brief Tests if two bounds overlap with each other across each axis
-	 * @param a - first bound range
-	 * @param b - second bound range
-	 * @return Whether the boundaries overlap
-	*/
-	static bool overlaps3D( const Bounds<vec4f>& a, const Bounds<vec4f>& b )
-	{
-		vec4f result = overlaps( a.min, a.max, b.min, b.max );
-		return result.x && result.y && result.z;
-	}
-
-	/**
-	 * @brief Tests if two bounds overlap with each other across each axis
-	 * @param a - first bound range
-	 * @param b - second bound range
-	 * @return Whether the boundaries overlap
-	*/
-	static bool overlaps3D( const Bounds<vec4i>& a, const Bounds<vec4i>& b )
-	{
-		vec4i result = overlaps( a.min, a.max, b.min, b.max );
-		return result.x && result.y && result.z;
-	}
-
 	/**
 	 * @brief Extends the bounds, such that the face is completley inside the bounds.
 	 * @param bounds - bounds range

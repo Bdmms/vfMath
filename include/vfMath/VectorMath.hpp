@@ -169,6 +169,30 @@ namespace Math
 	}
 
 	/**
+	 * @brief Tests if two bounds overlap with each other across each axis
+	 * @param a - first bound range
+	 * @param b - second bound range
+	 * @return Whether the boundaries overlap
+	*/
+	static bool overlaps3D( const Bounds<vec4f>& a, const Bounds<vec4f>& b )
+	{
+		vec4f result = overlaps( a.min, a.max, b.min, b.max );
+		return result.x && result.y && result.z;
+	}
+
+	/**
+	 * @brief Tests if two bounds overlap with each other across each axis
+	 * @param a - first bound range
+	 * @param b - second bound range
+	 * @return Whether the boundaries overlap
+	*/
+	static bool overlaps3D( const Bounds<vec4i>& a, const Bounds<vec4i>& b )
+	{
+		vec4i result = overlaps( a.min, a.max, b.min, b.max );
+		return result.x && result.y && result.z;
+	}
+
+	/**
 	 * @brief Re-maps the components of the vector using the specified swizzle code
 	 * @param v - vector
 	 * @return swizzled vector
@@ -1092,6 +1116,50 @@ namespace Math
 	template<> [[nodiscard]] static AxisAngle randomRotation<AxisAngle>()
 	{
 		return randomDirection<vec3f>() * random<float>( 0.0f, Math::TWO_PI<float> );
+	}
+
+	/**
+	 * @brief Extends the bounds to include the point
+	 * @param bounds - vector bounds
+	 * @param point - vector point
+	*/
+	static void extend( Bounds<vec2f>& bounds, const vec2f& point )
+	{
+		bounds.min = Math::min( bounds.min, point );
+		bounds.max = Math::max( bounds.max, point );
+	}
+
+	/**
+	 * @brief Extends the bounds to include the point
+	 * @param bounds - vector bounds
+	 * @param point - vector point
+	*/
+	static void extend( Bounds<vec2i>& bounds, const vec2i& point )
+	{
+		bounds.min = Math::min( bounds.min, point );
+		bounds.max = Math::max( bounds.max, point );
+	}
+
+	/**
+	 * @brief Extends the bounds to include the point
+	 * @param bounds - vector bounds
+	 * @param point - vector point
+	*/
+	static void extend( Bounds<vec4f>& bounds, const vec4f& point )
+	{
+		bounds.min = Math::min( bounds.min, point );
+		bounds.max = Math::max( bounds.max, point );
+	}
+
+	/**
+	 * @brief Extends the bounds to include the point
+	 * @param bounds - vector bounds
+	 * @param point - vector point
+	*/
+	static void extend( Bounds<vec4i>& bounds, const vec4i& point )
+	{
+		bounds.min = Math::min( bounds.min, point );
+		bounds.max = Math::max( bounds.max, point );
 	}
 };
 

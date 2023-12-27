@@ -7,6 +7,16 @@
 #include <numbers>
 
 /**
+ * @brief Pair of values that form a range.
+*/
+template <typename T>
+struct Bounds
+{
+	T min;
+	T max;
+};
+
+/**
  * @brief Math utility
 */
 namespace Math
@@ -130,6 +140,17 @@ namespace Math
 	}
 
 	/**
+	 * @brief Tests if two bounds overlap with each other
+	 * @param a - first bound range
+	 * @param b - second bound range
+	 * @return Whether the boundaries overlap
+	*/
+	[[nodiscard]] constexpr bool overlaps( const Bounds<float>& a, const Bounds<float>& b )
+	{
+		return overlaps( a.min, a.max, b.min, b.max );
+	}
+
+	/**
 	 * @brief Determines the sign of the value in the form of 1.0 or -1.0.
 	 * @param value - scalar value
 	 * @return sign of the value
@@ -231,6 +252,17 @@ namespace Math
 	{
 		// 0 = (value - relative) + TWO_PI * i;
 		return value + TWO_PI<T> *round( ( relative - value ) / TWO_PI<T> );
+	}
+
+	/**
+	 * @brief Extends the bounds to include the value.
+	 * @param bounds - scalar bounds
+	 * @param point - scalar point
+	*/
+	static void extend( Bounds<float>& bounds, const float value )
+	{
+		bounds.min = std::min( bounds.min, value );
+		bounds.max = std::max( bounds.max, value );
 	}
 }
 

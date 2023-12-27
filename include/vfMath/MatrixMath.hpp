@@ -324,6 +324,32 @@ namespace Math
 	}
 
 	/**
+	 * @brief Sets the transform to match the boundary.
+	 * @param matrix - transform matrix
+	 * @param bounds - vector bounds
+	*/
+	static void setTransform( mat4f& matrix, Bounds<vec4f> bounds )
+	{
+		vec4f difference = ( bounds.max - bounds.min ) * 0.5f;
+
+		matrix[0] = difference.x;
+		matrix[1] = 0.0f;
+		matrix[2] = 0.0f;
+
+		matrix[4] = 0.0f;
+		matrix[5] = difference.y;
+		matrix[6] = 0.0f;
+
+		matrix[8] = 0.0f;
+		matrix[9] = 0.0f;
+		matrix[10] = difference.z;
+
+		matrix[12] = difference.x + bounds.min.x;
+		matrix[13] = difference.y + bounds.min.y;
+		matrix[14] = difference.z + bounds.min.z;
+	}
+
+	/**
 	 * @brief Converts a rotation matrix into a quaternion.
 	 * @param rotation - normalized rotation matrix
 	 * @return quaternion rotation
