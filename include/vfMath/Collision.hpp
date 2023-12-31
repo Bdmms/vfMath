@@ -265,24 +265,25 @@ struct Collider
 {
 	enum ColliderFlags : uint8_t
 	{
-		ENABLED    = 0x00u,	// Default state for a collider
-		DISABLED   = 0x01u,	// Indicates the collider will not trigger collisions
-		COLLIDED   = 0x02u,	// Indicates that at least one collision occurred with this collider
-		STATIC	   = 0x04u,	// Indicates that the collider cannot be transformed on collision
-		PASSIVE    = 0x08u,	// Indicates that the collider cannot transform another collider on collision
-		TRANSLATED = 0x10u,	// Indicates that the collider has translated during the collision test
-		ROTATED    = 0x20u,	// Indicates that the collider has rotated during the collision test
-		SCALED	   = 0x40u,	// Indicates that the collider has changed size during the collision test
-		SELECTED   = 0x80u	// Indicates that the collider is selected
+		ENABLED     = 0x00u,	// Default state for a collider
+		DISABLED    = 0x01u,	// Indicates the collider will not trigger collisions
+		COLLIDED    = 0x02u,	// Indicates that at least one collision occurred with this collider
+		STATIC	    = 0x04u,	// Indicates that the collider cannot be transformed on collision
+		PASSIVE     = 0x08u,	// Indicates that the collider cannot transform another collider on collision
+		SWEEPING    = 0x10u,	// Enables checks for sweep collision between frames
+		TRANSLATED  = 0x20u,	// Indicates that the collider has translated during the collision test
+		TRANSFORMED = 0x40u,	// Indicates that the collider has rotated during the collision test
+		SELECTED    = 0x80u	// Indicates that the collider is selected
 	};
 
-	TransformSpace bounds;
+	TransformSpace current;
+	TransformSpace previous;
 	Bounds<vec3f> aabb;
 	ColliderType type;
 	uint8_t flags;
 
 	constexpr Collider() :
-		bounds{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> },
+		current{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> },
 		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> },
 		type( ColliderType::AABB ),
 		flags( ENABLED )
@@ -291,7 +292,7 @@ struct Collider
 	}
 
 	constexpr Collider( const TransformSpace& bounds, const Bounds<vec3f> aabb, ColliderType type ) :
-		bounds( bounds ),
+		current( bounds ),
 		aabb( aabb ),
 		type( type ),
 		flags( ENABLED )
@@ -299,15 +300,63 @@ struct Collider
 
 	}
 
+
+	/**
+	 * @brief Clears previous transforms, sets the current transform, and re-calculates the AABB.
+	 * @param transform - transform matrix
+	*/
 	void setTransform( const mat4x4& transform )
 	{
-		bounds.transform = transform;
-		bounds.inverse = transform.inverse();
+		current.transform = transform;
+		current.inverse = transform.inverse();
+		previous = current;
 		aabb = Math::Box::calculateAABB( transform );
 	}
 
+	/**
+	 * @brief Replaces the collider's current transform and re-calculates the AABB.
+	 * @param transform - transform matrix
+	*/
+	void overrideTransform( const mat4x4& transform )
+	{
+		current.transform = transform;
+		current.inverse = transform.inverse();
+		aabb = Math::Box::calculateAABB( transform );
+	}
+
+	/**
+	 * @brief Adds the transform to the collider's queue and re-calculates the AABB.
+	 * Previous transform is stored.
+	 * @param transform - transform matrix
+	*/
+	void pushTransform( const mat4x4& transform )
+	{
+		previous = current;
+		current.transform = transform;
+		current.inverse = transform.inverse();
+		aabb = Math::Box::calculateAABB( transform );
+	}
+
+	/**
+	 * @brief Adds the transform to the collider's queue and re-calculates the AABB.
+	 * Previous transform is stored.
+	 * @param space - transform space
+	*/
+	void pushTransform( const TransformSpace& space )
+	{
+		previous = current;
+		current = space;
+		aabb = Math::Box::calculateAABB( current.transform );
+	}
+
+	/**
+	 * @brief Tests for a ray collision on the collider.
+	 * @param ray - ray parameters
+	 * @return Whether the ray hit the collider
+	*/
 	virtual bool rayCast( RaySensor& ray ) const
 	{
+		// TODO: Add support for general colliders
 		return false;
 	}
 };
