@@ -92,5 +92,8 @@
     <ClInclude Include="include\vfMath\Transform3D.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\vfMath\Physics.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
