@@ -108,6 +108,10 @@ struct Motion
 
 namespace Physics
 {
+	constexpr LinearState DEFAULT_LINEAR_STATE;
+	constexpr AngularState DEFAULT_ANGULAR_STATE;
+	constexpr MotionState DEFAULT_STATE;
+
 	/**
 	 * Gets the linear velocity from the current state.
 	 * @param state - current linear motion state
@@ -172,18 +176,16 @@ namespace Physics
 	 * This only simulates motion for one object independent of any other object.
 	 * @tparam MotionType - type of motion to simulate
 	 * @tparam Lambda - lambda type supplying motion
-	 * @param current - current motion state
+	 * @param current - current motion state to update
 	 * @param deltaTime - period of time
 	 * @param motionSupplier - function to supply motion based on current state
-	 * @return new motion state
 	*/
 	template<typename MotionType, typename Lambda>
-	MotionType simulateSingularMotion( const MotionType& current, float deltaTime, Lambda motionSupplier )
+	void simulateSingularMotion( MotionType& current, float deltaTime, Lambda motionSupplier )
 	{
-		MotionType state = current;
-		MotionType rk0 = getDelta( state, motionSupplier( state ) );
+		MotionType rk0 = getDelta( current, motionSupplier( current ) );
 
-		state = current + rk0 * ( deltaTime * 0.5f );
+		MotionType state = current + rk0 * ( deltaTime * 0.5f );
 		MotionType rk1 = getDelta( state, motionSupplier( state ) );
 
 		state = current + rk1 * ( deltaTime * 0.5f );
@@ -192,7 +194,7 @@ namespace Physics
 		state = current + rk2 * deltaTime * 0.5f;
 		MotionType rk3 = getDelta( state, motionSupplier( state ) );
 
-		return current + ( rk0 + 2.0f * rk1 + 2.0f * rk2 + rk3 ) * ( deltaTime / 6.0f );
+		current += ( rk0 + 2.0f * rk1 + 2.0f * rk2 + rk3 ) * ( deltaTime / 6.0f );
 	}
 }
 
