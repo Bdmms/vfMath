@@ -6,7 +6,7 @@
 
 struct LinearState
 {
-	vec4f position = Math::ZERO<vec4f>;
+	vec4f position = Math::axis::W<vec4f>;
 	vec3f momentum = Math::ZERO<vec3f>;
 
 	LinearState operator+=( const LinearState& b )
