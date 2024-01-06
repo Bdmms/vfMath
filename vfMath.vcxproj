@@ -168,6 +168,7 @@
     <ClInclude Include="include\vfMath\mat4x4.hpp" />
     <ClInclude Include="include\vfMath\Math.hpp" />
     <ClInclude Include="include\vfMath\MatrixMath.hpp" />
+    <ClInclude Include="include\vfMath\Operations.hpp" />
     <ClInclude Include="include\vfMath\Perlin.hpp" />
     <ClInclude Include="include\vfMath\Physics.hpp" />
     <ClInclude Include="include\vfMath\quaternion.hpp" />
