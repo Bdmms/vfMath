@@ -215,6 +215,23 @@ namespace Math
 	}
 
 	/**
+	 * @brief Returns the positive remainder of the modulo operator.
+	 * For example: 
+	 *     3 % 4 == 3, 
+	 *     6 % 4 == 2, 
+	 *    -1 % 4 == 3, 
+	 *    -7 % 4 == 1
+	 * @param a - first value
+	 * @param b - second value
+	 * @param t - weight
+	 * @return weighted value
+	*/
+	template<typename T> [[nodiscard]] constexpr T pmod( T a, T b )
+	{
+		return a >= 0 ? a % b : b + ( a % b );
+	}
+
+	/**
 	 * @brief Maps a value from one range to another
 	 * @param value - initial value
 	 * @param fromMin - min initial value
