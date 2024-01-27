@@ -720,12 +720,21 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 
 CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) : 
 	ColliderSpace(),
-	faces( source.size() )
+	faces()
 {
+	setFaces( source );
+}
+
+void CollisionMesh::setFaces( const std::vector<CollisionFace>& source )
+{
+	aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
 	Math::extend( aabb, source );
+
 	current.transform = Math::createBoundingTransform( aabb );
 	current.inverse = Math::createBoundingInverseTransform( aabb );
+	previous = current;
 
+	faces.resize( source.size() );
 	for( size_t i = 0; i < source.size(); ++i )
 	{
 		faces[i].transform = current.inverse * source[i].transform;

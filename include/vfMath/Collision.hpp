@@ -71,7 +71,8 @@ namespace Math
 	static mat4x4 createBoundingTransform( const Bounds<vec3f>& bounds )
 	{
 		vec3f scale = ( bounds.max - bounds.min ) * 0.5f;
-		vec3f translation = ( bounds.max + bounds.min ) * 0.5f;
+		vec3f translation = scale + bounds.min;
+		translation.w = 1.0f;
 		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
 	}
 
@@ -516,6 +517,13 @@ struct CollisionMesh : public ColliderSpace
 	{
 
 	}
+
+	CollisionMesh() : ColliderSpace()
+	{
+
+	}
+
+	void setFaces( const std::vector<CollisionFace>& source );
 
 	virtual void collision( TransformSpace& relative ) const override;
 	virtual bool rayCast( RaySensor& ray ) const override;

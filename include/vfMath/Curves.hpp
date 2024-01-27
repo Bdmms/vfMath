@@ -55,10 +55,11 @@ struct CurveType
 */
 struct KnotCurve : public std::vector<vec4f>
 {
+	constexpr static uint64_t KNOT_SIZE = 4LLU;
 	constexpr static float CURVE_SAMPLE_MIN = 0.0f;
 	constexpr static float CURVE_SAMPLE_MAX = 1.0f - Math::EPSILON<float>;
 
-	constexpr static CurveType POLYLINE    = CurveType::createCardinalSplineType( 0.0f );
+	constexpr static CurveType POLYLINE    = { { 0.0f, 1.0f, 0.0f, 0.0f,    0.0f, -1.0f, 1.0f, 0.0f,  0.0f,  0.0f, 0.0f,  0.0f,    0.0f, 0.0f,  0.0f, 0.0f }, 1.0f };
 	constexpr static CurveType HERMITE     = { { 1.0f, 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f, 0.0f,  -3.0f, -2.0f, 3.0f,  0.0f,    2.0f, 1.0f, -2.0f, 1.0f }, 1.0f };
 	constexpr static CurveType BEZIER      = { { 1.0f, 0.0f, 0.0f, 0.0f,   -3.0f, 3.0f, 0.0f, 0.0f,   3.0f, -6.0f, 3.0f,  0.0f,   -1.0f, 3.0f, -3.0f, 1.0f }, 1.0f };
 	constexpr static CurveType CATMULL_ROM = { { 0.0f, 2.0f, 0.0f, 0.0f,   -1.0f, 0.0f, 1.0f, 0.0f,   2.0f, -5.0f, 4.0f, -1.0f,   -1.0f, 3.0f, -3.0f, 1.0f }, 0.5f };
@@ -70,11 +71,16 @@ struct KnotCurve : public std::vector<vec4f>
 	 * @brief Creates a curve of the specified type.
 	 * @param type - curve type
 	*/
-	constexpr KnotCurve( const CurveType& type ) :
+	constexpr KnotCurve( const CurveType& type = POLYLINE ) :
 		std::vector<vec4f>(),
 		type( type )
 	{
 
+	}
+
+	constexpr uint64_t getNumKnots() const
+	{
+		return size() - 3LLU;
 	}
 
 	/**
@@ -84,13 +90,13 @@ struct KnotCurve : public std::vector<vec4f>
 	*/
 	vec4f sampleAt( float t ) const
 	{
-		if( size() < 4 ) return Math::axis::W<vec4f>;
+		if( size() < KNOT_SIZE ) return Math::ZERO<vec4f>;
 
 		// Convert absolute t weight into relative t weight
-		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * ( size() - 3LLU );
+		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * getNumKnots();
 		float weight = absolute - floorf( absolute );
 
-		const vec4f* ptr = data() + static_cast<uint32_t>( absolute );
+		const vec4f* ptr = data() + static_cast<uint64_t>( absolute );
 		return type.weightSample( { 1.0f, weight, weight * weight, weight * weight * weight }, ptr[0], ptr[1], ptr[2], ptr[3] );
 	}
 
@@ -101,13 +107,13 @@ struct KnotCurve : public std::vector<vec4f>
 	*/
 	vec4f derivativeAt( float t ) const
 	{
-		if( size() < 4 ) return Math::axis::W<vec4f>;
+		if( size() < KNOT_SIZE ) return Math::ZERO<vec4f>;
 
 		// Convert absolute t weight into relative t weight
-		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * ( size() - 3LLU );
+		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * getNumKnots();
 		float weight = absolute - floorf( absolute );
 
-		const vec4f* ptr = data() + static_cast<uint32_t>( absolute );
+		const vec4f* ptr = data() + static_cast<uint64_t>( absolute );
 		return type.weightSample( { 0.0f, 1.0f, 2.0f * weight, 3.0f * weight * weight }, ptr[0], ptr[1], ptr[2], ptr[3] );
 	}
 
@@ -118,14 +124,14 @@ struct KnotCurve : public std::vector<vec4f>
 	*/
 	vec4f integrateAt( float t ) const
 	{
-		if( size() < 4 ) return Math::axis::W<vec4f>;
+		if( size() < KNOT_SIZE ) return Math::ZERO<vec4f>;
 
 		// Convert absolute t weight into relative t weight
-		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * (size() - 3LLU );
+		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * getNumKnots();
 		float weight = absolute - floorf( absolute );
 		float weight2 = weight * weight;
 
-		const vec4f* ptr = data() + static_cast<uint32_t>( absolute );
+		const vec4f* ptr = data() + static_cast<uint64_t>( absolute );
 		return type.weightSample( { weight, weight2 / 2.0f, weight2 * weight / 3.0f, weight2 * weight2 / 4.0f }, ptr[0], ptr[1], ptr[2], ptr[3] );
 	}
 
@@ -141,103 +147,99 @@ struct KnotCurve : public std::vector<vec4f>
 	}
 };
 
-struct PathPoint
-{
-	vec4f position;
-	vec3f normal;
-};
-
 /**
- * @brief Container of discrete points used to form a continuous curve.
+ * @brief Pair of spline's that define a path.
 */
-struct PathCurve : public std::vector<PathPoint>
+struct PathSpline
 {
-	constexpr static float CURVE_SAMPLE_MIN = 0.0f;
-	constexpr static float CURVE_SAMPLE_MAX = 1.0f - Math::EPSILON<float>;
+	KnotCurve position;
+	KnotCurve orientation;
 
-	CurveType type;
-
-	/**
-	 * @brief Creates a curve of the specified type.
-	 * @param type - curve type
-	*/
-	constexpr PathCurve( const CurveType& type ) :
-		std::vector<PathPoint>(),
-		type( type )
+	constexpr PathSpline( const CurveType& type ) :
+		position( type ),
+		orientation( type )
 	{
 
 	}
 
-	/**
-	 * @brief Samples the value of the curve at a scalar point.
-	 * @param t - sample scalar between 0.0 and 1.0
-	 * @return sampled vector at scalar point
-	*/
-	PathPoint sampleAt( float t ) const
+	constexpr void setType( const CurveType& type )
 	{
-		if( size() < 4 ) return { Math::axis::W<vec4f>, Math::axis::Y<vec3f> };
+		position.type = type;
+		orientation.type = type;
+	}
 
-		// Convert absolute t weight into relative t weight
-		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * ( size() - 3LLU );
-		float weight = absolute - floorf( absolute );
+	constexpr void addPoint( const vec4f& point, const vec3f& normal )
+	{
+		position.emplace_back( point );
+		orientation.emplace_back( normal );
+	}
 
-		const PathPoint* ptr = data() + static_cast<uint32_t>( absolute );
-		const vec4f weightSample = { 1.0f, weight, weight * weight, weight * weight * weight };
+	/**
+	 * @brief Finds the value of t that is closest to the point within the local range.
+	 * @param point - arbitrary point
+	 * @param min - local range minimum
+	 * @param max - local range maximum
+	 * @param e - epsilon match threshold
+	*/
+	float localMinimum( const vec4f& point, float min, float max, float e = 1e-3f )
+	{
+		float m = min;
+		float n = max;
+		float k = ( n + m ) / 2.0f;
 
-		return 
+		while( ( n - m ) > e )
 		{
-			type.weightSample( weightSample, ptr[0].position, ptr[1].position, ptr[2].position, ptr[3].position ),
-			type.weightSample( weightSample, ptr[0].normal, ptr[1].normal, ptr[2].normal, ptr[3].normal )
-		};
+			float d0 = Math::distance2( point, position.sampleAt( k - e ) );
+			float d1 = Math::distance2( point, position.sampleAt( k + e ) );
+
+			if( d0 < d1 ) n = k;
+			else		  m = k;
+
+			k = ( n + m ) / 2.0f;
+		}
+
+		return k;
 	}
 
 	/**
-	 * @brief Samples the derivative value of the curve at a scalar point.
-	 * @param t - sample scalar between 0.0 and 1.0
-	 * @return derivative vector at scalar point
+	 * @brief Finds the value of t that is closest to the point along the curve.
+	 * @param point - arbitrary point
+	 * @param e - epsilon match threshold
 	*/
-	vec4f derivativeAt( float t ) const
+	float getClosest( const vec4f& point, float e = 1e-3f )
 	{
-		if( size() < 4 ) return Math::axis::W<vec4f>;
+		if( position.size() < KnotCurve::KNOT_SIZE ) return 0.0f;
+		size_t knotCount = position.getNumKnots();
 
-		// Convert absolute t weight into relative t weight
-		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * ( size() - 3LLU );
-		float weight = absolute - floorf( absolute );
+		// Find pair of control points closest to point
+		float d0 = Math::distance( point, position[0LLU] );
+		float d1 = Math::distance( point, position[1LLU] );
+		float d2 = Math::distance( point, position[2LLU] );
+		float d3 = Math::distance( point, position[3LLU] );
+		float minimum = d0 + d1 + d2 + d3;
+		uint64_t index = 0LLU;
 
-		const PathPoint* ptr = data() + static_cast<uint32_t>( absolute );
-		return type.weightSample( { 0.0f, 1.0f, 2.0f * weight, 3.0f * weight * weight }, ptr[0].position, ptr[1].position, ptr[2].position, ptr[3].position );
-	}
+		for( uint64_t i = 1LLU; i < knotCount; ++i )
+		{
+			d0 = d1;
+			d1 = d2;
+			d2 = d3;
+			d3 = Math::distance( point, position[i + 3LLU] );
+			float value = d0 + d1 + d2 + d3;
 
-	/**
-	 * @brief Samples the integrated value of the curve at a scalar point.
-	 * @param t - sample scalar between 0.0 and 1.0
-	 * @return integrated vector at scalar point
-	*/
-	vec4f integrateAt( float t ) const
-	{
-		if( size() < 4 ) return Math::axis::W<vec4f>;
+			if( value < minimum )
+			{
+				minimum = value;
+				index = i;
+			}
+		}
 
-		// Convert absolute t weight into relative t weight
-		float absolute = std::clamp( t, CURVE_SAMPLE_MIN, CURVE_SAMPLE_MAX ) * ( size() - 3LLU );
-		float weight = absolute - floorf( absolute );
-		float weight2 = weight * weight;
-
-		const PathPoint* ptr = data() + static_cast<uint32_t>( absolute );
-		return type.weightSample( { weight, weight2 / 2.0f, weight2 * weight / 3.0f, weight2 * weight2 / 4.0f }, ptr[0].position, ptr[1].position, ptr[2].position, ptr[3].position );
-	}
-
-	/**
-	 * @brief Calculates the length between two sample points on the line.
-	 * @param t0 - first sample scalar between 0.0 and 1.0
-	 * @param t1 - second sample scalar between 0.0 and 1.0
-	 * @return length of curve between two points
-	*/
-	float lengthBetween( float t0, float t1 ) const
-	{
-		return Math::length( integrateAt( t1 ) - integrateAt( t0 ) );
+		// Calculate local minimum between points
+		float t0 = static_cast<float>( index ) / knotCount;
+		float t1 = static_cast<float>( index + 2LLU ) / knotCount;
+		return localMinimum( point, t0, t1, e );
 	}
 };
-
 
 template <typename T>
 class Linear
