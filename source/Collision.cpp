@@ -1035,6 +1035,11 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	return false;
 }
 
+bool CollisionLayer::testCollision( const Collider& a, const Collider& b )
+{
+	return intersectionMatrix[(uint8_t)a.type][(uint8_t)b.type]( a, b );
+}
+
 void CollisionLayer::testCollision()
 {
 	collisionLock.lock();

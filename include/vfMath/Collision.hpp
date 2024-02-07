@@ -543,6 +543,8 @@ struct CollisionLayer
 
 	void addSensor( RaySensor& sensor );
 	void removeSensor( RaySensor& sensor );
+
+	static bool testCollision( const Collider& a, const Collider& b );
 };
 
 #endif
