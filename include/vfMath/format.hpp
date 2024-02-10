@@ -14,51 +14,61 @@
 
 namespace vf
 {
-	static std::string toString( int value )
+	template <typename T>
+	static std::string toString( const T& value )
 	{
 		return std::to_string( value );
 	}
 
-	static std::string toString( float value )
+	template <>
+	static std::string toString( const float& value )
 	{
 		return std::format( "{:.3f}", value );
 	}
 
+	template <>
 	static std::string toString( const vec2i& vector )
 	{
 		return std::format( "{}, {}", vector.x, vector.y );
 	}
 
+	template <>
 	static std::string toString( const vec2f& vector )
 	{
 		return std::format( "{:.3f}, {:.3f}", vector.x, vector.y );
 	}
 
+	template <>
 	static std::string toString( const vec4i& vector )
 	{
 		return std::format( "{}, {}, {}, {}", vector.x, vector.y, vector.z, vector.w );
 	}
 
+	template <>
 	static std::string toString( const vec4f& vector )
 	{
 		return std::format( "{:.3f}, {:.3f}, {:.3f}, {:.3f}", vector.x, vector.y, vector.z, vector.w );
 	}
 
+	template <>
 	static std::string toString( const euler& euler )
 	{
 		return std::format( "{:.3f}, {:.3f}, {:.3f}", euler.rx, euler.ry, euler.rz );
 	}
 
+	template <>
 	static std::string toString( const quat& q )
 	{
 		return std::format( "{:.3f}, {:.3f}, {:.3f}, {:.3f}", q.x, q.y, q.z, q.w );
 	}
 
+	template <>
 	static std::string toString( const mat2f& matrix )
 	{
 		return std::format( "{:.3f}, {:.3f}\n{:.3f}, {:.3f}", matrix[0], matrix[2], matrix[1], matrix[3] );
 	}
 
+	template <>
 	static std::string toString( const mat4f& matrix )
 	{
 		return std::format( "\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}\n{:.3f}, {:.3f}, {:.3f}, {:.3f}", 
