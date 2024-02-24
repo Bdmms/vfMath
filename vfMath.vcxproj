@@ -171,6 +171,7 @@
     <ClInclude Include="include\vfMath\Operations.hpp" />
     <ClInclude Include="include\vfMath\Perlin.hpp" />
     <ClInclude Include="include\vfMath\Physics.hpp" />
+    <ClInclude Include="include\vfMath\PrimitiveTypes.hpp" />
     <ClInclude Include="include\vfMath\quaternion.hpp" />
     <ClInclude Include="include\vfMath\QuatMath.hpp" />
     <ClInclude Include="include\vfMath\swizzle.hpp" />
