@@ -155,6 +155,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\Collision.cpp" />
+    <ClCompile Include="source\Operations.cpp" />
     <ClCompile Include="source\Perlin.cpp" />
     <ClCompile Include="source\vec.cpp" />
   </ItemGroup>
