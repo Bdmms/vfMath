@@ -612,11 +612,12 @@ bool intersect_Sphere_Sphere( const Collider& a, const Collider& b )
 		Math::Sphere::sphereTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
 }
 
-const IntersectTest intersectionMatrix[3][3]
+const IntersectTest intersectionMatrix[4][4]
 {
-	{ intersect_AABB, intersect_AABB,		intersect_AABB },
-	{ intersect_AABB, intersect_Box_Box,	intersect_Box_Sphere },
-	{ intersect_AABB, intersect_Sphere_Box, intersect_Sphere_Sphere }
+	{ intersect_AABB, intersect_AABB,		intersect_AABB,			 intersect_AABB },
+	{ intersect_AABB, intersect_Box_Box,	intersect_Box_Sphere,	 intersect_AABB },
+	{ intersect_AABB, intersect_Sphere_Box, intersect_Sphere_Sphere, intersect_AABB },
+	{ intersect_AABB, intersect_AABB,		intersect_AABB,			 intersect_AABB },
 };
 
 // -------------------------

@@ -18,9 +18,10 @@ typedef void ( *CollisionCallback )( CollisionObject& a, CollisionObject& b );
 */
 enum class ColliderType : uint8_t
 {
-	AABB = 0,
-	Cube = 1,
-	Sphere = 2
+	AABB = 0,		// Axis-aligned bounding box, which ignores transform
+	Cube = 1,		// Unit cube with transformation + AABB
+	Sphere = 2,		// Unit sphere with transformation + AABB
+	Mesh = 3		// Treated as AABB, contains additional colliders that must be checked in handler
 };
 
 typedef TransformSpace CollisionFace;
@@ -402,19 +403,19 @@ struct CollisionUnit
 struct ColliderSpace : public Collider
 {
 	constexpr ColliderSpace() :
-		Collider{ { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, { Math::MAX<vec3f>, Math::MIN<vec3f> }, ColliderType::AABB }
+		Collider{ { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, { Math::MAX<vec3f>, Math::MIN<vec3f> }, ColliderType::Mesh }
 	{
 
 	}
 
 	ColliderSpace( const mat4x4& transform ) : 
-		Collider{ { transform, transform.inverse() }, Math::Box::calculateAABB( transform ), ColliderType::AABB }
+		Collider{ { transform, transform.inverse() }, Math::Box::calculateAABB( transform ), ColliderType::Mesh }
 	{
 
 	}
 
 	ColliderSpace( const Bounds<vec3f>& aabb ) :
-		Collider{ { Math::createBoundingTransform( aabb ), Math::createBoundingInverseTransform( aabb ) }, aabb, ColliderType::AABB }
+		Collider{ { Math::createBoundingTransform( aabb ), Math::createBoundingInverseTransform( aabb ) }, aabb, ColliderType::Mesh }
 	{
 
 	}
