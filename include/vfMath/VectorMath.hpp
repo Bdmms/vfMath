@@ -347,17 +347,19 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the unit 2D vector
+	 * @brief Calculates the unit 2D vector. Returns zero vector if length is zero.
 	 * @param v - vector
 	 * @return normalized vector
 	*/
 	[[nodiscard]] static vec2f normalize( const vec2f v )
 	{
-		return v / length( v );
+		float vLength = length( v );
+		if( vLength == 0.0f ) return Math::ZERO<vec2f>;
+		return v / vLength;
 	}
 
 	/**
-	 * @brief Calculates the unit 3D/4D vector
+	 * @brief Calculates the unit 3D/4D vector. Returns zero vector if length is zero.
 	 * @param v - vector
 	 * @return normalized vector
 	*/
@@ -366,7 +368,10 @@ namespace Math
 		//__m128 product = _mm_mul_ps(v.simd, v.simd);
 		//__m128 half = _mm_hadd_ps( product, product );
 		//return { _mm_mul_ps( v.simd, _mm_invsqrt_ps( _mm_hadd_ps( half, half ) ) ) };
-		return { _mm_div_ps( v.simd, _mm_set1_ps( sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w ) ) ) };
+
+		float vLength = sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
+		if( vLength == 0.0f ) return Math::ZERO<vec4f>;
+		return { _mm_div_ps( v.simd, _mm_set1_ps( vLength ) ) };
 	}
 
 	/**

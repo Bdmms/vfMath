@@ -73,6 +73,18 @@ namespace Math
 	}
 
 	/**
+	 * @brief Rotates a vector around the origin using a quaternion
+	 * @param v - position vector
+	 * @param q - quaternion
+	 * @return rotated position vector
+	*/
+	[[nodiscard]] static vec4f rotate( const vec4f& v, const quat& q )
+	{
+		// v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
+		return { _mm_add_ps( v.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ), _mm_cross_ps( q.simd, _mm_add_ps( _mm_cross_ps( q.simd, v.simd ), _mm_mul_ps( v.simd, _mm_set1_ps( q.w ) ) ) ) ) ) };
+	}
+
+	/**
 	 * @brief Converts quaternion to Euler angles
 	 * @param q - quaternion
 	 * @return Euler angles vector
@@ -116,7 +128,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates the quaternion that rotates from one axis to another
+	 * @brief Generates the quaternion that rotates from one axis to another.
 	 * @param from - initial vector (normalized)
 	 * @param to - target vector (normalized)
 	 * @return resulting quaternion
@@ -134,15 +146,30 @@ namespace Math
 	}
 
 	/**
-	 * @brief Rotates a vector around the origin using a quaternion
-	 * @param v - position vector
-	 * @param q - quaternion
-	 * @return rotated position vector
+	 * @brief Generates the quaternion that rotates from one space to another.
+	 * @param fromPrimary - initial primary vector
+	 * @param fromSecondary - initial secondary vector
+	 * @param toPrimary - target primary vector
+	 * @param toSecondary - target secondary vector
+	 * @return resulting quaternion
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& v, const quat& q )
+	[[nodiscard]] static quat rotationBetween( const vec3f& fromPrimary, const vec3f& fromSecondary, const vec3f& toPrimary, const vec3f& toSecondary )
 	{
-		// v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
-		return { _mm_add_ps( v.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ), _mm_cross_ps( q.simd, _mm_add_ps( _mm_cross_ps( q.simd, v.simd ), _mm_mul_ps( v.simd, _mm_set1_ps( q.w ) ) ) ) ) ) };
+		// If cannot calculate primary direction, return identity
+		if( Math::length2( toPrimary ) < Math::EPSILON<float> ) return Math::IDENTITY<quat>;
+
+		quat r1 = Math::rotationBetween<quat>( fromPrimary, toPrimary );
+
+		vec3f current = Math::rotate( fromSecondary, r1 );
+		vec3f target = Math::cross( toPrimary, Math::cross( toSecondary, toPrimary ) );
+
+		// If cannot calculate roll around axis, return arbitrary rotation
+		if( Math::length2( target ) < Math::EPSILON<float> ) return r1;
+
+		target = Math::normalize( target );
+		float angle = acosf( Math::dot_3D( current, target ) );
+		float sign = Math::sign( Math::dot_3D( Math::cross( current, target ), toPrimary ) );
+		return r1 * Math::rotationAround<quat>( fromPrimary, angle * sign );
 	}
 
 	/**
@@ -221,7 +248,7 @@ namespace Math
 		quat q2 = cost < 0.0f ? -q1 : q1;
 		cost = fabsf( cost );
 
-		if( cost > 1.0f - EPSILON<float> ) return ( q1 - q0 ) * t + q0;
+		if( cost > 1.0f - EPSILON<float> ) return Math::normalize( ( q1 - q0 ) * t + q0 );
 
 		float angle = acosf( cost );
 		vec3f sin = Math::sin( vec3f{ ( 1.0f - t ) * angle, t * angle, angle } );
