@@ -17,6 +17,7 @@ union vec4f
 
 	__m128 simd;
 	float v[4];
+	struct { vec2f front, back; };
 	struct { float x, y, z, w; };
 	struct { float r, g, b, a; };
 

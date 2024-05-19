@@ -24,6 +24,11 @@ union vec4i
 	constexpr vec4i( const int x, const int y, const int z ) : x( x ), y( y ), z( z ), w( 0 ) {}
 	constexpr vec4i( const int x, const int y, const int z, const int w ) : x( x ), y( y ), z( z ), w( w ) {}
 
+	constexpr vec4i( const unsigned int x ) : u_x( x ), u_y( 0 ), u_z( 0 ), u_w( 0 ) {}
+	constexpr vec4i( const unsigned int x, const unsigned int y ) : u_x( x ), u_y( y ), u_z( 0 ), u_w( 0 ) {}
+	constexpr vec4i( const unsigned int x, const unsigned int y, const unsigned int z ) : u_x( x ), u_y( y ), u_z( z ), u_w( 0 ) {}
+	constexpr vec4i( const unsigned int x, const unsigned int y, const unsigned int z, const unsigned int w ) : u_x( x ), u_y( y ), u_z( z ), u_w( w ) {}
+
 	// Array Operators
 	constexpr int operator[]( const unsigned char i ) const { return v[i]; }
 	constexpr int& operator[]( const unsigned char i ) { return v[i]; }
