@@ -12,9 +12,9 @@ union vec2f
 	using ElementType = float;
 	static constexpr uint32_t ElementSize = 2u;
 
+	struct { float x, y; };
 	float v[2];
 	__m64 simd;
-	struct { float x, y; };
 
 	// Array Operators
 	constexpr float operator[]( const unsigned char i ) const { return v[i]; }

@@ -26,30 +26,30 @@ union vec4f
 	constexpr float& operator[]( uint32_t i ) { return v[i]; }
 
 	// Arithmetic Operators
-	vec4f& operator+=( const vec4f& b ) noexcept { simd = _mm_add_ps( simd, b.simd ); return *this; }
-	vec4f& operator-=( const vec4f& b ) noexcept { simd = _mm_sub_ps( simd, b.simd ); return *this; }
-	vec4f& operator*=( const vec4f& b ) noexcept { simd = _mm_mul_ps( simd, b.simd ); return *this; }
-	vec4f& operator/=( const vec4f& b ) noexcept { simd = _mm_div_ps( simd, b.simd ); return *this; }
+	constexpr vec4f& operator+=( const vec4f& b ) noexcept { simd = SIMD_4F_ADD( simd, b.simd ); return *this; }
+	constexpr vec4f& operator-=( const vec4f& b ) noexcept { simd = SIMD_4F_SUB( simd, b.simd ); return *this; }
+	constexpr vec4f& operator*=( const vec4f& b ) noexcept { simd = SIMD_4F_MUL( simd, b.simd ); return *this; }
+	constexpr vec4f& operator/=( const vec4f& b ) noexcept { simd = SIMD_4F_DIV( simd, b.simd ); return *this; }
 	vec4f& operator%=( const vec4f& b ) noexcept { simd = _mm_fmod_ps( simd, b.simd ); return *this; }
 
-	vec4f& operator+=( const float b ) noexcept { simd = _mm_add_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	vec4f& operator-=( const float b ) noexcept { simd = _mm_sub_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	vec4f& operator*=( const float b ) noexcept { simd = _mm_mul_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	vec4f& operator/=( const float b ) noexcept { simd = _mm_div_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator+=( const float b ) noexcept { simd = SIMD_4F_ADD( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator-=( const float b ) noexcept { simd = SIMD_4F_SUB( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator*=( const float b ) noexcept { simd = SIMD_4F_MUL( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator/=( const float b ) noexcept { simd = SIMD_4F_DIV( simd, _mm_set1_ps( b ) ); return *this; }
 	vec4f& operator%=( const float b ) noexcept { simd = _mm_fmod_ps( simd, _mm_set1_ps( b ) ); return *this; }
 
 	// Unary Operators
-	[[nodiscard]] vec4f operator-() const { return VECTOR_FORWARD( _mm_mul_ps( simd, _mm_set1_ps( -1.0f ) ) ); }
-	[[nodiscard]] vec4f operator~() const { return VECTOR_FORWARD( _mm_xor_ps( simd, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) ) ); }
+	[[nodiscard]] constexpr vec4f operator-() const { return VECTOR_FORWARD( SIMD_4F_MUL( simd, SIMD_4f_NEG ) ); }
+	[[nodiscard]] constexpr vec4f operator~() const { return VECTOR_FORWARD( SIMD_4F_XOR( simd, SIMD_4f_MASK ) ); }
 
 	// Logical Operators
-	vec4f& operator&=( const vec4f& b ) noexcept { simd = _mm_and_ps( simd, b.simd ); return *this; }
-	vec4f& operator|=( const vec4f& b ) noexcept { simd = _mm_or_ps( simd, b.simd ); return *this; }
-	vec4f& operator^=( const vec4f& b ) noexcept { simd = _mm_xor_ps( simd, b.simd ); return *this; }
+	constexpr vec4f& operator&=( const vec4f& b ) noexcept { simd = SIMD_4F_AND( simd, b.simd ); return *this; }
+	constexpr vec4f& operator|=( const vec4f& b ) noexcept { simd = SIMD_4F_OR( simd, b.simd ); return *this; }
+	constexpr vec4f& operator^=( const vec4f& b ) noexcept { simd = SIMD_4F_XOR( simd, b.simd ); return *this; }
 
-	vec4f& operator&=( const float b ) noexcept { simd = _mm_and_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	vec4f& operator|=( const float b ) noexcept { simd = _mm_or_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	vec4f& operator^=( const float b ) noexcept { simd = _mm_xor_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator&=( const float b ) noexcept { simd = SIMD_4F_AND( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator|=( const float b ) noexcept { simd = SIMD_4F_OR( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator^=( const float b ) noexcept { simd = SIMD_4F_XOR( simd, _mm_set1_ps( b ) ); return *this; }
 
 	// Conversions
 	[[nodiscard]] explicit constexpr operator bool() const { return x && y && z && w; }
@@ -59,54 +59,54 @@ union vec4f
 };
 
 // Arithmetic Operators
-[[nodiscard]] static vec4f operator+( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_add_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator-( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_sub_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator*( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_mul_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator/( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_div_ps( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator+( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_ADD( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator-( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_SUB( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator*( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_MUL( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator/( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_DIV( a.simd, b.simd ) ); }
 [[nodiscard]] static vec4f operator%( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_fmod_ps( a.simd, b.simd ) ); }
 
-[[nodiscard]] static vec4f operator+( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_add_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator-( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_sub_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator*( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_mul_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator/( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_div_ps( a.simd, _mm_set1_ps( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator+( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_ADD( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator-( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_SUB( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator*( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_MUL( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator/( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_DIV( a.simd, SIMD_4F_SET1( b ) ) ); }
 [[nodiscard]] static vec4f operator%( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_fmod_ps( a.simd, _mm_set1_ps( b ) ) ); }
 
-[[nodiscard]] static vec4f operator+( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_add_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator-( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_sub_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator*( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_mul_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator/( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_div_ps( _mm_set1_ps( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator+( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_ADD( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator-( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_SUB( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator*( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_MUL( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator/( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_DIV( SIMD_4F_SET1( a ), b.simd ) ); }
 [[nodiscard]] static vec4f operator%( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_fmod_ps( _mm_set1_ps( a ), b.simd ) ); }
 
 // Comparison Operators
-[[nodiscard]] static vec4f operator>=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpge_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator<=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmple_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator>( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpgt_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator<( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmplt_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator&&( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator||( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator>=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_GE( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator<=( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_LE( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator>( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_GT( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator<( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_LT( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator&&( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_AND( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator||( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_OR( a.simd, b.simd ) ); }
 
-[[nodiscard]] static vec4f operator>=( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_cmpge_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator<=( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_cmple_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator>( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_cmpgt_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator<( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_cmplt_ps( a.simd, _mm_set1_ps( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator>=( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_GE( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator<=( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_LE( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator>( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_GT( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator<( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_LT( a.simd, SIMD_4F_SET1( b ) ) ); }
 
-[[nodiscard]] static vec4f operator>=( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpge_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator<=( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmple_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator>( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmpgt_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator<( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_cmplt_ps( _mm_set1_ps( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator>=( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_GE( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator<=( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_LE( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator>( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_GT( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator<( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_CMP_LT( SIMD_4F_SET1( a ), b.simd ) ); }
 
 // Logical Operators
-[[nodiscard]] static vec4f operator&( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator|( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( a.simd, b.simd ) ); }
-[[nodiscard]] static vec4f operator^( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_xor_ps( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator&( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_AND( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator|( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_OR( a.simd, b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator^( const vec4f& a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_XOR( a.simd, b.simd ) ); }
 
-[[nodiscard]] static vec4f operator&( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator|( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( a.simd, _mm_set1_ps( b ) ) ); }
-[[nodiscard]] static vec4f operator^( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( _mm_xor_ps( a.simd, _mm_set1_ps( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator&( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_AND( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator|( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_OR( a.simd, SIMD_4F_SET1( b ) ) ); }
+[[nodiscard]] constexpr vec4f operator^( const vec4f& a, const float b ) noexcept { return VECTOR_FORWARD( SIMD_4F_XOR( a.simd, SIMD_4F_SET1( b ) ) ); }
 
-[[nodiscard]] static vec4f operator&( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_and_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator|( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_or_ps( _mm_set1_ps( a ), b.simd ) ); }
-[[nodiscard]] static vec4f operator^( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( _mm_xor_ps( _mm_set1_ps( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator&( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_AND( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator|( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_OR( SIMD_4F_SET1( a ), b.simd ) ); }
+[[nodiscard]] constexpr vec4f operator^( const float a, const vec4f& b ) noexcept { return VECTOR_FORWARD( SIMD_4F_XOR( SIMD_4F_SET1( a ), b.simd ) ); }
 
 typedef vec4f vec3f;
 

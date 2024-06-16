@@ -31,10 +31,10 @@ union mat2x2
 	constexpr float operator[]( const unsigned char i ) const { return m[i]; }
 	constexpr float& operator[]( const unsigned char i ) { return m[i]; }
 
-	mat2x2& operator+=( const mat2x2& b ) noexcept { simd = _mm_add_ps( simd, b.simd ); return *this; }
-	mat2x2& operator-=( const mat2x2& b ) noexcept { simd = _mm_sub_ps( simd, b.simd ); return *this; }
-	mat2x2& operator*=( const float b ) noexcept { simd = _mm_mul_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	mat2x2& operator/=( const float b ) noexcept { simd = _mm_div_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr mat2x2& operator+=( const mat2x2& b ) noexcept { simd = SIMD_4F_ADD( simd, b.simd ); return *this; }
+	constexpr mat2x2& operator-=( const mat2x2& b ) noexcept { simd = SIMD_4F_SUB( simd, b.simd ); return *this; }
+	constexpr mat2x2& operator*=( const float b ) noexcept { simd = SIMD_4F_MUL( simd, SIMD_4F_SET1( b ) ); return *this; }
+	constexpr mat2x2& operator/=( const float b ) noexcept { simd = SIMD_4F_DIV( simd, SIMD_4F_SET1( b ) ); return *this; }
 
 	mat2x2& operator*=( const mat2x2& b ) noexcept
 	{
@@ -71,39 +71,39 @@ union mat2x2
 	 * @brief Creates an inverse matrix
 	 * @return inverse matrix
 	*/
-	[[nodiscard]] mat2x2 inverse() const
+	[[nodiscard]] constexpr mat2x2 inverse() const
 	{
-		return mat2x2{ _mm_div_ps( _mm_xyzw_ps( m[3], -m[2], -m[1], m[0] ), _mm_set1_ps( determinant() ) ) };
+		return mat2x2{ SIMD_4F_DIV( SIMD_4F_SET( m[3], -m[2], -m[1], m[0] ), SIMD_4F_SET1( determinant() ) ) };
 	}
 };
 
-[[nodiscard]] static mat2x2 operator+( const mat2x2& a, const mat2x2& b ) noexcept {
-	return mat2x2( { _mm_add_ps( a.simd, b.simd ) } );
+[[nodiscard]] constexpr mat2x2 operator+( const mat2x2& a, const mat2x2& b ) noexcept {
+	return mat2x2( { SIMD_4F_ADD( a.simd, b.simd ) } );
 }
 
-[[nodiscard]] static mat2x2 operator-( const mat2x2& a, const mat2x2& b ) noexcept {
-	return mat2x2( { _mm_sub_ps( a.simd, b.simd ) } );
+[[nodiscard]] constexpr mat2x2 operator-( const mat2x2& a, const mat2x2& b ) noexcept {
+	return mat2x2( { SIMD_4F_SUB( a.simd, b.simd ) } );
 }
 
-[[nodiscard]] static mat2x2 operator*( const mat2x2& a, const float b ) noexcept {
-	return mat2x2( { _mm_mul_ps( a.simd, _mm_set1_ps( b ) ) } );
+[[nodiscard]] constexpr mat2x2 operator*( const mat2x2& a, const float b ) noexcept {
+	return mat2x2( { SIMD_4F_MUL( a.simd, _mm_set1_ps( b ) ) } );
 }
 
-[[nodiscard]] static mat2x2 operator/( const mat2x2& a, const float b ) noexcept {
-	return mat2x2( { _mm_div_ps( a.simd, _mm_set1_ps( b ) ) } );
+[[nodiscard]] constexpr mat2x2 operator/( const mat2x2& a, const float b ) noexcept {
+	return mat2x2( { SIMD_4F_DIV( a.simd, _mm_set1_ps( b ) ) } );
 }
 
 [[nodiscard]] constexpr vec2f operator*( const mat2x2& a, const vec2f b ) noexcept {
 	return vec2f{ Math::dot( b, { a.m[0], a.m[2] } ), Math::dot( b, { a.m[1], a.m[3] } ) };
 }
 
-[[nodiscard]] static mat2x2 operator*( const mat2x2& a, const mat2x2& b ) noexcept
+[[nodiscard]] constexpr mat2x2 operator*( const mat2x2& a, const mat2x2& b ) noexcept
 {
-	__m128 b0 = _mm_permute_ps( a.simd, swizzle::XYXY );
-	__m128 b1 = _mm_permute_ps( b.simd, swizzle::XXZZ );
-	__m128 b2 = _mm_permute_ps( a.simd, swizzle::ZWZW );
-	__m128 b3 = _mm_permute_ps( b.simd, swizzle::YYWW );
-	return mat2x2{ _mm_add_ps( _mm_mul_ps( b0, b1 ), _mm_mul_ps( b2, b3 ) ) };
+	__m128 b0 = SIMD_4F_PERMUTE( a.simd, swizzle::XYXY );
+	__m128 b1 = SIMD_4F_PERMUTE( b.simd, swizzle::XXZZ );
+	__m128 b2 = SIMD_4F_PERMUTE( a.simd, swizzle::ZWZW );
+	__m128 b3 = SIMD_4F_PERMUTE( b.simd, swizzle::YYWW );
+	return mat2x2{ SIMD_4F_ADD( SIMD_4F_MUL( b0, b1 ), SIMD_4F_MUL( b2, b3 ) ) };
 }
 
 typedef mat2x2 mat2f;

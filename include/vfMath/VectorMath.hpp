@@ -88,7 +88,7 @@ namespace Math
 	 * @param falseVal - vector components returned on false input
 	 * @return output vector
 	*/
-	[[nodiscard]] static vec2f condition( const vec2f input, const vec2f trueVal, const vec2f falseVal )
+	[[nodiscard]] constexpr vec2f condition( const vec2f input, const vec2f trueVal, const vec2f falseVal )
 	{
 		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
 	}
@@ -112,7 +112,7 @@ namespace Math
 	 * @param falseVal - vector components returned on false input
 	 * @return output vector
 	*/
-	[[nodiscard]] static vec2i condition( const vec2i input, const vec2i trueVal, const vec2i falseVal )
+	[[nodiscard]] constexpr vec2i condition( const vec2i input, const vec2i trueVal, const vec2i falseVal )
 	{
 		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
 	}
@@ -198,9 +198,9 @@ namespace Math
 	 * @return swizzled vector
 	*/
 	template <unsigned int swizzle>
-	[[nodiscard]] static vec4f map( const vec4f& v )
+	[[nodiscard]] constexpr vec4f map( const vec4f& v )
 	{
-		return { _mm_permute_ps( v.simd, swizzle ) };
+		return { SIMD_4F_PERMUTE( v.simd, swizzle ) };
 	}
 
 	/**
@@ -286,10 +286,9 @@ namespace Math
 	 * @param b - second vector
 	 * @return cross product of the two vectors
 	*/
-	[[nodiscard]] static vec3f cross( const vec3f& a, const vec3f& b )
+	[[nodiscard]] constexpr vec3f cross( const vec3f& a, const vec3f& b )
 	{
-		//return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
-		return { _mm_cross_ps( a.simd, b.simd ) };
+		return { SIMD_4F_CROSS( a.simd, b.simd ) };
 	}
 
 	/**
@@ -459,9 +458,9 @@ namespace Math
 	 * @param max - maximum vector of clamp (optional)
 	 * @return clamped vector
 	*/
-	[[nodiscard]] static vec4f clamp( const vec4f& vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
+	[[nodiscard]] constexpr vec4f clamp( const vec4f& vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
 	{
-		return { _mm_clamp_ps( vector.simd, min.simd, max.simd ) };
+		return { SIMD_4F_MIN( SIMD_4F_MAX( vector.simd, min.simd ), max.simd ) };
 	}
 
 	/**
@@ -483,9 +482,9 @@ namespace Math
 	 * @param max - maximum vector of clamp (optional)
 	 * @return clamped vector
 	*/
-	[[nodiscard]] static vec4i clamp( const vec4i vector, const vec4i min = ZERO<vec4i>, const vec4i& max = ONES<vec4i> )
+	[[nodiscard]] constexpr vec4i clamp( const vec4i vector, const vec4i min = ZERO<vec4i>, const vec4i& max = ONES<vec4i> )
 	{
-		return { _mm_max_epi32( _mm_min_epi32( vector.simd, max.simd ), min.simd ) };
+		return { SIMD_4I_MIN( SIMD_4I_MAX( vector.simd, min.simd ), max.simd ) };
 	}
 
 	/**
@@ -565,9 +564,9 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4f min( const vec4f& vector, const vec4f& min )
+	[[nodiscard]] constexpr vec4f min( const vec4f& vector, const vec4f& min )
 	{
-		return { _mm_min_ps( vector.simd, min.simd ) };
+		return { SIMD_4F_MIN( vector.simd, min.simd ) };
 	}
 
 	/**
@@ -587,9 +586,9 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4i min( const vec4i& vector, const vec4i& min )
+	[[nodiscard]] constexpr vec4i min( const vec4i& vector, const vec4i& min )
 	{
-		return { _mm_min_epi32( vector.simd, min.simd ) };
+		return { SIMD_4I_MIN( vector.simd, min.simd ) };
 	}
 
 	/**
@@ -609,9 +608,9 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4f max( const vec4f& vector, const vec4f& max )
+	[[nodiscard]] constexpr vec4f max( const vec4f& vector, const vec4f& max )
 	{
-		return { _mm_max_ps( vector.simd, max.simd ) };
+		return { SIMD_4F_MAX( vector.simd, max.simd ) };
 	}
 
 	/**
@@ -631,12 +630,11 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec4i max( const vec4i& vector, const vec4i& max )
+	[[nodiscard]] constexpr vec4i max( const vec4i& vector, const vec4i& max )
 	{
-		return { _mm_max_epi32( vector.simd, max.simd ) };
+		return { SIMD_4I_MAX( vector.simd, max.simd ) };
 	}
-
-
+	
 	/**
 	 * @brief Calculates the square root of a vector
 	 * @param a - vector
@@ -675,7 +673,6 @@ namespace Math
 	[[nodiscard]] static vec4f abs( const vec4f& a )
 	{
 		return condition( a >= ZERO<vec4f>, a, -a );
-		//return { _mm_sqrt_ps( _mm_mul_ps( a.simd, a.simd ) ) };
 	}
 
 	/**
@@ -825,7 +822,7 @@ namespace Math
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
 	*/
-	[[nodiscard]] static vec2f orthogonal( const vec2f vector )
+	[[nodiscard]] constexpr vec2f orthogonal( const vec2f vector )
 	{
 		return { vector.y, -vector.x };
 	}
@@ -848,7 +845,7 @@ namespace Math
 	 * @param direction - direction vector (normalized)
 	 * @return vector orthogonal to direction
 	*/
-	[[nodiscard]] static vec3f orthogonal( const vec3f& vector, const vec3f& direction )
+	[[nodiscard]] constexpr vec3f orthogonal( const vec3f& vector, const vec3f& direction )
 	{
 		return vector - direction * dot_3D( vector, direction );
 	}
@@ -860,9 +857,9 @@ namespace Math
 	 * @param t - weight
 	 * @return weighted vector
 	*/
-	template<> [[nodiscard]] static vec4f lerp<vec4f>( const vec4f& a, const vec4f& b, const float t )
+	template<> [[nodiscard]] constexpr vec4f lerp<vec4f>( const vec4f& a, const vec4f& b, const float t )
 	{
-		return { _mm_fmadd_ps( _mm_sub_ps( b.simd, a.simd ), _mm_set1_ps( t ), a.simd ) };
+		return { SIMD_4F_FMADD( SIMD_4F_SUB( b.simd, a.simd ), SIMD_4F_SET1( t ), a.simd ) };
 	}
 
 	/**
@@ -951,9 +948,9 @@ namespace Math
 		 * @param d - fourth vector
 		 * @return sum of the 4 vectors stored as a single vector
 		*/
-		[[nodiscard]] static vec4f hsum( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f> )
+		[[nodiscard]] constexpr vec4f hsum( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f> )
 		{
-			return VECTOR_FORWARD( _mm_sum_ps( a.simd, b.simd, c.simd, d.simd ) );
+			return VECTOR_FORWARD( SIMD_4F_SUM4( a.simd, b.simd, c.simd, d.simd ) );
 		}
 
 		/**
@@ -962,9 +959,9 @@ namespace Math
 		 * @param b - second vector
 		 * @return sum of the 2 vectors stored as a single vector
 		*/
-		[[nodiscard]] static vec4f hsum( const vec4f& a, const vec4f& b )
+		[[nodiscard]] constexpr vec4f hsum( const vec4f& a, const vec4f& b )
 		{
-			return VECTOR_FORWARD( _mm_sum2_ps( a.simd, b.simd ) );
+			return VECTOR_FORWARD( SIMD_4F_SUM2( a.simd, b.simd ) );
 		}
 
 		/**
@@ -982,7 +979,7 @@ namespace Math
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d,
 			const vec4f& e, const vec4f& f, const vec4f& g, const vec4f& h )
 		{
-			return VECTOR_FORWARD( _mm_dot_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd ) );
+			return VECTOR_FORWARD( SIMD_4F_DOT4( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd ) );
 		}
 
 		/**
@@ -997,7 +994,7 @@ namespace Math
 		*/
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d, const vec4f& e, const vec4f& f )
 		{
-			return VECTOR_FORWARD( _mm_dot3_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd ) );
+			return VECTOR_FORWARD( SIMD_4F_DOT3( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd ) );
 		}
 
 		/**
@@ -1010,7 +1007,7 @@ namespace Math
 		*/
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d )
 		{
-			return VECTOR_FORWARD( _mm_dot2_ps( a.simd, b.simd, c.simd, d.simd ) );
+			return VECTOR_FORWARD( SIMD_4F_DOT2( a.simd, b.simd, c.simd, d.simd ) );
 		}
 
 		/**
@@ -1058,7 +1055,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static vec2f random<vec2f>( const vec2f& min, const vec2f& max )
 	{
-		return min + vec2f{ ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ) } *( max - min );
+		return min + vec2f{ ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ) } * ( max - min );
 	}
 
 	/**
@@ -1128,7 +1125,7 @@ namespace Math
 	 * @param bounds - vector bounds
 	 * @param point - vector point
 	*/
-	static void extend( Bounds<vec2f>& bounds, const vec2f& point )
+	constexpr void extend( Bounds<vec2f>& bounds, const vec2f& point )
 	{
 		bounds.min = Math::min( bounds.min, point );
 		bounds.max = Math::max( bounds.max, point );
@@ -1139,7 +1136,7 @@ namespace Math
 	 * @param bounds - vector bounds
 	 * @param point - vector point
 	*/
-	static void extend( Bounds<vec2i>& bounds, const vec2i& point )
+	constexpr void extend( Bounds<vec2i>& bounds, const vec2i& point )
 	{
 		bounds.min = Math::min( bounds.min, point );
 		bounds.max = Math::max( bounds.max, point );
@@ -1150,7 +1147,7 @@ namespace Math
 	 * @param bounds - vector bounds
 	 * @param point - vector point
 	*/
-	static void extend( Bounds<vec4f>& bounds, const vec4f& point )
+	constexpr void extend( Bounds<vec4f>& bounds, const vec4f& point )
 	{
 		bounds.min = Math::min( bounds.min, point );
 		bounds.max = Math::max( bounds.max, point );
@@ -1161,7 +1158,7 @@ namespace Math
 	 * @param bounds - vector bounds
 	 * @param point - vector point
 	*/
-	static void extend( Bounds<vec4i>& bounds, const vec4i& point )
+	constexpr void extend( Bounds<vec4i>& bounds, const vec4i& point )
 	{
 		bounds.min = Math::min( bounds.min, point );
 		bounds.max = Math::max( bounds.max, point );
