@@ -32,11 +32,11 @@ union vec4f
 	constexpr vec4f& operator/=( const vec4f& b ) noexcept { simd = SIMD_4F_DIV( simd, b.simd ); return *this; }
 	vec4f& operator%=( const vec4f& b ) noexcept { simd = _mm_fmod_ps( simd, b.simd ); return *this; }
 
-	constexpr vec4f& operator+=( const float b ) noexcept { simd = SIMD_4F_ADD( simd, _mm_set1_ps( b ) ); return *this; }
-	constexpr vec4f& operator-=( const float b ) noexcept { simd = SIMD_4F_SUB( simd, _mm_set1_ps( b ) ); return *this; }
-	constexpr vec4f& operator*=( const float b ) noexcept { simd = SIMD_4F_MUL( simd, _mm_set1_ps( b ) ); return *this; }
-	constexpr vec4f& operator/=( const float b ) noexcept { simd = SIMD_4F_DIV( simd, _mm_set1_ps( b ) ); return *this; }
-	vec4f& operator%=( const float b ) noexcept { simd = _mm_fmod_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator+=( const float b ) noexcept { simd = SIMD_4F_ADD( simd, SIMD_4F_SET1( b ) ); return *this; }
+	constexpr vec4f& operator-=( const float b ) noexcept { simd = SIMD_4F_SUB( simd, SIMD_4F_SET1( b ) ); return *this; }
+	constexpr vec4f& operator*=( const float b ) noexcept { simd = SIMD_4F_MUL( simd, SIMD_4F_SET1( b ) ); return *this; }
+	constexpr vec4f& operator/=( const float b ) noexcept { simd = SIMD_4F_DIV( simd, SIMD_4F_SET1( b ) ); return *this; }
+	vec4f& operator%=( const float b ) noexcept { simd = _mm_fmod_ps( simd, SIMD_4F_SET1( b ) ); return *this; }
 
 	// Unary Operators
 	[[nodiscard]] constexpr vec4f operator-() const { return VECTOR_FORWARD( SIMD_4F_MUL( simd, SIMD_4f_NEG ) ); }
@@ -47,9 +47,9 @@ union vec4f
 	constexpr vec4f& operator|=( const vec4f& b ) noexcept { simd = SIMD_4F_OR( simd, b.simd ); return *this; }
 	constexpr vec4f& operator^=( const vec4f& b ) noexcept { simd = SIMD_4F_XOR( simd, b.simd ); return *this; }
 
-	constexpr vec4f& operator&=( const float b ) noexcept { simd = SIMD_4F_AND( simd, _mm_set1_ps( b ) ); return *this; }
-	constexpr vec4f& operator|=( const float b ) noexcept { simd = SIMD_4F_OR( simd, _mm_set1_ps( b ) ); return *this; }
-	constexpr vec4f& operator^=( const float b ) noexcept { simd = SIMD_4F_XOR( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr vec4f& operator&=( const float b ) noexcept { simd = SIMD_4F_AND( simd, SIMD_4F_SET1( b ) ); return *this; }
+	constexpr vec4f& operator|=( const float b ) noexcept { simd = SIMD_4F_OR( simd, SIMD_4F_SET1( b ) ); return *this; }
+	constexpr vec4f& operator^=( const float b ) noexcept { simd = SIMD_4F_XOR( simd, SIMD_4F_SET1( b ) ); return *this; }
 
 	// Conversions
 	[[nodiscard]] explicit constexpr operator bool() const { return x && y && z && w; }
