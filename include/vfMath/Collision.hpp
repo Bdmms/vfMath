@@ -265,24 +265,28 @@ struct RaySensor
 */
 struct Collider
 {
-	enum ColliderFlags : uint8_t
+	enum ColliderFlags : uint32_t
 	{
-		ENABLED     = 0x00u,	// Default state for a collider
-		DISABLED    = 0x01u,	// Indicates the collider will not trigger collisions
-		COLLIDED    = 0x02u,	// Indicates that at least one collision occurred with this collider
-		STATIC	    = 0x04u,	// Indicates that the collider cannot be transformed on collision
-		PASSIVE     = 0x08u,	// Indicates that the collider cannot transform another collider on collision
-		SWEEPING    = 0x10u,	// Enables checks for sweep collision between frames
-		TRANSLATED  = 0x20u,	// Indicates that the collider has translated during the collision test
-		TRANSFORMED = 0x40u,	// Indicates that the collider has rotated during the collision test
-		SELECTED    = 0x80u	// Indicates that the collider is selected
+		ENABLED     = 0x00u,    // Default state for a collider
+
+		// Input flags
+		DISABLED    = 0x01u,    // Indicates the collider will not trigger collisions
+		PASSIVE     = 0x02u,	// Collisions between passive colliders are ignored
+		SWEEPING    = 0x04u,    // Enables checks for sweep collision between frames (TODO: not implemented)
+		STATIC	    = 0x08u,    // Indicates that the collider cannot be transformed on collision
+
+		// Output flags
+		COLLIDED    = 0x10u,	// Indicates that at least one collision occurred with this collider
+		TRANSLATED  = 0x20u,    // Indicates that the collider has translated during the collision test
+		ROTATED     = 0x40u,    // Indicates that the collider has rotated during the collision test
+		SELECTED    = 0x80u	    // Indicates that the collider is selected
 	};
 
 	TransformSpace current;
 	TransformSpace previous;
 	Bounds<vec3f> aabb;
 	ColliderType type;
-	uint8_t flags;
+	uint32_t flags;
 
 	constexpr Collider() :
 		current{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> },

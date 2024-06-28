@@ -145,6 +145,73 @@ struct KnotCurve : public std::vector<vec4f>
 	{
 		return Math::length( integrateAt( t1 ) - integrateAt( t0 ) );
 	}
+
+	/**
+	 * @brief Finds the value of t that is closest to the vector within the local range.
+	 * @param point - arbitrary point
+	 * @param min - local range minimum
+	 * @param max - local range maximum
+	 * @param e - epsilon match threshold
+	*/
+	float localMinimum( const vec4f& point, float min, float max, float e = 1e-3f ) const
+	{
+		float m = min;
+		float n = max;
+		float k = ( n + m ) / 2.0f;
+
+		while( ( n - m ) > e )
+		{
+			float d0 = Math::distance2( point, sampleAt( k - e ) );
+			float d1 = Math::distance2( point, sampleAt( k + e ) );
+
+			if( d0 < d1 ) n = k;
+			else		  m = k;
+
+			k = ( n + m ) / 2.0f;
+		}
+
+		return k;
+	}
+
+	/**
+	 * @brief Finds the value of t that is closest to the vector along the curve.
+	 * @param point - arbitrary point
+	 * @param e - epsilon match threshold
+	*/
+	float getClosest( const vec4f& point, float e = 1e-3f ) const
+	{
+		if( size() < KnotCurve::KNOT_SIZE ) return 0.0f;
+		size_t knotCount = getNumKnots();
+		const vec4f* ptr = data();
+
+		// Find pair of control points closest to point
+		float d0 = Math::distance( point, ptr[0LLU] );
+		float d1 = Math::distance( point, ptr[1LLU] );
+		float d2 = Math::distance( point, ptr[2LLU] );
+		float d3 = Math::distance( point, ptr[3LLU] );
+		float minimum = d0 + d1 + d2 + d3;
+		uint64_t index = 0LLU;
+
+		for( uint64_t i = 1LLU; i < knotCount; ++i )
+		{
+			d0 = d1;
+			d1 = d2;
+			d2 = d3;
+			d3 = Math::distance( point, ptr[i + 3LLU] );
+			float value = d0 + d1 + d2 + d3;
+
+			if( value < minimum )
+			{
+				minimum = value;
+				index = i;
+			}
+		}
+
+		// Calculate local minimum between points
+		float t0 = static_cast<float>( index ) / knotCount;
+		float t1 = static_cast<float>( index + 2LLU ) / knotCount;
+		return localMinimum( point, t0, t1, e );
+	}
 };
 
 /**
@@ -175,69 +242,13 @@ struct PathSpline
 	}
 
 	/**
-	 * @brief Finds the value of t that is closest to the point within the local range.
-	 * @param point - arbitrary point
-	 * @param min - local range minimum
-	 * @param max - local range maximum
-	 * @param e - epsilon match threshold
-	*/
-	float localMinimum( const vec4f& point, float min, float max, float e = 1e-3f )
-	{
-		float m = min;
-		float n = max;
-		float k = ( n + m ) / 2.0f;
-
-		while( ( n - m ) > e )
-		{
-			float d0 = Math::distance2( point, position.sampleAt( k - e ) );
-			float d1 = Math::distance2( point, position.sampleAt( k + e ) );
-
-			if( d0 < d1 ) n = k;
-			else		  m = k;
-
-			k = ( n + m ) / 2.0f;
-		}
-
-		return k;
-	}
-
-	/**
 	 * @brief Finds the value of t that is closest to the point along the curve.
 	 * @param point - arbitrary point
 	 * @param e - epsilon match threshold
 	*/
 	float getClosest( const vec4f& point, float e = 1e-3f )
 	{
-		if( position.size() < KnotCurve::KNOT_SIZE ) return 0.0f;
-		size_t knotCount = position.getNumKnots();
-
-		// Find pair of control points closest to point
-		float d0 = Math::distance( point, position[0LLU] );
-		float d1 = Math::distance( point, position[1LLU] );
-		float d2 = Math::distance( point, position[2LLU] );
-		float d3 = Math::distance( point, position[3LLU] );
-		float minimum = d0 + d1 + d2 + d3;
-		uint64_t index = 0LLU;
-
-		for( uint64_t i = 1LLU; i < knotCount; ++i )
-		{
-			d0 = d1;
-			d1 = d2;
-			d2 = d3;
-			d3 = Math::distance( point, position[i + 3LLU] );
-			float value = d0 + d1 + d2 + d3;
-
-			if( value < minimum )
-			{
-				minimum = value;
-				index = i;
-			}
-		}
-
-		// Calculate local minimum between points
-		float t0 = static_cast<float>( index ) / knotCount;
-		float t1 = static_cast<float>( index + 2LLU ) / knotCount;
-		return localMinimum( point, t0, t1, e );
+		return position.getClosest( point, e );
 	}
 };
 

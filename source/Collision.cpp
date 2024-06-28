@@ -1056,6 +1056,8 @@ void CollisionLayer::testCollision()
 			CollisionBinding& a = objects[i];
 			Collider& colliderA = *a.object.collider;
 			const IntersectTest* colTest = intersectionMatrix[(uint8_t)colliderA.type];
+
+			// Skip collision if collider A is disabled
 			if( colliderA.flags & Collider::DISABLED ) continue;
 
 			for( size_t j = i + 1LLU; j < l1; ++j )
@@ -1063,7 +1065,10 @@ void CollisionLayer::testCollision()
 				CollisionBinding& b = objects[j];
 				Collider& colliderB = *b.object.collider;
 				const uint8_t typeB = (uint8_t)colliderB.type;
-				if( colliderB.flags & Collider::DISABLED ) continue;
+				
+				// Skip collision if collider B is disabled, or if colliders A and B are both passive
+				if( ( colliderB.flags & Collider::DISABLED ) ||
+					( colliderA.flags & colliderB.flags & Collider::PASSIVE ) ) continue;
 
 				if( colTest[typeB]( colliderA, colliderB ) )
 				{
