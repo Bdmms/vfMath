@@ -288,10 +288,10 @@ struct Collider
 	ColliderType type;
 	uint32_t flags;
 
-	constexpr Collider() :
-		current{ Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> },
+	constexpr Collider( ColliderType type = ColliderType::AABB ) :
+		current( Math::IDENTITY<TransformSpace> ),
 		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> },
-		type( ColliderType::AABB ),
+		type( type ),
 		flags( ENABLED )
 	{
 
@@ -306,6 +306,13 @@ struct Collider
 
 	}
 
+	/**
+	 * @brief Clears previous transformations recorded by the collider.
+	*/
+	constexpr void clearPrevious()
+	{
+		previous = current;
+	}
 
 	/**
 	 * @brief Clears previous transforms, sets the current transform, and re-calculates the AABB.
@@ -315,8 +322,19 @@ struct Collider
 	{
 		current.transform = transform;
 		current.inverse = transform.inverse();
-		previous = current;
+		clearPrevious();
 		aabb = Math::Box::calculateAABB( transform );
+	}
+
+	/**
+	 * @brief Clears previous transforms, sets the current transform, and re-calculates the AABB.
+	 * @param transform - transform space
+	*/
+	void setTransform( const TransformSpace& transformSpace )
+	{
+		current = transformSpace;
+		clearPrevious();
+		aabb = Math::Box::calculateAABB( transformSpace.transform );
 	}
 
 	/**

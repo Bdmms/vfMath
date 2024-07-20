@@ -11,6 +11,12 @@ struct TransformSpace
 {
 	mat4f transform;
 	mat4f inverse;
+
+	TransformSpace( const mat4f& transform ) : transform( transform ), inverse( transform.inverse() ) {}
+
+	constexpr TransformSpace() : transform( Math::IDENTITY<mat4f> ), inverse( Math::IDENTITY<mat4f> ) {}
+	constexpr TransformSpace( const mat4f& transform, const mat4f& inverse ) : transform( transform ), inverse( inverse ) {}
+	constexpr TransformSpace( const TransformSpace& copy ) : transform( copy.transform ), inverse( copy.inverse ) {}
 };
 
 [[nodiscard]] static TransformSpace operator*( const TransformSpace& a, const TransformSpace& b ) noexcept
