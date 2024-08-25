@@ -86,9 +86,6 @@
     <ClInclude Include="include\vfMath\euler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\vfMath\format.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\vfMath\Transform2D.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -53,9 +53,20 @@ struct Spline : public std::vector<vec4f>
 	 * @brief Creates a curve of the specified type.
 	 * @param type - curve type
 	*/
-	constexpr Spline( const SplineType& type = POLYLINE ) :
+	constexpr Spline( const SplineType& type = CATMULL_ROM ) :
 		std::vector<vec4f>(),
 		type( type )
+	{
+
+	}
+
+	/**
+	 * @brief Creates a curve with initial points.
+	 * @param list - initial points
+	*/
+	constexpr Spline( const std::initializer_list<vec4f>& list ) :
+		std::vector<vec4f>( list ),
+		type( CATMULL_ROM )
 	{
 
 	}

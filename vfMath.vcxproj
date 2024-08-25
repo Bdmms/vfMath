@@ -164,7 +164,6 @@
     <ClInclude Include="include\vfMath\Curves.hpp" />
     <ClInclude Include="include\vfMath\euler.hpp" />
     <ClInclude Include="include\vfMath\EulerMath.hpp" />
-    <ClInclude Include="include\vfMath\format.hpp" />
     <ClInclude Include="include\vfMath\mat2x2.hpp" />
     <ClInclude Include="include\vfMath\mat4x4.hpp" />
     <ClInclude Include="include\vfMath\Math.hpp" />
