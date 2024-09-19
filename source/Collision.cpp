@@ -640,12 +640,13 @@ Bounds<vec3f> Math::Triangle::calculateAABB( const mat4x4& t )
 
 void CollisionLattice::addTriangle( const TransformSpace& triangle )
 {
-	const TransformSpace relative = { unitSpace.inverse * triangle.transform, triangle.inverse * unitSpace.transform };
+	const TransformSpace relative = { current.inverse * triangle.transform, triangle.inverse * current.transform };
+	const TransformSpace unitXform = { unitSpace.inverse * relative.transform, relative.inverse * unitSpace.transform };
 	TransformSpace unit = { Math::create::scale( { 0.5f, 0.5f, 0.5f } ), Math::create::scale( { 2.0f, 2.0f, 2.0f } ) };
 	TransformSpace unitTriangle;
 	
 	Bounds<vec3f> triangleBounds;
-	AABB_TRIANGLE( relative.transform, triangleBounds.min.simd, triangleBounds.max.simd );
+	AABB_TRIANGLE( unitXform.transform, triangleBounds.min.simd, triangleBounds.max.simd );
 
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
 	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec3i>, dimensions );
@@ -665,20 +666,20 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 				unit.inverse.origin = unit.transform.origin * vec4f{ -2.0f, -2.0f, -2.0f, 1.0f };
 				unit.inverse = unit.transform.inverse();
 
-				unitTriangle.transform = unit.inverse * relative.transform;
-				unitTriangle.inverse = relative.inverse * unit.transform;
+				unitTriangle.transform = unit.inverse * unitXform.transform;
+				unitTriangle.inverse = unitXform.inverse * unit.transform;
 
 				if( Math::Box::triangleTest( unitTriangle ) )
 				{
-					units[iy + idx.u_x].faces.emplace_back( relative );
+					units[iy + idx.u_x].faces.emplace_back( unitXform );
 				}
 
 #ifdef VF_DEBUG_TRIANGLE_LATTICE
 				else
 				{
-					vec3f v0 = relative.transform.origin;
-					vec3f v1 = relative.transform.origin + relative.transform.x_axis;
-					vec3f v2 = relative.transform.origin + relative.transform.y_axis;
+					vec3f v0 = unitXform.transform.origin;
+					vec3f v1 = unitXform.transform.origin + unitXform.transform.x_axis;
+					vec3f v2 = unitXform.transform.origin + unitXform.transform.y_axis;
 
 					vec3i p0 = vec3i( Math::floor( v0 ) );
 					vec3i p1 = vec3i( Math::floor( v1 ) );
@@ -752,8 +753,8 @@ CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dime
 	vec3f unitScale = 2.0f / vec3f( dimensions );
 	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
 	
-	unitSpace.transform = current.transform * unitConvert;
-	unitSpace.inverse = unitSpace.transform.inverse();
+	unitSpace.transform = unitConvert;
+	unitSpace.inverse = unitConvert.inverse();
 }
 
 CollisionLattice::CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions ) :
@@ -769,8 +770,8 @@ CollisionLattice::CollisionLattice( const std::vector<CollisionFace>& meshCollis
 
 	current.transform = Math::createBoundingTransform( aabb );
 	current.inverse = Math::createBoundingInverseTransform( aabb );
-	unitSpace.transform = current.transform * unitConvert;
-	unitSpace.inverse = unitSpace.transform.inverse();
+	unitSpace.transform = unitConvert;
+	unitSpace.inverse = unitConvert.inverse();
 
 	for( const CollisionFace& face : meshCollision )
 	{
@@ -794,8 +795,8 @@ CollisionLattice::CollisionLattice( const std::vector<std::vector<CollisionFace>
 
 	current.transform = Math::createBoundingTransform( aabb );
 	current.inverse = Math::createBoundingInverseTransform( aabb );
-	unitSpace.transform = current.transform * unitConvert;
-	unitSpace.inverse = unitSpace.transform.inverse();
+	unitSpace.transform = unitConvert;
+	unitSpace.inverse = unitConvert.inverse();
 
 	for( const std::vector<CollisionFace>& collider : meshCollision )
 	{
@@ -839,11 +840,12 @@ void CollisionMesh::collision( TransformSpace& sphere ) const
 void CollisionLattice::collision( TransformSpace& sphere ) const
 {
 	// Convert the sphere into unit space
-	TransformSpace relative = { unitSpace.inverse * sphere.transform, sphere.inverse * unitSpace.transform };
-	vec4f startOrigin = relative.transform.origin;
+	TransformSpace relative = { current.inverse * sphere.transform, sphere.inverse * current.transform };
+	TransformSpace unitXform = { unitSpace.inverse * relative.transform, relative.inverse * unitSpace.transform };
+	vec4f startOrigin = unitXform.transform.origin;
 
 	// Compute the bounds of the sphere in unit space
-	Bounds<vec3f> aabb = Math::Box::calculateAABB( relative.transform );
+	Bounds<vec3f> aabb = Math::Box::calculateAABB( unitXform.transform );
 	vec3i minIdx = Math::clamp( vec3i( Math::floor( aabb.min ) ), Math::ZERO<vec3i>, dimensions );
 	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  aabb.max ) ), Math::ZERO<vec3i>, dimensions );
 
@@ -857,13 +859,13 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
 			{
 				// Process the collision within the unit
-				units[iy + idx.u_x].collision( relative );
+				units[iy + idx.u_x].collision( unitXform );
 			}
 		}
 	}
 
 	// Propagate the translation of the collision back into world space
-	Math::translate( sphere, unitSpace.transform * ( relative.transform.origin - startOrigin ) );
+	Math::translate( sphere, current.transform * ( unitSpace.transform * ( unitXform.transform.origin - startOrigin ) ) );
 }
 
 bool CollisionMesh::rayCast( RaySensor& ray ) const
@@ -932,8 +934,8 @@ bool CollisionUnit::rayCast( const vec4f& point, const vec3f& ray, float& distan
 bool CollisionLattice::rayCast( RaySensor& ray ) const
 {
 	// Convert finite ray into unit space
-	vec4f origin = unitSpace.inverse * ray.origin;
-	vec3f line = unitSpace.inverse * ( ray.direction * ray.distance );
+	vec4f origin = unitSpace.inverse * ( current.inverse * ray.origin );
+	vec3f line = unitSpace.inverse * ( current.inverse * ( ray.direction * ray.distance ) );
 
 	// Clip the ray within along the boundaries of the lattice, exit if the ray is outside the bounds
 	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec3f>, vec3f( dimensions ), origin, line );
@@ -984,8 +986,8 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 			if( units[i].rayCast( origin, line, relDistance, relNormal ) )
 			{
 				// Convert the distance/normal back into world space
-				ray.normal = Math::normalize( unitSpace.transform * relNormal );
-				ray.distance = Math::length( unitSpace.transform * ( line * relDistance ) );
+				ray.normal = Math::normalize( current.transform * ( unitSpace.transform * relNormal ) );
+				ray.distance = Math::length( current.transform * ( unitSpace.transform * ( line * relDistance ) ) );
 				ray.space = &current;
 				ray.hit = true;
 				return true;
@@ -997,8 +999,8 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 		if( units[i].rayCast( origin, line, relDistance, relNormal ) )
 		{
 			// Convert the distance/normal back into world space
-			ray.normal = Math::normalize( unitSpace.transform * relNormal );
-			ray.distance = Math::length( unitSpace.transform * ( line * relDistance ) );
+			ray.normal = Math::normalize( current.transform * ( unitSpace.transform * relNormal ) );
+			ray.distance = Math::length( current.transform * ( unitSpace.transform * ( line * relDistance ) ) );
 			ray.space = &current;
 			ray.hit = true;
 			return true;
