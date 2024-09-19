@@ -167,7 +167,7 @@ namespace Math
 		if( Math::length2( target ) < Math::EPSILON<float> ) return r1;
 
 		target = Math::normalize( target );
-		float angle = acosf( Math::dot_3D( current, target ) );
+		float angle = acosf( std::clamp( Math::dot_3D( current, target ), -1.0f, 1.0f ) );
 		float sign = Math::sign( Math::dot_3D( Math::cross( current, target ), toPrimary ) );
 		return r1 * Math::rotationAround<quat>( fromPrimary, angle * sign );
 	}
@@ -231,7 +231,7 @@ namespace Math
 
 		if( magnitude <= EPSILON<float> ) return Math::IDENTITY<quat>;
 
-		float angle = acosf( dot_3D( projectedInitial, projectedTarget ) );
+		float angle = acosf( std::clamp( dot_3D( projectedInitial, projectedTarget ), -1.0f, 1.0f ) );
 		return rotationAround<quat>( axis / magnitude, angle );
 	}
 
