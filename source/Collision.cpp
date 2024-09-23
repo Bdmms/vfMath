@@ -638,10 +638,34 @@ Bounds<vec3f> Math::Triangle::calculateAABB( const mat4x4& t )
 	return bounds;
 }
 
-void CollisionLattice::addTriangle( const TransformSpace& triangle )
+/**
+ * This function converts a 2D array into a 1D array of faces.
+*/
+void packTriangles( std::vector<CollisionFace>& faces, std::vector<CollisionLattice::Unit>& units, const std::vector<std::vector<CollisionFace>>& unitFaces )
 {
-	const TransformSpace relative = { current.inverse * triangle.transform, triangle.inverse * current.transform };
-	const TransformSpace unitXform = { unitSpace.inverse * relative.transform, relative.inverse * unitSpace.transform };
+	for( size_t i = 0LLU; i < units.size(); ++i )
+	{
+		const std::vector<CollisionFace>& unitList = unitFaces[i];
+		CollisionLattice::Unit& unit = units[i];
+
+		// Store the point in the list used by the unit
+		unit.idx = faces.size();
+		for( const CollisionFace& face : unitList )
+		{
+			faces.emplace_back( face );
+		}
+		unit.size = faces.size() - unit.idx;
+	}
+}
+
+/**
+ * This function determines which units a triangle intersects with.
+*/
+void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLattice& lattice )
+{
+	const vec4i& dimensions = lattice.getDimensions();
+	const TransformSpace relative = { lattice.current.inverse * triangle.transform, triangle.inverse * lattice.current.transform };
+	const TransformSpace unitXform = { lattice.unitSpace.inverse * relative.transform, relative.inverse * lattice.unitSpace.transform };
 	TransformSpace unit = { Math::create::scale( { 0.5f, 0.5f, 0.5f } ), Math::create::scale( { 2.0f, 2.0f, 2.0f } ) };
 	TransformSpace unitTriangle;
 	
@@ -662,7 +686,7 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 			size_t iy = ( iz + idx.u_y ) * dimensions.u_x;
 			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
 			{
-				unit.transform.origin = vec4f( idx ) + vec4f{ 0.5f, 0.5f, 0.5f, 1.0f };
+				unit.transform.origin = static_cast<vec4f>( idx ) + vec4f{ 0.5f, 0.5f, 0.5f, 1.0f };
 				unit.inverse.origin = unit.transform.origin * vec4f{ -2.0f, -2.0f, -2.0f, 1.0f };
 				unit.inverse = unit.transform.inverse();
 
@@ -671,7 +695,7 @@ void CollisionLattice::addTriangle( const TransformSpace& triangle )
 
 				if( Math::Box::triangleTest( unitTriangle ) )
 				{
-					units[iy + idx.u_x].faces.emplace_back( unitXform );
+					unitFaces[iy + idx.u_x].emplace_back( unitXform );
 				}
 
 #ifdef VF_DEBUG_TRIANGLE_LATTICE
@@ -747,10 +771,10 @@ void CollisionMesh::setFaces( const std::vector<CollisionFace>& source )
 CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dimensions ) :
 	ColliderSpace( aabb ),
 	dimensions( dimensions ),
-	length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
-	units( new CollisionUnit[length] )
+	faces(),
+	units( static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z ) )
 {
-	vec3f unitScale = 2.0f / vec3f( dimensions );
+	vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
 	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
 	
 	unitSpace.transform = unitConvert;
@@ -760,10 +784,10 @@ CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dime
 CollisionLattice::CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions ) :
 	ColliderSpace(),
 	dimensions( dimensions ),
-	length( size_t( dimensions.x ) * size_t( dimensions.y ) * size_t( dimensions.z ) ),
-	units( new CollisionUnit[length] )
+	faces(),
+	units( static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z ) )
 {
-	vec3f unitScale = 2.0f / vec3f( dimensions );
+	vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
 	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
 	
 	Math::extend( aabb, meshCollision );
@@ -773,19 +797,21 @@ CollisionLattice::CollisionLattice( const std::vector<CollisionFace>& meshCollis
 	unitSpace.transform = unitConvert;
 	unitSpace.inverse = unitConvert.inverse();
 
+	std::vector<std::vector<CollisionFace>> unitFaces( units.size() );
 	for( const CollisionFace& face : meshCollision )
 	{
-		addTriangle( face );
+		addTriangle( unitFaces, face, *this );
 	}
+	packTriangles( faces, units, unitFaces );
 }
 
 CollisionLattice::CollisionLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions ) :
 	ColliderSpace(),
 	dimensions( dimensions ),
-	length( size_t( dimensions.x )* size_t( dimensions.y )* size_t( dimensions.z ) ),
-	units( new CollisionUnit[length] )
+	faces(),
+	units( static_cast<size_t>( dimensions.x )* static_cast<size_t>( dimensions.y )* static_cast<size_t>( dimensions.z ) )
 {
-	vec3f unitScale = 2.0f / vec3f( dimensions );
+	vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
 	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
 	
 	for( const std::vector<CollisionFace>& collider : meshCollision )
@@ -798,26 +824,15 @@ CollisionLattice::CollisionLattice( const std::vector<std::vector<CollisionFace>
 	unitSpace.transform = unitConvert;
 	unitSpace.inverse = unitConvert.inverse();
 
+	std::vector<std::vector<CollisionFace>> unitFaces( units.size() );
 	for( const std::vector<CollisionFace>& collider : meshCollision )
 	{
 		for( const CollisionFace& face : collider )
 		{
-			addTriangle( face );
+			addTriangle( unitFaces, face, *this );
 		}
 	}
-}
-
-void CollisionUnit::collision( TransformSpace& relativeSphere ) const
-{
-	vec3f displacement;
-	for( const CollisionFace& face : faces )
-	{
-		// If sphere intersects face, translate sphere by face displacement
-		if( sphereFaceCollision( displacement, relativeSphere, face ) )
-		{
-			Math::translate( relativeSphere, displacement );
-		}
-	}
+	packTriangles( faces, units, unitFaces );
 }
 
 void CollisionMesh::collision( TransformSpace& sphere ) const
@@ -835,6 +850,20 @@ void CollisionMesh::collision( TransformSpace& sphere ) const
 	}
 
 	Math::translate( sphere, current.transform * ( relative.transform.origin - startOrigin ) );
+}
+
+void collision_CollisionLatticeUnit_sphere( TransformSpace& relativeSphere, const CollisionFace* ptr, const CollisionFace* end )
+{
+	vec3f displacement;
+	while( ptr < end )
+	{
+		// If sphere intersects face, translate sphere by face displacement
+		if( sphereFaceCollision( displacement, relativeSphere, *ptr ) )
+		{
+			Math::translate( relativeSphere, displacement );
+		}
+		++ptr;
+	}
 }
 
 void CollisionLattice::collision( TransformSpace& sphere ) const
@@ -859,7 +888,9 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
 			{
 				// Process the collision within the unit
-				units[iy + idx.u_x].collision( unitXform );
+				const Unit& unit = units[iy + idx.u_x];
+				const CollisionFace* face = faces.data() + unit.idx;
+				collision_CollisionLatticeUnit_sphere( unitXform, face, face + unit.size );
 			}
 		}
 	}
@@ -909,12 +940,15 @@ bool CollisionMesh::rayCast( RaySensor& ray ) const
 	return false;
 }
 
-bool CollisionUnit::rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const
+bool raycast_CollisionLatticeUnit_sphere( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal, const CollisionFace* ptr, const CollisionFace* end )
 {
 	bool hit = false;
 
-	for( const CollisionFace& face : faces )
+	while( ptr < end )
 	{
+		const CollisionFace& face = *ptr;
+		++ptr;
+
 		// Rays only intersect with front-facing faces
 		if( Math::dot_3D( face.transform.z_axis, ray ) > 0.0f ) continue;
 
@@ -938,7 +972,7 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	vec3f line = unitSpace.inverse * ( current.inverse * ( ray.direction * ray.distance ) );
 
 	// Clip the ray within along the boundaries of the lattice, exit if the ray is outside the bounds
-	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec3f>, vec3f( dimensions ), origin, line );
+	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec3f>, static_cast<vec3f>( dimensions ), origin, line );
 	if( rayClip.min > rayClip.max ) return false;
 
 	// Epsilon fixes a rounding issue when retrieving the unit index
@@ -996,7 +1030,10 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 #else
 		// Assume that the index is in bounds after clipping the ray
 		size_t i = idx.x + ( ( idx.y + ( idx.z * dimensions.y ) ) * dimensions.x );
-		if( units[i].rayCast( origin, line, relDistance, relNormal ) )
+
+		const Unit& unit = units[i];
+		const CollisionFace* ptr = faces.data() + unit.idx;
+		if( raycast_CollisionLatticeUnit_sphere( origin, line, relDistance, relNormal, ptr, ptr + unit.size ) )
 		{
 			// Convert the distance/normal back into world space
 			ray.normal = Math::normalize( current.transform * ( unitSpace.transform * relNormal ) );
@@ -1009,7 +1046,7 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 
 		// Find the closest unit to increment to
 		vec3f point = origin + line * traveled;
-		vec3f difference = ( vec3f( idx + idxUnit ) - point ) / line;
+		vec3f difference = ( static_cast<vec3f>( idx + idxUnit ) - point ) / line;
 
 #ifdef VF_RAYCAST_DEBUG
 		std::cout << "distance = " << traveled << "\n";

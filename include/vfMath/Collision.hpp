@@ -414,14 +414,6 @@ struct CollisionBinding
 	CollisionObject object;
 };
 
-struct CollisionUnit
-{
-	std::vector<CollisionFace> faces;
-
-	void collision( TransformSpace& relative ) const;
-	bool rayCast( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal ) const;
-};
-
 struct ColliderSpace : public Collider
 {
 	constexpr ColliderSpace() :
@@ -445,14 +437,76 @@ struct ColliderSpace : public Collider
 	virtual void collision( TransformSpace& sphere ) const = 0;
 };
 
+/**
+ * @brief Defines a set of collision faces that can be tested against.
+ * There are no optimizations performed, this object represents a raw unfiltered list of triangles.
+*/
+struct CollisionMesh : public ColliderSpace
+{
+	std::vector<CollisionFace> faces;
+
+	CollisionMesh() : ColliderSpace()
+	{
+
+	}
+
+	CollisionMesh( const std::vector<CollisionFace>& source );
+	CollisionMesh( const mat4f& transform ) : ColliderSpace( transform )
+	{
+
+	}
+
+	// TODO: Improve this interface
+	void setFaces( const std::vector<CollisionFace>& source );
+
+	virtual void collision( TransformSpace& relative ) const override;
+	virtual bool rayCast( RaySensor& ray ) const override;
+};
+
+/**
+ * @brief Defines a bounding box divided into multiple equally sized regions (units)
+ * that optimizes the performance of checking for collisions against triangles.
+*/
 struct CollisionLattice : public ColliderSpace
 {
+	friend void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLattice& lattice );
+
+	struct Unit
+	{
+		size_t idx;
+		size_t size;
+	};
+
+private:
 	TransformSpace unitSpace;
 	vec3i dimensions;
-	size_t length;
-	CollisionUnit* units;
+	std::vector<CollisionFace> faces;
+	std::vector<Unit> units;
+
+	/**
+	 * @brief Retrieves the unit that corresponds with the integer vector.
+	 * TODO: This function does not check for index out of bounds, and it returns a unit that isn't helpful in other applications
+	*/
+	constexpr const Unit& getUnit( const vec4i& idx ) const
+	{
+		size_t iz = size_t( idx.u_z ) * size_t( dimensions.u_y );
+		size_t iy = size_t( iz + idx.u_y ) * size_t( dimensions.u_x );
+		return units[size_t( iy + idx.u_x )];
+	}
+
+public:
+	// Default Constructor
+	constexpr CollisionLattice() :
+		ColliderSpace(),
+		unitSpace( { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> } ),
+		dimensions( Math::ZERO<vec4i> )
+	{
+
+	}
 
 	CollisionLattice( const Bounds<vec3f>& bounds, const vec3i& dimensions );
+
+	// TODO: Deprecate these constructors
 	CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions );
 	CollisionLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions );
 
@@ -461,10 +515,10 @@ struct CollisionLattice : public ColliderSpace
 		ColliderSpace( copy ),
 		unitSpace( copy.unitSpace ),
 		dimensions( copy.dimensions ),
-		length( copy.length ),
-		units( new CollisionUnit[length] )
+		faces( copy.faces ),
+		units( copy.units )
 	{
-		std::copy_n( copy.units, copy.length, units );
+
 	}
 
 	// Move Constructor
@@ -472,83 +526,55 @@ struct CollisionLattice : public ColliderSpace
 		ColliderSpace( copy ),
 		unitSpace( std::move( copy.unitSpace ) ),
 		dimensions( std::move( copy.dimensions ) ),
-		length( copy.length ),
-		units( std::exchange( copy.units, nullptr ) )
+		faces( std::move( copy.faces ) ),
+		units( std::move( copy.units ) )
 	{
 
 	}
 
-	constexpr ~CollisionLattice()
+	/**
+	 * @brief Clears all existing data and resizes the lattice to alter the division of the bounding box.
+	*/
+	void resize( const vec3i newDimensions, size_t initialFaceCount = 0LLU )
 	{
-		if( units ) delete[] units;
+		dimensions = newDimensions;
+		size_t unitCount = static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z );
+		units.clear();
+		faces.clear();
+		units.resize( unitCount );
+		faces.resize( initialFaceCount );
 	}
 
-	void addTriangle( const TransformSpace& triangle );
+	/**
+	 * @brief Generates the transform that defines the unit space.
+	 * This transform will convert objects into a coordinate system where the integral part
+	 * of a position directly corresponds to the region/unit the point intersects with.
+	 * @return composite transform
+	*/
+	const TransformSpace getUnitSpace() const
+	{
+		return current * unitSpace;
+	}
+
+	/**
+	 * @return number of units the box is split across each relative axis
+	*/
+	const vec3i getDimensions() const
+	{
+		return dimensions;
+	}
+
+	// Accessors to unit data
+	Unit* getUnits() { return units.data(); }
+	const Unit* getUnits() const { return units.data(); }
+	size_t getUnitCount() const { return units.size(); }
+
+	// Accessors to face data
+	CollisionFace* getFaces() { return faces.data(); }
+	const CollisionFace* getFaces() const { return faces.data(); }
+	size_t getFaceCount() const { return faces.size(); }
 
 	virtual void collision( TransformSpace& sphere ) const override;
-	virtual bool rayCast( RaySensor& ray ) const override;
-
-	constexpr const CollisionUnit& getUnit( const vec4i& idx ) const
-	{
-		size_t iz = size_t( idx.u_z ) * size_t( dimensions.u_y );
-		size_t iy = size_t( iz + idx.u_y ) * size_t( dimensions.u_x );
-		return units[size_t( iy + idx.u_x )];
-	}
-
-	constexpr CollisionUnit* data() { return units; }
-	constexpr CollisionUnit* begin() { return units; }
-	constexpr CollisionUnit* end() { return units + length; }
-
-	constexpr const CollisionUnit* data() const { return units; }
-	constexpr const CollisionUnit* begin() const { return units; }
-	constexpr const CollisionUnit* end() const { return units + length; }
-	constexpr size_t size() const { return length; }
-
-	constexpr size_t getMaxTriangleCount() const
-	{
-		size_t maxCount = 0u;
-		for( size_t i = 0; i < length; ++i )
-		{
-			maxCount = std::max( maxCount, units[i].faces.size() );
-		}
-		return maxCount;
-	}
-
-	constexpr size_t getTotalTriangleCount() const
-	{
-		size_t totalCount = 0u;
-		for( size_t i = 0; i < length; ++i )
-		{
-			totalCount += units[i].faces.size();
-		}
-		return totalCount;
-	}
-
-	constexpr size_t getAvgTriangleCount() const
-	{
-		return getTotalTriangleCount() / length;
-	}
-};
-
-struct CollisionMesh : public ColliderSpace
-{
-	std::vector<CollisionFace> faces;
-
-	CollisionMesh( const std::vector<CollisionFace>& source );
-
-	CollisionMesh( const mat4f& transform ) : ColliderSpace( transform )
-	{
-
-	}
-
-	CollisionMesh() : ColliderSpace()
-	{
-
-	}
-
-	void setFaces( const std::vector<CollisionFace>& source );
-
-	virtual void collision( TransformSpace& relative ) const override;
 	virtual bool rayCast( RaySensor& ray ) const override;
 };
 
