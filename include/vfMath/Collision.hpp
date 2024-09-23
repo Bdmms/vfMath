@@ -396,16 +396,6 @@ struct CollisionObject
 };
 
 /**
- * @brief Utility dedicated to collision checking
-*/
-namespace Collision
-{
-	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject& a, CollisionObject& b ) {};
-
-	std::vector<CollisionFace> createCubeMesh();
-}
-
-/**
  * @brief Binding of collider and its handler
 */
 struct CollisionBinding
@@ -469,6 +459,7 @@ struct CollisionMesh : public ColliderSpace
 */
 struct CollisionLattice : public ColliderSpace
 {
+	friend void packTriangles( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& unitFaces );
 	friend void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLattice& lattice );
 
 	struct Unit
@@ -503,12 +494,6 @@ public:
 	{
 
 	}
-
-	CollisionLattice( const Bounds<vec3f>& bounds, const vec3i& dimensions );
-
-	// TODO: Deprecate these constructors
-	CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions );
-	CollisionLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions );
 
 	// Copy Constructor
 	constexpr CollisionLattice( const CollisionLattice& copy ) : 
@@ -613,5 +598,18 @@ struct CollisionLayer
 
 	static bool testCollision( const Collider& a, const Collider& b );
 };
+
+/**
+ * @brief Utility dedicated to collision checking
+*/
+namespace Collision
+{
+	constexpr CollisionCallback DEFAULT_HANDLE = []( CollisionObject& a, CollisionObject& b ) {};
+
+	std::vector<CollisionFace> createCubeMesh();
+
+	void convertToLattice( CollisionLattice& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions );
+	void convertToLattice( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions );
+}
 
 #endif

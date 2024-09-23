@@ -641,20 +641,20 @@ Bounds<vec3f> Math::Triangle::calculateAABB( const mat4x4& t )
 /**
  * This function converts a 2D array into a 1D array of faces.
 */
-void packTriangles( std::vector<CollisionFace>& faces, std::vector<CollisionLattice::Unit>& units, const std::vector<std::vector<CollisionFace>>& unitFaces )
+void packTriangles( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& unitFaces )
 {
-	for( size_t i = 0LLU; i < units.size(); ++i )
+	for( size_t i = 0LLU; i < lattice.units.size(); ++i )
 	{
 		const std::vector<CollisionFace>& unitList = unitFaces[i];
-		CollisionLattice::Unit& unit = units[i];
+		CollisionLattice::Unit& unit = lattice.units[i];
 
 		// Store the point in the list used by the unit
-		unit.idx = faces.size();
+		unit.idx = lattice.faces.size();
 		for( const CollisionFace& face : unitList )
 		{
-			faces.emplace_back( face );
+			lattice.faces.emplace_back( face );
 		}
-		unit.size = faces.size() - unit.idx;
+		unit.size = lattice.faces.size() - unit.idx;
 	}
 }
 
@@ -744,6 +744,48 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	}
 }
 
+void Collision::convertToLattice( CollisionLattice& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions )
+{
+	lattice.resize( dimensions );
+	lattice.aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+	Math::extend( lattice.aabb, mesh );
+
+	lattice.current.transform = Math::createBoundingTransform( lattice.aabb );
+	lattice.current.inverse = Math::createBoundingInverseTransform( lattice.aabb );
+
+	std::vector<std::vector<CollisionFace>> unitFaces( lattice.getUnitCount() );
+	for( const CollisionFace& face : mesh )
+	{
+		addTriangle( unitFaces, face, lattice );
+	}
+	packTriangles( lattice, unitFaces );
+}
+
+void Collision::convertToLattice( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions )
+{
+	lattice.resize( dimensions );
+	lattice.aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+
+	for( const std::vector<CollisionFace>& group : mesh )
+	{
+		Math::extend( lattice.aabb, group );
+	}
+
+	lattice.current.transform = Math::createBoundingTransform( lattice.aabb );
+	lattice.current.inverse = Math::createBoundingInverseTransform( lattice.aabb );
+
+	std::vector<std::vector<CollisionFace>> unitFaces( lattice.getUnitCount() );
+	for( const std::vector<CollisionFace>& group : mesh )
+	{
+		for( const CollisionFace& face : group )
+		{
+			addTriangle( unitFaces, face, lattice );
+		}
+	}
+	packTriangles( lattice, unitFaces );
+}
+
+
 CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) : 
 	ColliderSpace(),
 	faces()
@@ -766,73 +808,6 @@ void CollisionMesh::setFaces( const std::vector<CollisionFace>& source )
 		faces[i].transform = current.inverse * source[i].transform;
 		faces[i].inverse = faces[i].transform.inverse();
 	}
-}
-
-CollisionLattice::CollisionLattice( const Bounds<vec3f>& aabb, const vec3i& dimensions ) :
-	ColliderSpace( aabb ),
-	dimensions( dimensions ),
-	faces(),
-	units( static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z ) )
-{
-	vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
-	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
-	
-	unitSpace.transform = unitConvert;
-	unitSpace.inverse = unitConvert.inverse();
-}
-
-CollisionLattice::CollisionLattice( const std::vector<CollisionFace>& meshCollision, const vec3i& dimensions ) :
-	ColliderSpace(),
-	dimensions( dimensions ),
-	faces(),
-	units( static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z ) )
-{
-	vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
-	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
-	
-	Math::extend( aabb, meshCollision );
-
-	current.transform = Math::createBoundingTransform( aabb );
-	current.inverse = Math::createBoundingInverseTransform( aabb );
-	unitSpace.transform = unitConvert;
-	unitSpace.inverse = unitConvert.inverse();
-
-	std::vector<std::vector<CollisionFace>> unitFaces( units.size() );
-	for( const CollisionFace& face : meshCollision )
-	{
-		addTriangle( unitFaces, face, *this );
-	}
-	packTriangles( faces, units, unitFaces );
-}
-
-CollisionLattice::CollisionLattice( const std::vector<std::vector<CollisionFace>>& meshCollision, const vec3i& dimensions ) :
-	ColliderSpace(),
-	dimensions( dimensions ),
-	faces(),
-	units( static_cast<size_t>( dimensions.x )* static_cast<size_t>( dimensions.y )* static_cast<size_t>( dimensions.z ) )
-{
-	vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
-	mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
-	
-	for( const std::vector<CollisionFace>& collider : meshCollision )
-	{
-		Math::extend( aabb, collider );
-	}
-
-	current.transform = Math::createBoundingTransform( aabb );
-	current.inverse = Math::createBoundingInverseTransform( aabb );
-	unitSpace.transform = unitConvert;
-	unitSpace.inverse = unitConvert.inverse();
-
-	std::vector<std::vector<CollisionFace>> unitFaces( units.size() );
-	for( const std::vector<CollisionFace>& collider : meshCollision )
-	{
-		for( const CollisionFace& face : collider )
-		{
-			addTriangle( unitFaces, face, *this );
-		}
-	}
-	packTriangles( faces, units, unitFaces );
 }
 
 void CollisionMesh::collision( TransformSpace& sphere ) const
