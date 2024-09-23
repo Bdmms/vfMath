@@ -539,10 +539,28 @@ public:
 	{
 		dimensions = newDimensions;
 		size_t unitCount = static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z );
+
+		// Re-compute unit space
+		vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
+		mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
+		unitSpace.transform = unitConvert;
+		unitSpace.inverse = unitConvert.inverse();
+
 		units.clear();
 		faces.clear();
 		units.resize( unitCount );
 		faces.resize( initialFaceCount );
+	}
+
+	/**
+	 * @brief Clears all existing data and sets the dimensions to 0.
+	*/
+	constexpr void clear()
+	{
+		unitSpace = Math::IDENTITY<TransformSpace>;
+		dimensions = Math::ZERO<vec3i>;
+		units.clear();
+		faces.clear();
 	}
 
 	/**
