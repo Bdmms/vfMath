@@ -453,20 +453,18 @@ struct CollisionMesh : public ColliderSpace
 	virtual bool rayCast( RaySensor& ray ) const override;
 };
 
-/**
- * @brief Defines a bounding box divided into multiple equally sized regions (units)
- * that optimizes the performance of checking for collisions against triangles.
-*/
-struct CollisionLattice : public ColliderSpace
+struct CollisionLatticeData
 {
-	friend void packTriangles( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& unitFaces );
-	friend void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLattice& lattice );
+	friend void packTriangles( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& unitFaces );
+	friend void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLatticeData& lattice );
 
 	struct Unit
 	{
 		size_t idx;
 		size_t size;
 	};
+
+	TransformSpace defaultBounds;
 
 private:
 	TransformSpace unitSpace;
@@ -487,8 +485,7 @@ private:
 
 public:
 	// Default Constructor
-	constexpr CollisionLattice() :
-		ColliderSpace(),
+	constexpr CollisionLatticeData() :
 		unitSpace( { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> } ),
 		dimensions( Math::ZERO<vec4i> )
 	{
@@ -496,8 +493,8 @@ public:
 	}
 
 	// Copy Constructor
-	constexpr CollisionLattice( const CollisionLattice& copy ) : 
-		ColliderSpace( copy ),
+	constexpr CollisionLatticeData( const CollisionLatticeData& copy ) :
+		defaultBounds( copy.defaultBounds ),
 		unitSpace( copy.unitSpace ),
 		dimensions( copy.dimensions ),
 		faces( copy.faces ),
@@ -507,8 +504,8 @@ public:
 	}
 
 	// Move Constructor
-	constexpr CollisionLattice( CollisionLattice&& copy ) noexcept :
-		ColliderSpace( copy ),
+	constexpr CollisionLatticeData( CollisionLatticeData&& copy ) noexcept :
+		defaultBounds( copy.defaultBounds ),
 		unitSpace( std::move( copy.unitSpace ) ),
 		dimensions( std::move( copy.dimensions ) ),
 		faces( std::move( copy.faces ) ),
@@ -554,9 +551,9 @@ public:
 	 * of a position directly corresponds to the region/unit the point intersects with.
 	 * @return composite transform
 	*/
-	const TransformSpace getUnitSpace() const
+	const TransformSpace& getUnitSpace() const
 	{
-		return current * unitSpace;
+		return unitSpace;
 	}
 
 	/**
@@ -576,6 +573,42 @@ public:
 	CollisionFace* getFaces() { return faces.data(); }
 	const CollisionFace* getFaces() const { return faces.data(); }
 	size_t getFaceCount() const { return faces.size(); }
+};
+
+/**
+ * @brief Defines a bounding box divided into multiple equally sized regions (units)
+ * that optimizes the performance of checking for collisions against triangles.
+*/
+struct CollisionLattice : public ColliderSpace
+{
+	const CollisionLatticeData& data;
+
+	// Default Constructor
+	CollisionLattice( const CollisionLatticeData& data ) :
+		ColliderSpace(),
+		data( data )
+	{
+		setTransform( data.defaultBounds );
+	}
+
+	// Copy Constructor
+	CollisionLattice( const CollisionLattice& copy ) : 
+		ColliderSpace(),
+		data( copy.data )
+	{
+		setTransform( data.defaultBounds );
+	}
+
+	/**
+	 * @brief Generates the transform that defines the unit space.
+	 * This transform will convert objects into a coordinate system where the integral part
+	 * of a position directly corresponds to the region/unit the point intersects with.
+	 * @return composite transform
+	*/
+	const TransformSpace getUnitSpace() const
+	{
+		return current * data.getUnitSpace();
+	}
 
 	virtual void collision( TransformSpace& sphere ) const override;
 	virtual bool rayCast( RaySensor& ray ) const override;
@@ -608,8 +641,8 @@ namespace Collision
 
 	std::vector<CollisionFace> createCubeMesh();
 
-	void convertToLattice( CollisionLattice& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions );
-	void convertToLattice( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions );
+	void convertToLattice( CollisionLatticeData& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions );
+	void convertToLattice( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions );
 }
 
 #endif

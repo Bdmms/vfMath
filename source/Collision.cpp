@@ -641,12 +641,12 @@ Bounds<vec3f> Math::Triangle::calculateAABB( const mat4x4& t )
 /**
  * This function converts a 2D array into a 1D array of faces.
 */
-void packTriangles( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& unitFaces )
+void packTriangles( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& unitFaces )
 {
 	for( size_t i = 0LLU; i < lattice.units.size(); ++i )
 	{
 		const std::vector<CollisionFace>& unitList = unitFaces[i];
-		CollisionLattice::Unit& unit = lattice.units[i];
+		CollisionLatticeData::Unit& unit = lattice.units[i];
 
 		// Store the point in the list used by the unit
 		unit.idx = lattice.faces.size();
@@ -661,10 +661,10 @@ void packTriangles( CollisionLattice& lattice, const std::vector<std::vector<Col
 /**
  * This function determines which units a triangle intersects with.
 */
-void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLattice& lattice )
+void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const TransformSpace& triangle, const CollisionLatticeData& lattice )
 {
 	const vec4i& dimensions = lattice.getDimensions();
-	const TransformSpace relative = { lattice.current.inverse * triangle.transform, triangle.inverse * lattice.current.transform };
+	const TransformSpace relative = { lattice.defaultBounds.inverse * triangle.transform, triangle.inverse * lattice.defaultBounds.transform };
 	const TransformSpace unitXform = { lattice.unitSpace.inverse * relative.transform, relative.inverse * lattice.unitSpace.transform };
 	TransformSpace unit = { Math::create::scale( { 0.5f, 0.5f, 0.5f } ), Math::create::scale( { 2.0f, 2.0f, 2.0f } ) };
 	TransformSpace unitTriangle;
@@ -744,14 +744,14 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	}
 }
 
-void Collision::convertToLattice( CollisionLattice& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions )
+void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions )
 {
 	lattice.resize( dimensions );
-	lattice.aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
-	Math::extend( lattice.aabb, mesh );
+	Bounds<vec3f> aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+	Math::extend( aabb, mesh );
 
-	lattice.current.transform = Math::createBoundingTransform( lattice.aabb );
-	lattice.current.inverse = Math::createBoundingInverseTransform( lattice.aabb );
+	lattice.defaultBounds.transform = Math::createBoundingTransform( aabb );
+	lattice.defaultBounds.inverse = Math::createBoundingInverseTransform( aabb );
 
 	std::vector<std::vector<CollisionFace>> unitFaces( lattice.getUnitCount() );
 	for( const CollisionFace& face : mesh )
@@ -761,18 +761,18 @@ void Collision::convertToLattice( CollisionLattice& lattice, const std::vector<C
 	packTriangles( lattice, unitFaces );
 }
 
-void Collision::convertToLattice( CollisionLattice& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions )
+void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions )
 {
 	lattice.resize( dimensions );
-	lattice.aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+	Bounds<vec3f> aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
 
 	for( const std::vector<CollisionFace>& group : mesh )
 	{
-		Math::extend( lattice.aabb, group );
+		Math::extend( aabb, group );
 	}
 
-	lattice.current.transform = Math::createBoundingTransform( lattice.aabb );
-	lattice.current.inverse = Math::createBoundingInverseTransform( lattice.aabb );
+	lattice.defaultBounds.transform = Math::createBoundingTransform( aabb );
+	lattice.defaultBounds.inverse = Math::createBoundingInverseTransform( aabb );
 
 	std::vector<std::vector<CollisionFace>> unitFaces( lattice.getUnitCount() );
 	for( const std::vector<CollisionFace>& group : mesh )
@@ -843,6 +843,11 @@ void collision_CollisionLatticeUnit_sphere( TransformSpace& relativeSphere, cons
 
 void CollisionLattice::collision( TransformSpace& sphere ) const
 {
+	const TransformSpace& unitSpace = data.getUnitSpace();
+	const vec3i& dimensions = data.getDimensions();
+	const CollisionLatticeData::Unit* units = data.getUnits();
+	const CollisionFace* faces = data.getFaces();
+
 	// Convert the sphere into unit space
 	TransformSpace relative = { current.inverse * sphere.transform, sphere.inverse * current.transform };
 	TransformSpace unitXform = { unitSpace.inverse * relative.transform, relative.inverse * unitSpace.transform };
@@ -863,8 +868,8 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 			for( idx.x = minIdx.x; idx.x < maxIdx.x; ++idx.x )
 			{
 				// Process the collision within the unit
-				const Unit& unit = units[iy + idx.u_x];
-				const CollisionFace* face = faces.data() + unit.idx;
+				const CollisionLatticeData::Unit& unit = units[iy + idx.u_x];
+				const CollisionFace* face = faces + unit.idx;
 				collision_CollisionLatticeUnit_sphere( unitXform, face, face + unit.size );
 			}
 		}
@@ -942,6 +947,11 @@ bool raycast_CollisionLatticeUnit_sphere( const vec4f& point, const vec3f& ray, 
 
 bool CollisionLattice::rayCast( RaySensor& ray ) const
 {
+	const TransformSpace& unitSpace = data.getUnitSpace();
+	const vec3i& dimensions = data.getDimensions();
+	const CollisionLatticeData::Unit* units = data.getUnits();
+	const CollisionFace* faces = data.getFaces();
+
 	// Convert finite ray into unit space
 	vec4f origin = unitSpace.inverse * ( current.inverse * ray.origin );
 	vec3f line = unitSpace.inverse * ( current.inverse * ( ray.direction * ray.distance ) );
@@ -1006,8 +1016,8 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 		// Assume that the index is in bounds after clipping the ray
 		size_t i = idx.x + ( ( idx.y + ( idx.z * dimensions.y ) ) * dimensions.x );
 
-		const Unit& unit = units[i];
-		const CollisionFace* ptr = faces.data() + unit.idx;
+		const CollisionLatticeData::Unit& unit = units[i];
+		const CollisionFace* ptr = faces + unit.idx;
 		if( raycast_CollisionLatticeUnit_sphere( origin, line, relDistance, relNormal, ptr, ptr + unit.size ) )
 		{
 			// Convert the distance/normal back into world space
