@@ -73,7 +73,7 @@ struct Spline : public std::vector<vec4f>
 
 	constexpr uint64_t getKnotCount() const
 	{
-		return size() - 3LLU;
+		return size() - ( KNOT_SIZE - 1LLU );
 	}
 
 	/**
@@ -180,37 +180,37 @@ struct Spline : public std::vector<vec4f>
 	*/
 	float getClosest( const vec4f& point, float e = 1e-3f ) const
 	{
-		if( size() < Spline::KNOT_SIZE ) return 0.0f;
-		size_t knotCount = getKnotCount();
-		const vec4f* ptr = data();
+		if( size() < KNOT_SIZE ) return NAN;
+		size_t maxIndex = size() - 1LLU;
+		float maxIndexF = static_cast<float>( maxIndex );
 
 		// Find pair of control points closest to point
-		float d0 = Math::distance( point, ptr[0LLU] );
-		float d1 = Math::distance( point, ptr[1LLU] );
-		float d2 = Math::distance( point, ptr[2LLU] );
-		float d3 = Math::distance( point, ptr[3LLU] );
-		float minimum = d0 + d1 + d2 + d3;
-		uint64_t index = 0LLU;
+		float t0 = 0.0f;
+		float t1 = 1.0f / maxIndexF;
+		float min = t0;
+		float max = t1;
+		float d0 = Math::distance2( point, sampleAt( t0 ) );
+		float d1 = Math::distance2( point, sampleAt( t1 ) );
+		float minDistance2 = d0 + d1;
 
-		for( uint64_t i = 1LLU; i < knotCount; ++i )
+		for( uint64_t i = 1LLU; i < maxIndex; ++i )
 		{
+			t0 = t1;
 			d0 = d1;
-			d1 = d2;
-			d2 = d3;
-			d3 = Math::distance( point, ptr[i + 3LLU] );
-			float value = d0 + d1 + d2 + d3;
+			t1 = static_cast<float>( i + 1LLU ) / maxIndexF;
+			d1 = Math::distance2( point, sampleAt( t1 ) );
+			float sumDistance2 = d0 + d1;
 
-			if( value < minimum )
+			if( sumDistance2 < minDistance2 )
 			{
-				minimum = value;
-				index = i;
+				minDistance2 = sumDistance2;
+				min = t0;
+				max = t1;
 			}
 		}
 
 		// Calculate local minimum between points
-		float t0 = static_cast<float>( index ) / knotCount;
-		float t1 = static_cast<float>( index + 2LLU ) / knotCount;
-		return localMinimum( point, t0, t1, e );
+		return localMinimum( point, min, max, e );
 	}
 
 	/**
