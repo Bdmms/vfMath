@@ -18,6 +18,7 @@ union vec4i
 	struct { unsigned int u_x, u_y, u_z, u_w; };
 
 	// Constructors (Fixes issue with usability)
+	constexpr vec4i() : x( 0 ), y( 0 ), z( 0 ), w( 0 ) {}
 	constexpr vec4i( const __m128i& vec ) : simd( vec ) {}
 	constexpr vec4i( const int x ) : x( x ), y( 0 ), z( 0 ), w( 0 ) {}
 	constexpr vec4i( const int x, const int y ) : x( x ), y( y ), z( 0 ), w( 0 ) {}
