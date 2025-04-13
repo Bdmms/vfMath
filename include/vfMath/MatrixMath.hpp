@@ -116,7 +116,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	static void setRotation( mat4f& matrix, const quat& q )
+	constexpr void setRotation( mat4f& matrix, const quat& q )
 	{
 		matrix.m[0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
 		matrix.m[1] = 2.0f * ( q.x * q.y + q.w * q.z );
@@ -248,12 +248,24 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat4f& matrix, const vec3f translation, const quat& q, const vec3f& scale )
+	constexpr void setTransform( mat4f& matrix, const vec3f translation, const quat& q, const vec3f& scale )
 	{
 		setRotation( matrix, q );
 		matrix.col[0] *= scale.x;
 		matrix.col[1] *= scale.y;
 		matrix.col[2] *= scale.z;
+		setTranslation( matrix, translation );
+	}
+
+	/**
+	 * @brief Sets the transform of the matrix
+	 * @param matrix - transform matrix
+	 * @param translation - translation vector
+	 * @param q - quaternion rotation
+	*/
+	constexpr void setTransform( mat4f& matrix, const vec3f translation, const quat& q )
+	{
+		setRotation( matrix, q );
 		setTranslation( matrix, translation );
 	}
 
@@ -297,7 +309,7 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	static void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q, const vec3f& scale )
+	constexpr void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q, const vec3f& scale )
 	{
 		setRotationInverse( matrix, q );
 		vec3f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
@@ -315,7 +327,7 @@ namespace Math
 	 * @param translation - translation vector
 	 * @param q - quaternion rotation
 	*/
-	static void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q )
+	constexpr void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q )
 	{
 		setRotationInverse( matrix, q );
 		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
@@ -328,7 +340,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param bounds - vector bounds
 	*/
-	static void setTransform( mat4f& matrix, Bounds<vec4f> bounds )
+	constexpr void setTransform( mat4f& matrix, Bounds<vec4f> bounds )
 	{
 		vec4f difference = ( bounds.max - bounds.min ) * 0.5f;
 
@@ -763,7 +775,7 @@ namespace Math
 		 * @param rot - rotation quaternion
 		 * @return rotation matrix
 		*/
-		static mat4f rotation( const quat& q )
+		constexpr mat4f rotation( const quat& q )
 		{
 			mat4f m = Math::IDENTITY<mat4f>;
 			setRotation( m, q );
@@ -824,7 +836,7 @@ namespace Math
 		 * @param scale - scale vector
 		 * @return transform matrix
 		*/
-		static mat4f transform( const vec3f translation, const quat& rotation, const vec3f& scale )
+		constexpr mat4f transform( const vec3f translation, const quat& rotation, const vec3f& scale )
 		{
 			mat4f m = Math::IDENTITY<mat4f>;
 			setTransform( m, translation, rotation, scale );
