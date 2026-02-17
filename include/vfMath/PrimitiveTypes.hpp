@@ -293,6 +293,30 @@ typedef float16_t f16;
 typedef float32_t f32;
 typedef float64_t f64;
 
+// 8-bit Signed Integer Literal
+constexpr int8_t operator ""_i8( unsigned long long value )
+{
+	return static_cast<int8_t>( value );
+}
+
+// 16-bit Signed Integer Literal
+constexpr int16_t operator ""_i16( unsigned long long value )
+{
+	return static_cast<int16_t>( value );
+}
+
+// 8-bit Unsigned Integer Literal
+constexpr uint8_t operator ""_u8( unsigned long long value )
+{
+	return static_cast<uint8_t>( value );
+}
+
+// 16-bit Unsigned Integer Literal
+constexpr uint16_t operator ""_u16( unsigned long long value )
+{
+	return static_cast<uint16_t>( value );
+}
+
 // 8-bit Float Literal
 constexpr float8_t operator ""_f8( long double value )
 {
