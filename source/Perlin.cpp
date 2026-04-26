@@ -49,8 +49,8 @@ float grad1D( uint32_t iValue, float weight )
 
 float grad2D( vec2i iPoint, vec2f weight )
 {
-    uint8_t a = PERMUTATIONS[iPoint.u_x & 0xFFu];
-    uint8_t b = PERMUTATIONS[iPoint.u_y & 0xFFu];
+    uint8_t a = PERMUTATIONS[iPoint.x & 0xFFu];
+    uint8_t b = PERMUTATIONS[iPoint.y & 0xFFu];
 
     float angle = Math::TWO_PI<float> * static_cast<float>( a | ( b << 8 ) ) / PERLIN_FACTOR_2D;
     vec2f direction = vec2f{ cosf( angle ), sinf( angle ) };

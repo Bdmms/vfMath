@@ -3,17 +3,37 @@
 #define VF_VEC_HPP
 
 #include "swizzle.hpp"
+#include "primitives.hpp"
+
 #include <immintrin.h>
 #include <memory>
 #include <bit>
 
-union vec2f;
+template <typename T>
+union vec2;
+
+typedef vec2<f32> vec2f;
+typedef vec2<i32> vec2i;
+typedef vec2<u32> vec2u;
+
+typedef vec2<f32> vec2f32;
+typedef vec2<f64> vec2f64;
+
+typedef vec2<i8>  vec2i8;
+typedef vec2<i16> vec2i16;
+typedef vec2<i32> vec2i32;
+typedef vec2<i64> vec2i64;
+
+typedef vec2<u8>  vec2u8;
+typedef vec2<u16> vec2u16;
+typedef vec2<u32> vec2u32;
+typedef vec2<u64> vec2u64;
+
 union vec4f;
+union vec4i;
+
 union mat2x2;
 union mat4x4;
-
-union vec2i;
-union vec4i;
 
 extern "C" int __isa_available;
 

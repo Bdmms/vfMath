@@ -19,33 +19,39 @@ namespace Math
 {
 	template<> inline constexpr static vec4f ZERO<vec4f> = { 0.0f, 0.0f, 0.0f, 0.0f };
 	template<> inline constexpr static vec4i ZERO<vec4i> = { 0, 0, 0, 0 };
-	template<> inline constexpr static vec2f ZERO<vec2f> = { 0.0f, 0.0f };
-	template<> inline constexpr static vec2i ZERO<vec2i> = { 0, 0 };
+
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> ZERO<vec2<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType> };
 
 	template<> inline constexpr static vec4f ONES<vec4f> = { 1.0f, 1.0f, 1.0f, 1.0f };
 	template<> inline constexpr static vec4i ONES<vec4i> = { 1, 1, 1, 1 };
-	template<> inline constexpr static vec2f ONES<vec2f> = { 1.0f, 1.0f };
-	template<> inline constexpr static vec2i ONES<vec2i> = { 1, 1 };
+
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> ONES<vec2<ElementType>> = { Math::ONES<ElementType>, Math::ONES<ElementType> };
 
 	template<> inline constexpr static vec4f IDENTITY<vec4f> = ZERO<vec4f>;
 	template<> inline constexpr static vec4i IDENTITY<vec4i> = ZERO<vec4i>;
-	template<> inline constexpr static vec2f IDENTITY<vec2f> = ZERO<vec2f>;
-	template<> inline constexpr static vec2i IDENTITY<vec2i> = ZERO<vec2i>;
+
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> IDENTITY<vec2<ElementType>> = ZERO<vec2<ElementType>>;
 
 	template<> inline constexpr static vec4f NEGATIVE<vec4f> = { -1.0f, -1.0f, -1.0f, -1.0f };
 	template<> inline constexpr static vec4i NEGATIVE<vec4i> = { -1, -1, -1, -1 };
-	template<> inline constexpr static vec2f NEGATIVE<vec2f> = { -1.0f, -1.0f };
-	template<> inline constexpr static vec2i NEGATIVE<vec2i> = { -1, -1 };
+
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> NEGATIVE<vec2<ElementType>> = { Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType> };
 
 	template<> inline constexpr static vec4f MIN<vec4f> = { MIN<float>, MIN<float>, MIN<float>, MIN<float> };
 	template<> inline constexpr static vec4i MIN<vec4i> = { MIN<int>, MIN<int>, MIN<int>, MIN<int> };
-	template<> inline constexpr static vec2f MIN<vec2f> = { MIN<float>, MIN<float> };
-	template<> inline constexpr static vec2i MIN<vec2i> = { MIN<int>, MIN<int> };
+
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> MIN<vec2<ElementType>> = { Math::MIN<ElementType>, Math::MIN<ElementType> };
 
 	template<> inline constexpr static vec4f MAX<vec4f> = { MAX<float>, MAX<float>, MAX<float>, MAX<float> };
 	template<> inline constexpr static vec4i MAX<vec4i> = { MAX<int>, MAX<int>, MAX<int>, MAX<int> };
-	template<> inline constexpr static vec2f MAX<vec2f> = { MAX<float>, MAX<float> };
-	template<> inline constexpr static vec2i MAX<vec2i> = { MAX<int>, MAX<int> };
+
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> MAX<vec2<ElementType>> = { Math::MAX<ElementType>, Math::MAX<ElementType> };
 
 	template<> inline constexpr static vec4f PI<vec4f> = { PI<float>, PI<float>, PI<float>, PI<float> };
 	template<> inline constexpr static vec2f PI<vec2f> = { PI<float>, PI<float> };
@@ -66,13 +72,15 @@ namespace Math
 
 		template<> inline constexpr static vec4f X<vec4f> = { 1.0f, 0.0f, 0.0f, 0.0f };
 		template<> inline constexpr static vec4i X<vec4i> = { 1, 0, 0, 0 };
-		template<> inline constexpr static vec2f X<vec2f> = { 1.0f, 0.0f };
-		template<> inline constexpr static vec2i X<vec2i> = { 1, 0 };
+		
+		template<typename ElementType>
+		inline constexpr static vec2<ElementType> X<vec2<ElementType>> = { Math::ONES<ElementType>, Math::ZERO<ElementType> };
 
 		template<> inline constexpr static vec4f Y<vec4f> = { 0.0f, 1.0f, 0.0f, 0.0f };
 		template<> inline constexpr static vec4i Y<vec4i> = { 0, 1, 0, 0 };
-		template<> inline constexpr static vec2f Y<vec2f> = { 0.0f, 1.0f };
-		template<> inline constexpr static vec2i Y<vec2i> = { 0, 1 };
+
+		template<typename ElementType>
+		inline constexpr static vec2<ElementType> Y<vec2<ElementType>> = { Math::ZERO<ElementType>, Math::ONES<ElementType> };
 
 		template<> inline constexpr static vec4f Z<vec4f> = { 0.0f, 0.0f, 1.0f, 0.0f };
 		template<> inline constexpr static vec4i Z<vec4i> = { 0, 0, 1, 0 };
@@ -88,7 +96,8 @@ namespace Math
 	 * @param falseVal - vector components returned on false input
 	 * @return output vector
 	*/
-	[[nodiscard]] constexpr vec2f condition( const vec2f input, const vec2f trueVal, const vec2f falseVal )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec2<ElementType> condition( const vec2<ElementType>& input, const vec2<ElementType>& trueVal, const vec2<ElementType>& falseVal )
 	{
 		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
 	}
@@ -103,18 +112,6 @@ namespace Math
 	[[nodiscard]] static vec4f condition( const vec4f& input, const vec4f& trueVal, const vec4f& falseVal )
 	{
 		return ( input & trueVal ) | ( ( ~input ) & falseVal );
-	}
-
-	/**
-	 * @brief Returns a composite value depending on the input condition vector
-	 * @param input - condition input vector
-	 * @param trueVal - vector components returned on true input
-	 * @param falseVal - vector components returned on false input
-	 * @return output vector
-	*/
-	[[nodiscard]] constexpr vec2i condition( const vec2i input, const vec2i trueVal, const vec2i falseVal )
-	{
-		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
 	}
 
 	/**
@@ -150,7 +147,8 @@ namespace Math
 	 * @param max1 - maximum of second bounds
 	 * @return Whether the two boundaries overlap
 	*/
-	[[nodiscard]] constexpr vec2i overlaps( const vec2i& min0, const vec2i& max0, const vec2i& min1, const vec2i& max1 )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec2<ElementType> overlaps( const vec2<ElementType>& min0, const vec2<ElementType>& max0, const vec2<ElementType>& min1, const vec2<ElementType>& max1 )
 	{
 		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
 	}
@@ -209,7 +207,8 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot( const vec2f a, const vec2f b )
+	template<typename ElementType>
+	[[nodiscard]] constexpr ElementType dot( const vec2<ElementType>& a, const vec2<ElementType>& b )
 	{
 		return a.x * b.x + a.y * b.y;
 	}
@@ -223,17 +222,6 @@ namespace Math
 	[[nodiscard]] constexpr float dot( const vec4f& a, const vec4f& b )
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-	}
-
-	/**
-	 * @brief Calculates the 2D dot product of this vector with another vector
-	 * @param a - first vector
-	 * @param b - second vector
-	 * @return dot product result
-	*/
-	[[nodiscard]] constexpr int dot( const vec2i a, const vec2i b )
-	{
-		return a.x * b.x + a.y * b.y;
 	}
 
 	/**
@@ -275,9 +263,15 @@ namespace Math
 	 * @param b - second vector
 	 * @return cross product of the two vectors
 	*/
-	[[nodiscard]] constexpr vec3f cross( const vec2f a, const vec2f b )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec3f cross( const vec2<ElementType>& a, const vec2<ElementType>& b )
 	{
-		return { 0.0f, 0.0f, a.x * b.y - a.y * b.x, 0.0f };
+		return { 
+			Math::ZERO<ElementType>, 
+			Math::ZERO<ElementType>, 
+			a.x * b.y - a.y * b.x, 
+			Math::ZERO<ElementType> 
+		};
 	}
 
 	/**
@@ -295,7 +289,8 @@ namespace Math
 	 * @brief Calculates the squared length of the vector
 	 * @return squared length of the vector
 	*/
-	[[nodiscard]] constexpr float length2( const vec2f v )
+	template<typename ElementType>
+	[[nodiscard]] constexpr ElementType length2( const vec2<ElementType>& v )
 	{
 		return v.x * v.x + v.y * v.y;
 	}
@@ -313,15 +308,6 @@ namespace Math
 	 * @brief Calculates the squared length of the vector
 	 * @return squared length of the vector
 	*/
-	[[nodiscard]] constexpr int length2( const vec2i v )
-	{
-		return v.x * v.x + v.y * v.y;
-	}
-
-	/**
-	 * @brief Calculates the squared length of the vector
-	 * @return squared length of the vector
-	*/
 	[[nodiscard]] constexpr int length2( const vec4i& v )
 	{
 		return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
@@ -331,9 +317,10 @@ namespace Math
 	 * @brief Calculates the length of the vector
 	 * @return length of the vector
 	*/
-	[[nodiscard]] static float length( const vec2f v ) noexcept
+	template<typename ElementType>
+	[[nodiscard]] static ElementType length( const vec2<ElementType>& v ) noexcept
 	{
-		return sqrtf( v.x * v.x + v.y * v.y );
+		return sqrt( v.x * v.x + v.y * v.y );
 	}
 
 	/**
@@ -350,10 +337,11 @@ namespace Math
 	 * @param v - vector
 	 * @return normalized vector
 	*/
-	[[nodiscard]] static vec2f normalize( const vec2f v )
+	template<typename ElementType>
+	[[nodiscard]] static vec2<ElementType> normalize( const vec2<ElementType>& v )
 	{
-		float vLength = length( v );
-		if( vLength == 0.0f ) return Math::ZERO<vec2f>;
+		ElementType vLength = length( v );
+		if( vLength == Math::ZERO<ElementType> ) return Math::ZERO<vec2<ElementType>>;
 		return v / vLength;
 	}
 
@@ -379,7 +367,8 @@ namespace Math
 	 * @param b - second vector
 	 * @return squared distance
 	*/
-	[[nodiscard]] constexpr float distance2( const vec2f a, const vec2f b )
+	template<typename ElementType>
+	[[nodiscard]] constexpr ElementType distance2( const vec2<ElementType>& a, const vec2<ElementType>& b )
 	{
 		return length2( a - b );
 	}
@@ -401,9 +390,10 @@ namespace Math
 	 * @param b - second vector
 	 * @return distance
 	*/
-	[[nodiscard]] static float distance( const vec2f a, const vec2f b )
+	template<typename ElementType>
+	[[nodiscard]] static ElementType distance( const vec2<ElementType>& a, const vec2<ElementType>& b )
 	{
-		return sqrtf( distance2( a, b ) );
+		return sqrt( distance2( a, b ) );
 	}
 
 	/**
@@ -446,7 +436,8 @@ namespace Math
 	 * @param max - maximum vector of clamp (optional)
 	 * @return clamped vector
 	*/
-	[[nodiscard]] constexpr vec2f clamp( const vec2f vector, const vec2f min = ZERO<vec2f>, const vec2f max = ONES<vec2f> )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec2<ElementType> clamp( const vec2<ElementType>& vector, const vec2<ElementType>& min = ZERO<vec2<ElementType>>, const vec2<ElementType>& max = ONES<vec2<ElementType>> )
 	{
 		return { std::clamp( vector.x, min.x, max.x ), std::clamp( vector.y, min.y, max.y ) };
 	}
@@ -461,18 +452,6 @@ namespace Math
 	[[nodiscard]] constexpr vec4f clamp( const vec4f& vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
 	{
 		return { SIMD_4F_MIN( SIMD_4F_MAX( vector.simd, min.simd ), max.simd ) };
-	}
-
-	/**
-	 * @brief Truncates all elements the vector between 0 and 1
-	 * @param value - initial vector
-	 * @param min - minimum vector of clamp (optional)
-	 * @param max - maximum vector of clamp (optional)
-	 * @return clamped vector
-	*/
-	[[nodiscard]] constexpr vec2i clamp( const vec2i vector, const vec2i min = ZERO<vec2i>, const vec2i max = ONES<vec2i> )
-	{
-		return { std::clamp( vector.x, min.x, max.x ), std::clamp( vector.y, min.y, max.y ) };
 	}
 
 	/**
@@ -553,7 +532,8 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] constexpr vec2f min( const vec2f vector, const vec2f min )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec2<ElementType> min( const vec2<ElementType> vector, const vec2<ElementType> min )
 	{
 		return { std::min( vector.x, min.x ), std::min( vector.y, min.y ) };
 	}
@@ -575,17 +555,6 @@ namespace Math
 	 * @param min - minimum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] constexpr vec2i min( const vec2i vector, const vec2i min )
-	{
-		return { std::min( vector.x, min.x ), std::min( vector.y, min.y ) };
-	}
-
-	/**
-	 * @brief Truncates the vector by a minimum
-	 * @param vector - vector
-	 * @param min - minimum vector
-	 * @return absolute vector
-	*/
 	[[nodiscard]] constexpr vec4i min( const vec4i& vector, const vec4i& min )
 	{
 		return { SIMD_4I_MIN( vector.simd, min.simd ) };
@@ -597,7 +566,8 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] constexpr vec2f max( const vec2f vector, const vec2f max )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec2<ElementType> max( const vec2<ElementType> vector, const vec2<ElementType> max )
 	{
 		return { std::max( vector.x, max.x ), std::max( vector.y, max.y ) };
 	}
@@ -611,17 +581,6 @@ namespace Math
 	[[nodiscard]] constexpr vec4f max( const vec4f& vector, const vec4f& max )
 	{
 		return { SIMD_4F_MAX( vector.simd, max.simd ) };
-	}
-
-	/**
-	 * @brief Truncates the vector by a maximum
-	 * @param vector - vector
-	 * @param max - maximum vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] constexpr vec2i max( const vec2i vector, const vec2i max )
-	{
-		return { std::max( vector.x, max.x ), std::max( vector.y, max.y ) };
 	}
 
 	/**
@@ -660,9 +619,10 @@ namespace Math
 	 * @param a - vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec2f abs( const vec2f a )
+	template<typename ElementType>
+	[[nodiscard]] static vec2<ElementType> abs( const vec2<ElementType>& a )
 	{
-		return { fabsf( a.x ), fabsf( a.y ) };
+		return { abs( a.x ), abs( a.y ) };
 	}
 
 	/**
@@ -680,16 +640,6 @@ namespace Math
 	 * @param a - vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] static vec2i abs( const vec2i a )
-	{
-		return { std::abs( a.x ), std::abs( a.y ) };
-	}
-
-	/**
-	 * @brief Calculates the absolute of a vector
-	 * @param a - vector
-	 * @return absolute vector
-	*/
 	[[nodiscard]] static vec4i abs( const vec4i& a )
 	{
 		return condition( a >= ZERO<vec4i>, a, -a );
@@ -700,7 +650,8 @@ namespace Math
 	 * @param vector - vector components
 	 * @return sign of the vector components
 	*/
-	[[nodiscard]] constexpr vec2f sign( const vec2f vector )
+	template<typename ElementType>
+	[[nodiscard]] constexpr vec2<ElementType> sign( const vec2<ElementType>& vector )
 	{
 		return { Math::sign( vector.x ), Math::sign( vector.y ) };
 	}
@@ -713,16 +664,6 @@ namespace Math
 	[[nodiscard]] static vec4f sign( const vec4f& vector )
 	{
 		return Math::condition( vector >= Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::NEGATIVE<vec4f> );
-	}
-
-	/**
-	 * @brief Determines the sign of the vector's components in the form of 1 or -1
-	 * @param vector - vector components
-	 * @return sign of the vector components
-	*/
-	[[nodiscard]] constexpr vec2i sign( const vec2i vector )
-	{
-		return { Math::sign( vector.x ), Math::sign( vector.y ) };
 	}
 
 	/**
