@@ -12,10 +12,10 @@ union mat2x2
 	using ElementType = float;
 	static constexpr uint32_t ElementSize = 4u;
 
-	__m128 simd;
+	std::array<float, 4LLU> m;
 	vec2f col[2];
 	struct { vec2f x_axis, y_axis; };
-	float m[4];
+	__m128 simd;
 
 	constexpr mat2x2() : m() {}
 
@@ -27,6 +27,8 @@ union mat2x2
 
 	constexpr mat2x2( const __m128& a )
 		: simd{ a } {}
+
+	constexpr mat2x2( const mat2x2& copy ) : m( copy.m ) {}
 
 	constexpr float operator[]( const unsigned char i ) const { return m[i]; }
 	constexpr float& operator[]( const unsigned char i ) { return m[i]; }

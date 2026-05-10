@@ -16,6 +16,10 @@ union euler
 	struct { float rx, ry, rz, r0; };
 	struct { float yaw, pitch, roll; };
 
+	constexpr float* data() { return v; }
+	constexpr const float* data() const { return v; }
+	constexpr size_t size() { return 3LLU; }
+
 	// Operators
 	constexpr float operator[](const unsigned char i) const { return v[i]; }
 	constexpr float& operator[](const unsigned char i) { return v[i]; }

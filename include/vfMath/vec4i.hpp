@@ -30,6 +30,10 @@ union vec4i
 	constexpr vec4i( const unsigned int x, const unsigned int y, const unsigned int z ) : u_x( x ), u_y( y ), u_z( z ), u_w( 0 ) {}
 	constexpr vec4i( const unsigned int x, const unsigned int y, const unsigned int z, const unsigned int w ) : u_x( x ), u_y( y ), u_z( z ), u_w( w ) {}
 
+	constexpr int* data() { return v; }
+	constexpr const int* data() const { return v; }
+	constexpr size_t size() { return 4LLU; }
+
 	// Array Operators
 	constexpr int operator[]( const unsigned char i ) const { return v[i]; }
 	constexpr int& operator[]( const unsigned char i ) { return v[i]; }

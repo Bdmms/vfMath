@@ -36,6 +36,10 @@ union quat
 	float v[4];
 	struct { float x, y, z, w; };
 
+	constexpr float* data() { return v; }
+	constexpr const float* data() const { return v; }
+	constexpr size_t size() { return 4LLU; }
+
 	// Array Operators
 	constexpr float operator[]( uint32_t i ) const { return v[i]; }
 	constexpr float& operator[]( uint32_t i ) { return v[i]; }

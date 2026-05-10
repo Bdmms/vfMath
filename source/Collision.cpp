@@ -666,7 +666,7 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	const vec4i& dimensions = lattice.getDimensions();
 	const TransformSpace relative = { lattice.defaultBounds.inverse * triangle.transform, triangle.inverse * lattice.defaultBounds.transform };
 	const TransformSpace unitXform = { lattice.unitSpace.inverse * relative.transform, relative.inverse * lattice.unitSpace.transform };
-	TransformSpace unit = { Math::create::scale( { 0.5f, 0.5f, 0.5f } ), Math::create::scale( { 2.0f, 2.0f, 2.0f } ) };
+	TransformSpace unit = { Math::create::scale( vec3f{ 0.5f, 0.5f, 0.5f } ), Math::create::scale( vec3f{ 2.0f, 2.0f, 2.0f } ) };
 	TransformSpace unitTriangle;
 	
 	Bounds<vec3f> triangleBounds;

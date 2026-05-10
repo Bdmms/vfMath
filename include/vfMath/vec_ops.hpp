@@ -36,7 +36,7 @@ namespace vf::simd
 		template<size_t N, typename T>
 		constexpr VectorStorage<N, T> negate( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
 		{
-			VF_VEC_N_UNARY_OPERATION( N, r, a, - );
+			VF_VEC_N_UNARY_OPERATION( N, r.elements, a.elements, - );
 		}
 
 		template<size_t N, typename T>
@@ -90,7 +90,7 @@ namespace vf::simd
 		template<size_t N, typename T>
 		constexpr void bitwise_not( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
 		{
-			VF_VEC_N_UNARY_FUNCTION( N, r, a, vf::primitives::bitwise_not );
+			VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, vf::primitives::bitwise_not );
 		}
 
 		template<size_t N, typename T>
@@ -126,7 +126,7 @@ namespace vf::simd
 	template<size_t N, typename T>
 	constexpr VectorStorage<N, T> set1( T value )
 	{
-		return compile_time::set1( value );
+		return compile_time::set1<N, T>( value );
 	}
 
 	template<size_t N, typename T>
