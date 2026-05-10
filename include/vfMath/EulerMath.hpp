@@ -10,15 +10,24 @@
 */
 namespace Math
 {
-	template<> inline constexpr static euler ZERO<euler> = { 0.0f, 0.0f, 0.0f, 0.0f };
-	template<> inline constexpr static euler ONES<euler> = { 1.0f, 1.0f, 1.0f, 0.0f };
-	template<> inline constexpr static euler IDENTITY<euler> = { 0.0f, 0.0f, 0.0f, 0.0f };
-	template<> inline constexpr static euler NEGATIVE<euler> = { -1.0f, -1.0f, -1.0f, 0.0f };
-	template<> inline constexpr static euler MIN<euler> = { MIN<float>, MIN<float>, MIN<float>, 0.0f };
-	template<> inline constexpr static euler MAX<euler> = { MAX<float>, MAX<float>, MAX<float>, 0.0f };
-	template<> inline constexpr static euler PI<euler> = { PI<float>, PI<float>, PI<float>, 0.0f };
-	template<> inline constexpr static euler TWO_PI<euler> = { TWO_PI<float>, TWO_PI<float>, TWO_PI<float>, 0.0f };
-	template<> inline constexpr static euler HALF_PI<euler> = { HALF_PI<float>, HALF_PI<float>, HALF_PI<float>, 0.0f };
+	template<typename T> 
+	inline constexpr static euler<T> ZERO<euler<T>> = { ZERO<T>, ZERO<T>, ZERO<T> };
+	template<typename T> 
+	inline constexpr static euler<T> ONES<euler<T>> = { ONES<T>, ONES<T>, ONES<T> };
+	template<typename T> 
+	inline constexpr static euler<T> IDENTITY<euler<T>> = ZERO<euler<T>>;
+	template<typename T> 
+	inline constexpr static euler<T> NEGATIVE<euler<T>> = { NEGATIVE<T>, NEGATIVE<T>, NEGATIVE<T> };
+	template<typename T> 
+	inline constexpr static euler<T> MIN<euler<T>> = { MIN<T>, MIN<T>, MIN<T> };
+	template<typename T> 
+	inline constexpr static euler<T> MAX<euler<T>> = { MAX<T>, MAX<T>, MAX<T> };
+	template<typename T> 
+	inline constexpr static euler<T> PI<euler<T>> = { PI<T>, PI<T>, PI<T> };
+	template<typename T> 
+	inline constexpr static euler<T> TWO_PI<euler<T>> = { TWO_PI<T>, TWO_PI<T>, TWO_PI<T> };
+	template<typename T> 
+	inline constexpr static euler<T> HALF_PI<euler<T>> = { HALF_PI<T>, HALF_PI<T>, HALF_PI<T> };
 
 	/**
 	 * @brief Generates euler rotation around an axis
@@ -26,7 +35,8 @@ namespace Math
 	 * @param angle - radian angle around axis
 	 * @return euelr angles
 	*/
-	template<> [[nodiscard]] static euler rotationAround( const vec3f& axis, const float angle )
+	template<> 
+	[[nodiscard]] static eulerf32 rotationAround( const vec3f& axis, const float angle )
 	{
 		vec3f q = axis * sinf( angle * 0.5f );
 		q.w = cosf( angle * 0.5f );
@@ -46,12 +56,12 @@ namespace Math
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<> [[nodiscard]] static euler rotationBetween( const vec3f& from, const vec3f& to )
+	template<> [[nodiscard]] static eulerf32 rotationBetween( const vec3f& from, const vec3f& to )
 	{
 		float product = dot_3D( from, to );
 		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
-		if( product < -0.999999f ) return rotationAround<euler>( orthogonal( from ), Math::PI<float> );
-		return rotationAround<euler>( normalize( cross( from, to ) ), acosf( product ) );
+		if( product < -0.999999f ) return rotationAround<eulerf32>( orthogonal( from ), Math::PI<float> );
+		return rotationAround<eulerf32>( normalize( cross( from, to ) ), acosf( product ) );
 	}
 
 	/**
@@ -59,7 +69,8 @@ namespace Math
 	 * @param degrees - angle in degrees
 	 * @return angle in radians
 	*/
-	[[nodiscard]] static euler toRadians( const euler& degrees )
+	template<typename T>
+	[[nodiscard]] static euler<T> toRadians( const euler<T>& degrees )
 	{
 		return degrees * ( Math::PI<float> / 180.0f );
 	}
@@ -69,7 +80,8 @@ namespace Math
 	 * @param radians - angle in radians
 	 * @return angle in degrees
 	*/
-	[[nodiscard]] static euler toDegrees( const euler& radians )
+	template<typename T>
+	[[nodiscard]] static euler<T> toDegrees( const euler<T>& radians )
 	{
 		return radians * ( 180.0f / Math::PI<float> );
 	}
@@ -79,9 +91,11 @@ namespace Math
 	 * @param a - euler angles
 	 * @return sin vector
 	*/
-	[[nodiscard]] static euler sin( const euler& rotation )
+	[[nodiscard]] static eulerf32 sin( const eulerf32& rotation )
 	{
-		return { _mm_sin_ps( rotation.simd ) };
+		eulerf32 r;
+		r.simd = _mm_sin_ps( rotation.simd );
+		return r;
 	}
 
 	/**
@@ -89,9 +103,11 @@ namespace Math
 	 * @param a - euler angles
 	 * @return cos vector
 	*/
-	[[nodiscard]] static euler cos( const euler& rotation )
+	[[nodiscard]] static eulerf32 cos( const eulerf32& rotation )
 	{
-		return { _mm_cos_ps( rotation.simd ) };
+		eulerf32 r;
+		r.simd = _mm_cos_ps( rotation.simd );
+		return r;
 	}
 
 	/**
@@ -99,9 +115,11 @@ namespace Math
 	 * @param a - euler angles
 	 * @return tan vector
 	*/
-	[[nodiscard]] static euler tan( const euler& rotation )
+	[[nodiscard]] static eulerf32 tan( const eulerf32& rotation )
 	{
-		return { _mm_tan_ps( rotation.simd ) };
+		eulerf32 r;
+		r.simd = _mm_tan_ps( rotation.simd );
+		return r;
 	}
 
 	/**
@@ -110,16 +128,16 @@ namespace Math
 	 * @param rotation - euler angles
 	 * @return rotated position
 	*/
-	[[nodiscard]] static vec3f rotate( const vec3f& position, const euler& rotation )
+	[[nodiscard]] static vec3f rotate( const vec3f& position, const eulerf32& rotation )
 	{
-		euler s = sin( rotation );
-		euler c = cos( rotation );
+		eulerf32 s = sin( rotation );
+		eulerf32 c = cos( rotation );
 
 		vec4f r;
 		r.simd = _mm_dot_ps(
-				position.simd, _mm_xyzw_ps( c.rz * c.ry, c.rz * s.ry * s.rx - s.rz * c.rx, c.rz * s.ry * c.rx + s.rz * s.rx, 0.0f ),
-				position.simd, _mm_xyzw_ps( s.rz * c.ry, s.rz * s.ry * s.rx + c.rz * c.rx, s.rz * s.ry * c.rx - c.rz * s.rx, 0.0f ),
-				position.simd, _mm_xyzw_ps( -s.ry, c.ry * s.rx, c.ry * c.rx, 0.0f ),
+				position.simd, _mm_xyzw_ps( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, 0.0f ),
+				position.simd, _mm_xyzw_ps( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, 0.0f ),
+				position.simd, _mm_xyzw_ps( -s.y, c.y * s.x, c.y * c.x, 0.0f ),
 				position.simd, SIMD_4f_W );
 		return r;
 	}
@@ -130,18 +148,20 @@ namespace Math
 	 * @param max - maximum angles
 	 * @return random euler angles
 	*/
-	template<> [[nodiscard]] static euler random<euler>( const euler& min, const euler& max )
+	template<> [[nodiscard]] static eulerf32 random<eulerf32>( const eulerf32& min, const eulerf32& max )
 	{
-		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), 0 ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
+		eulerf32 r;
+		r.simd = _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), 0 ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd );
+		return r;
 	}
 
 	/**
 	 * @brief Generates random euler rotation
 	 * @return random euler angles
 	*/
-	template<> [[nodiscard]] static euler randomRotation<euler>()
+	template<> [[nodiscard]] static eulerf32 randomRotation<eulerf32>()
 	{
-		return random<euler>( ZERO<euler>, TWO_PI<euler> );
+		return random<eulerf32>( ZERO<eulerf32>, TWO_PI<eulerf32> );
 	}
 }
 

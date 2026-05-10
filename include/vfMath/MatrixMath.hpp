@@ -94,21 +94,21 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - euler rotation vector [rad]
 	*/
-	static void setRotation( mat4f& matrix, const euler& rotation )
+	static void setRotation( mat4f& matrix, const eulerf32& rotation )
 	{
-		euler s = Math::sin( rotation );
-		euler c = Math::cos( rotation );
-		matrix.m[0] = c.rz * c.ry;
-		matrix.m[1] = s.rz * c.ry;
-		matrix.m[2] = -s.ry;
+		eulerf32 s = Math::sin( rotation );
+		eulerf32 c = Math::cos( rotation );
+		matrix.m[0] = c.z * c.y;
+		matrix.m[1] = s.z * c.y;
+		matrix.m[2] = -s.y;
 
-		matrix.m[4] = c.rz * s.ry * s.rx - s.rz * c.rx;
-		matrix.m[5] = s.rz * s.ry * s.rx + c.rz * c.rx;
-		matrix.m[6] = c.ry * s.rx;
+		matrix.m[4] = c.z * s.y * s.x - s.z * c.x;
+		matrix.m[5] = s.z * s.y * s.x + c.z * c.x;
+		matrix.m[6] = c.y * s.x;
 
-		matrix.m[8] = c.rz * s.ry * c.rx + s.rz * s.rx;
-		matrix.m[9] = s.rz * s.ry * c.rx - c.rz * s.rx;
-		matrix.m[10] = c.ry * c.rx;
+		matrix.m[8] = c.z * s.y * c.x + s.z * s.x;
+		matrix.m[9] = s.z * s.y * c.x - c.z * s.x;
+		matrix.m[10] = c.y * c.x;
 	}
 
 	/**
@@ -174,21 +174,21 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - euler rotation vector [rad]
 	*/
-	static void setRotationInverse( mat4f& matrix, const euler& rotation )
+	static void setRotationInverse( mat4f& matrix, const eulerf32& rotation )
 	{
-		euler s = Math::sin( rotation );
-		euler c = Math::cos( rotation );
-		matrix.m[0] = c.rz * c.ry;
-		matrix.m[4] = s.rz * c.ry;
-		matrix.m[8] = -s.ry;
+		eulerf32 s = Math::sin( rotation );
+		eulerf32 c = Math::cos( rotation );
+		matrix.m[0] = c.z * c.y;
+		matrix.m[4] = s.z * c.y;
+		matrix.m[8] = -s.y;
 
-		matrix.m[1] = c.rz * s.ry * s.rx - s.rz * c.rx;
-		matrix.m[5] = s.rz * s.ry * s.rx + c.rz * c.rx;
-		matrix.m[9] = c.ry * s.rx;
+		matrix.m[1] = c.z * s.y * s.x - s.z * c.x;
+		matrix.m[5] = s.z * s.y * s.x + c.z * c.x;
+		matrix.m[9] = c.y * s.x;
 
-		matrix.m[2] = c.rz * s.ry * c.rx + s.rz * s.rx;
-		matrix.m[6] = s.rz * s.ry * c.rx - c.rz * s.rx;
-		matrix.m[10] = c.ry * c.rx;
+		matrix.m[2] = c.z * s.y * c.x + s.z * s.x;
+		matrix.m[6] = s.z * s.y * c.x - c.z * s.x;
+		matrix.m[10] = c.y * c.x;
 	}
 
 	/**
@@ -232,7 +232,7 @@ namespace Math
 	 * @param rotation - euler rotation vector [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat4f& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
+	static void setTransform( mat4f& matrix, const vec3f translation, const eulerf32& rotation, const vec3f& scale )
 	{
 		setRotation( matrix, rotation );
 		matrix.col[0] *= scale.x;
@@ -290,7 +290,7 @@ namespace Math
 	 * @param rotation - euler rotation vector [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransformInverse( mat4f& matrix, const vec3f translation, const euler& rotation, const vec3f& scale )
+	static void setTransformInverse( mat4f& matrix, const vec3f translation, const eulerf32& rotation, const vec3f& scale )
 	{
 		setRotationInverse( matrix, rotation );
 		vec3f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
@@ -763,7 +763,7 @@ namespace Math
 		 * @param rot - rotation euler angles [rad]
 		 * @return rotation matrix
 		*/
-		static mat4f rotation( const euler& rot )
+		static mat4f rotation( const eulerf32& rot )
 		{
 			mat4f m = Math::IDENTITY<mat4f>;
 			setRotation( m, rot );
@@ -822,7 +822,7 @@ namespace Math
 		 * @param scale - scale vector
 		 * @return transform matrix
 		*/
-		static mat4f transform( const vec3f translation, const euler& rotation, const vec3f& scale )
+		static mat4f transform( const vec3f translation, const eulerf32& rotation, const vec3f& scale )
 		{
 			mat4f m = Math::IDENTITY<mat4f>;
 			setTransform( m, translation, rotation, scale );
@@ -909,7 +909,7 @@ namespace Math
 	static mat4f randomTransform( const vec3f& minTrans = ZERO<vec4f>, const vec3f& maxTrans = ZERO<vec4f>, const vec3f& minScale = ONES<vec4f>, const vec3f& maxScale = ONES<vec4f> )
 	{
 		vec3f translation = Math::random( minTrans, maxTrans );
-		euler rotation = Math::random( ZERO<euler>, TWO_PI<euler> );
+		eulerf rotation = Math::random( ZERO<eulerf>, TWO_PI<eulerf> );
 		vec3f scale = Math::random( minScale, maxScale );
 		return create::transform( translation, rotation, scale );
 	}

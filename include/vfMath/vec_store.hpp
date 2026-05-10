@@ -12,6 +12,8 @@ struct VectorStorage
 	std::array<T, N> elements;
 };
 
+// 2D - Vectors
+
 template<typename T>
 struct VectorStorage<2LLU, T>
 {
@@ -22,6 +24,8 @@ struct VectorStorage<2LLU, T>
 	};
 };
 
+// 3D - Vectors
+
 template<typename T>
 struct VectorStorage<3LLU, T>
 {
@@ -31,6 +35,30 @@ struct VectorStorage<3LLU, T>
 		struct { T x, y, z; };
 	};
 };
+
+template<>
+struct VectorStorage<3LLU, i32>
+{
+	union
+	{
+		std::array<i32, 3LLU> elements;
+		struct { i32 x, y, z; };
+		__m128i simd;
+	};
+};
+
+template<>
+struct VectorStorage<3LLU, f32>
+{
+	union
+	{
+		std::array<f32, 3LLU> elements;
+		struct { f32 x, y, z; };
+		__m128 simd;
+	};
+};
+
+// 4D - Vectors
 
 template<typename T>
 struct VectorStorage<4LLU, T>

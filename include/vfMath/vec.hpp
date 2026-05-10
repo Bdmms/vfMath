@@ -11,28 +11,25 @@
 #include <memory>
 #include <bit>
 
-extern "C" int __isa_available;
-
-#define ENABLE_INSTRUCTIONS_SSE2	__isa_available >= __ISA_AVAILABLE_SSE2
-#define ENABLE_INSTRUCTIONS_AVX2	__isa_available >= __ISA_AVAILABLE_AVX2
-#define ENABLE_INSTRUCTIONS_AVX512	false
-
+/**
+ * @brief Generalized vector type with built-in vector operations.
+*/
 template<size_t N, typename T> 
 struct vec : public VectorStorage<N, T>
 {
 	using Storage = VectorStorage<N, T>;
 
 	// Default Constuctor
-	constexpr vec() : VectorStorage<N, T>{} {}
+	constexpr vec() : Storage{} {}
 
 	// Initializing List
-	constexpr vec( const std::initializer_list<T>& list ) : VectorStorage<N, T>{} 
+	constexpr vec( const std::initializer_list<T>& list ) : Storage{} 
 	{
 		std::copy( list.begin(), list.end(), Storage::elements.data() );
 	}
 
 	// Copy Constructor
-	constexpr vec( const vec<N, T>& copy ) : VectorStorage<N, T>( copy ) {}
+	constexpr vec( const vec<N, T>& copy ) : Storage( copy ) {}
 
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
@@ -96,12 +93,9 @@ struct vec : public VectorStorage<N, T>
 #define VF_VECTOR vec<N, T>
 
 #define VF_VECTOR_OPERATOR_HEAD( Op ) template<size_t N, typename T> [[nodiscard]] constexpr VF_VECTOR operator##Op
-#define VF_VECTOR_OPERATOR_VECTOR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_VECTOR& b ) noexcept \
-	 { VF_VECTOR r; Func<N,T>( r, a, b ); return r; }
-#define VF_VECTOR_OPERATOR_VECTOR_SCALAR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_SCALAR& b ) noexcept \
-	 { VF_VECTOR r; Func<N,T>( r, a, vf::simd::set1<N,T>( b ) ); return r; }
-#define VF_VECTOR_OPERATOR_SCALAR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_VECTOR& b ) noexcept \
-	 { VF_VECTOR r; Func<N,T>( r, vf::simd::set1<N,T>( a ), b ); return r; }
+#define VF_VECTOR_OPERATOR_VECTOR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_VECTOR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, a, b ); return r; }
+#define VF_VECTOR_OPERATOR_VECTOR_SCALAR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_SCALAR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, a, vf::simd::set1<N,T>( b ) ); return r; }
+#define VF_VECTOR_OPERATOR_SCALAR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_VECTOR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, vf::simd::set1<N,T>( a ), b ); return r; }
 
 // Non-Member Arithmetic Operators
 

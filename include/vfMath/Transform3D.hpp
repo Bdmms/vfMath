@@ -41,7 +41,7 @@ struct Transform3D
 
 	}
 
-	Transform3D( const vec3f& translation, const euler& rotation, const vec3f& scale = Math::ONES<vec3f> ) :
+	Transform3D( const vec3f& translation, const eulerf32& rotation, const vec3f& scale = Math::ONES<vec3f> ) :
 		translation( translation ),
 		rotation( Math::toQuat( rotation ) ),
 		scale( scale )

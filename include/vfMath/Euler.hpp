@@ -6,54 +6,84 @@
 
 #define VECTOR_FORWARD(x) { x }
 
-union euler
+template<typename T>
+struct euler : public VectorStorage<3, T>
 {
-	using ElementType = float;
-	static constexpr uint32_t ElementSize = 3u;
+	using Storage = VectorStorage<3, T>;
 
-	__m128 simd;
-	float v[4];
-	struct { float rx, ry, rz, r0; };
-	struct { float yaw, pitch, roll; };
+	// Default Constuctor
+	constexpr euler() : Storage{} {}
 
-	constexpr float* data() { return v; }
-	constexpr const float* data() const { return v; }
-	constexpr size_t size() { return 3LLU; }
+	// Initializing List
+	constexpr euler( const std::initializer_list<T>& list ) : Storage{}
+	{
+		std::copy( list.begin(), list.end(), Storage::elements.data() );
+	}
 
-	// Operators
-	constexpr float operator[](const unsigned char i) const { return v[i]; }
-	constexpr float& operator[](const unsigned char i) { return v[i]; }
-	euler& operator+=(const euler& b) noexcept { simd = _mm_add_ps(simd, b.simd); return *this; }
-	euler& operator-=(const euler& b) noexcept { simd = _mm_sub_ps(simd, b.simd); return *this; }
-	euler& operator*=(const euler& b) noexcept { simd = _mm_mul_ps(simd, b.simd); return *this; }
-	euler& operator/=(const euler& b) noexcept { simd = _mm_div_ps(simd, b.simd); return *this; }
-	euler& operator%=(const euler& b) noexcept { simd = _mm_fmod_ps(simd, b.simd); return *this; }
-	euler& operator+=(const float b) noexcept { simd = _mm_add_ps(simd, _mm_set1_ps(b)); return *this; }
-	euler& operator-=(const float b) noexcept { simd = _mm_sub_ps(simd, _mm_set1_ps(b)); return *this; }
-	euler& operator*=(const float b) noexcept { simd = _mm_mul_ps(simd, _mm_set1_ps(b)); return *this; }
-	euler& operator/=(const float b) noexcept { simd = _mm_div_ps(simd, _mm_set1_ps(b)); return *this; }
-	euler& operator%=(const float b) noexcept { simd = _mm_fmod_ps(simd, _mm_set1_ps(b)); return *this; }
+	// Copy Constructor
+	constexpr euler( const euler& copy ) : Storage( copy ) {}
 
-	[[nodiscard]] euler operator-() const { return VECTOR_FORWARD(_mm_mul_ps(simd, _mm_set1_ps(-1.0f))); }
+	// Container Operations
+	constexpr T* data() { return Storage::elements.data(); }
+	constexpr const T* data() const { return Storage::elements.data(); }
+	constexpr size_t size() { return Storage::elements.size(); }
+
+	// Array Operators
+	constexpr T operator[]( size_t i ) const { return Storage::elements[i]; }
+	constexpr T& operator[]( size_t i ) { return Storage::elements[i]; }
+
+	// Unary Operators
+	[[nodiscard]] constexpr euler operator-() const
+	{
+		euler r;
+		vf::simd::negate<3, T>( r, *this );
+		return r;
+	}
+
+	// Arithmetic Operators
+	constexpr euler& operator+=( const euler& rhs ) noexcept { vf::simd::add<3, T>( *this, *this, rhs ); return *this; }
+	constexpr euler& operator-=( const euler& rhs ) noexcept { vf::simd::sub<3, T>( *this, *this, rhs ); return *this; }
+	constexpr euler& operator*=( const euler& rhs ) noexcept { vf::simd::mul<3, T>( *this, *this, rhs ); return *this; }
+	constexpr euler& operator/=( const euler& rhs ) noexcept { vf::simd::div<3, T>( *this, *this, rhs ); return *this; }
+	constexpr euler& operator%=( const euler& rhs ) noexcept { vf::simd::mod<3, T>( *this, *this, rhs ); return *this; }
+
+	constexpr euler& operator+=( T rhs ) noexcept { vf::simd::add<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
+	constexpr euler& operator-=( T rhs ) noexcept { vf::simd::sub<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
+	constexpr euler& operator*=( T rhs ) noexcept { vf::simd::mul<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
+	constexpr euler& operator/=( T rhs ) noexcept { vf::simd::div<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
+	constexpr euler& operator%=( T rhs ) noexcept { vf::simd::mod<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
 };
 
-// Euler Arithmetic
-[[nodiscard]] static euler operator+(const euler& a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_add_ps(a.simd, b.simd)); }
-[[nodiscard]] static euler operator-(const euler& a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_sub_ps(a.simd, b.simd)); }
-[[nodiscard]] static euler operator*(const euler& a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_mul_ps(a.simd, b.simd)); }
-[[nodiscard]] static euler operator/(const euler& a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_div_ps(a.simd, b.simd)); }
-[[nodiscard]] static euler operator%(const euler& a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_fmod_ps(a.simd, b.simd)); }
+#define VF_EULER euler<T>
 
-[[nodiscard]] static euler operator+(const euler& a, const float b) noexcept { return VECTOR_FORWARD(_mm_add_ps(a.simd, _mm_set1_ps(b))); }
-[[nodiscard]] static euler operator-(const euler& a, const float b) noexcept { return VECTOR_FORWARD(_mm_sub_ps(a.simd, _mm_set1_ps(b))); }
-[[nodiscard]] static euler operator*(const euler& a, const float b) noexcept { return VECTOR_FORWARD(_mm_mul_ps(a.simd, _mm_set1_ps(b))); }
-[[nodiscard]] static euler operator/(const euler& a, const float b) noexcept { return VECTOR_FORWARD(_mm_div_ps(a.simd, _mm_set1_ps(b))); }
-[[nodiscard]] static euler operator%(const euler& a, const float b) noexcept { return VECTOR_FORWARD(_mm_fmod_ps(a.simd, _mm_set1_ps(b))); }
+#define VF_EULER_OPERATOR_HEAD( Op ) template<typename T> [[nodiscard]] constexpr VF_EULER operator##Op
+#define VF_EULER_OPERATOR_EULER_EULER( Op, Func )  VF_EULER_OPERATOR_HEAD( Op )( const VF_EULER& a, const VF_EULER& b )  noexcept { VF_EULER r; Func<3,T>( r, a, b ); return r; }
+#define VF_EULER_OPERATOR_EULER_SCALAR( Op, Func ) VF_EULER_OPERATOR_HEAD( Op )( const VF_EULER& a, const VF_SCALAR& b ) noexcept { VF_EULER r; Func<3,T>( r, a, vf::simd::set1<3,T>( b ) ); return r; }
+#define VF_EULER_OPERATOR_SCALAR_EULER( Op, Func ) VF_EULER_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_EULER& b ) noexcept { VF_EULER r; Func<3,T>( r, vf::simd::set1<3,T>( a ), b ); return r; }
 
-[[nodiscard]] static euler operator+(const float a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_add_ps(_mm_set1_ps(a), b.simd)); }
-[[nodiscard]] static euler operator-(const float a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_sub_ps(_mm_set1_ps(a), b.simd)); }
-[[nodiscard]] static euler operator*(const float a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_mul_ps(_mm_set1_ps(a), b.simd)); }
-[[nodiscard]] static euler operator/(const float a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_div_ps(_mm_set1_ps(a), b.simd)); }
-[[nodiscard]] static euler operator%(const float a, const euler& b) noexcept { return VECTOR_FORWARD(_mm_fmod_ps(_mm_set1_ps(a), b.simd)); }
+// Non-Member Arithmetic Operators
+
+VF_EULER_OPERATOR_EULER_EULER( +, vf::simd::add );
+VF_EULER_OPERATOR_EULER_EULER( -, vf::simd::sub );
+VF_EULER_OPERATOR_EULER_EULER( *, vf::simd::mul );
+VF_EULER_OPERATOR_EULER_EULER( /, vf::simd::div );
+VF_EULER_OPERATOR_EULER_EULER( %, vf::simd::mod );
+
+VF_EULER_OPERATOR_EULER_SCALAR( +, vf::simd::add );
+VF_EULER_OPERATOR_EULER_SCALAR( -, vf::simd::sub );
+VF_EULER_OPERATOR_EULER_SCALAR( *, vf::simd::mul );
+VF_EULER_OPERATOR_EULER_SCALAR( /, vf::simd::div );
+VF_EULER_OPERATOR_EULER_SCALAR( %, vf::simd::mod );
+
+VF_EULER_OPERATOR_SCALAR_EULER( +, vf::simd::add );
+VF_EULER_OPERATOR_SCALAR_EULER( -, vf::simd::sub );
+VF_EULER_OPERATOR_SCALAR_EULER( *, vf::simd::mul );
+VF_EULER_OPERATOR_SCALAR_EULER( /, vf::simd::div );
+VF_EULER_OPERATOR_SCALAR_EULER( %, vf::simd::mod );
+
+typedef euler<float> eulerf32;
+typedef euler<double> eulerf64;
+
+typedef eulerf32 eulerf;
 
 #endif

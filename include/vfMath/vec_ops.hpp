@@ -5,19 +5,18 @@
 #include "vec_store.hpp"
 #include <cmath>
 
+extern "C" int __isa_available;
+
+#define ENABLE_INSTRUCTIONS_SSE2	__isa_available >= __ISA_AVAILABLE_SSE2
+#define ENABLE_INSTRUCTIONS_AVX2	__isa_available >= __ISA_AVAILABLE_AVX2
+#define ENABLE_INSTRUCTIONS_AVX512	false
+
+// Macros to help eliminate duplicate code
 #define VF_VEC_N_LOOP( N, X ) for( size_t i = 0LLU; i < N; ++i ) X
 #define VF_VEC_N_UNARY_OPERATION( N, r, a, Op ) VF_VEC_N_LOOP( N, r[i] = Op a[i] )
 #define VF_VEC_N_UNARY_FUNCTION( N, r, a, Op ) VF_VEC_N_LOOP( N, r[i] = Op( a[i] ) )
 #define VF_VEC_N_BINARY_OPERATION( N, r, a, b, Op ) VF_VEC_N_LOOP( N, r[i] = a[i] Op b[i] )
 #define VF_VEC_N_BINARY_FUNCTION( N, r, a, b, Op ) VF_VEC_N_LOOP( N, r[i] = Op( a[i], b[i] ) )
-
-//#define VF_VEC_BINARY_OPERATOR_ADAPTER( Name ) template<size_t N, typename T> \
-//constexpr VectorStorage<N, T> Name( const VectorStorage<N, T>&a, const VectorStorage<N, T>&b ) \
-//	{ \
-//		VectorStorage<N, T> r; \
-//		Name<N, T>( r, a, b ); \
-//		return r; \
-//	} \
 
 namespace vf::simd
 {
@@ -347,6 +346,7 @@ namespace vf::simd
 
 	// SIMD 128-bit floating-point Operations
 
+#if ENABLE_INSTRUCTIONS_SSE2
 	typedef VectorStorage<4, f32> simd4f32;
 
 	template<>
@@ -505,9 +505,11 @@ namespace vf::simd
 		r.simd = _mm_permute_ps( a.simd, b );
 		return r;
 	}
+#endif
 
 	// SIMD 128-bit Integer Operations
 
+#if ENABLE_INSTRUCTIONS_SSE2
 	typedef VectorStorage<4, i32> simd4i32;
 
 	template<>
@@ -630,6 +632,7 @@ namespace vf::simd
 		if( std::is_constant_evaluated() ) return compile_time::max( r, a, b );
 		r.simd = _mm_max_epi32( a.simd, b.simd );
 	}
+#endif
 }
 
 #endif

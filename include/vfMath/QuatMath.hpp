@@ -22,16 +22,16 @@ namespace Math
 	 * @param rotation - euler angles
 	 * @return quaternion rotation
 	*/
-	[[nodiscard]] static quat toQuat( const euler& rotation )
+	[[nodiscard]] static quat toQuat( const eulerf32& rotation )
 	{
-		euler s = sin( rotation * 0.5f );
-		euler c = cos( rotation * 0.5f );
+		eulerf32 s = sin( rotation * 0.5f );
+		eulerf32 c = cos( rotation * 0.5f );
 
 		return {
-			s.rx * c.ry * c.rz - c.rx * s.ry * s.rz,
-			c.rx * s.ry * c.rz + s.rx * c.ry * s.rz,
-			c.rx * c.ry * s.rz - s.rx * s.ry * c.rz,
-			c.rx * c.ry * c.rz + s.rx * s.ry * s.rz
+			s.x * c.y * c.z - c.x * s.y * s.z,
+			c.x * s.y * c.z + s.x * c.y * s.z,
+			c.x * c.y * s.z - s.x * s.y * c.z,
+			c.x * c.y * c.z + s.x * s.y * s.z
 		};
 	}
 
@@ -91,7 +91,7 @@ namespace Math
 	 * @param q - quaternion
 	 * @return Euler angles vector
 	*/
-	[[nodiscard]] static euler toEuler( const quat& q )
+	[[nodiscard]] static eulerf32 toEuler( const quat& q )
 	{
 		return {
 			atan2f( 2.0f * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
