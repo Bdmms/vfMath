@@ -17,41 +17,35 @@ typedef vec3f AxisAngle;
 */
 namespace Math
 {
-	template<> inline constexpr static vec4f ZERO<vec4f> = { 0.0f, 0.0f, 0.0f, 0.0f };
-	template<> inline constexpr static vec4i ZERO<vec4i> = { 0, 0, 0, 0 };
-
 	template<typename ElementType>
 	inline constexpr static vec2<ElementType> ZERO<vec2<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType> };
-
-	template<> inline constexpr static vec4f ONES<vec4f> = { 1.0f, 1.0f, 1.0f, 1.0f };
-	template<> inline constexpr static vec4i ONES<vec4i> = { 1, 1, 1, 1 };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> ZERO<vec4<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType> };
 
 	template<typename ElementType>
 	inline constexpr static vec2<ElementType> ONES<vec2<ElementType>> = { Math::ONES<ElementType>, Math::ONES<ElementType> };
-
-	template<> inline constexpr static vec4f IDENTITY<vec4f> = ZERO<vec4f>;
-	template<> inline constexpr static vec4i IDENTITY<vec4i> = ZERO<vec4i>;
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> ONES<vec4<ElementType>> = { Math::ONES<ElementType>, Math::ONES<ElementType>, Math::ONES<ElementType>, Math::ONES<ElementType> };
 
 	template<typename ElementType>
 	inline constexpr static vec2<ElementType> IDENTITY<vec2<ElementType>> = ZERO<vec2<ElementType>>;
-
-	template<> inline constexpr static vec4f NEGATIVE<vec4f> = { -1.0f, -1.0f, -1.0f, -1.0f };
-	template<> inline constexpr static vec4i NEGATIVE<vec4i> = { -1, -1, -1, -1 };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> IDENTITY<vec4<ElementType>> = ZERO<vec4<ElementType>>;
 
 	template<typename ElementType>
 	inline constexpr static vec2<ElementType> NEGATIVE<vec2<ElementType>> = { Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType> };
-
-	template<> inline constexpr static vec4f MIN<vec4f> = { MIN<float>, MIN<float>, MIN<float>, MIN<float> };
-	template<> inline constexpr static vec4i MIN<vec4i> = { MIN<int>, MIN<int>, MIN<int>, MIN<int> };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> NEGATIVE<vec4<ElementType>> = { Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType> };
 
 	template<typename ElementType>
 	inline constexpr static vec2<ElementType> MIN<vec2<ElementType>> = { Math::MIN<ElementType>, Math::MIN<ElementType> };
-
-	template<> inline constexpr static vec4f MAX<vec4f> = { MAX<float>, MAX<float>, MAX<float>, MAX<float> };
-	template<> inline constexpr static vec4i MAX<vec4i> = { MAX<int>, MAX<int>, MAX<int>, MAX<int> };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> MIN<vec4<ElementType>> = { Math::MIN<ElementType>, Math::MIN<ElementType>, Math::MIN<ElementType>, Math::MIN<ElementType> };
 
 	template<typename ElementType>
 	inline constexpr static vec2<ElementType> MAX<vec2<ElementType>> = { Math::MAX<ElementType>, Math::MAX<ElementType> };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> MAX<vec4<ElementType>> = { Math::MAX<ElementType>, Math::MAX<ElementType>, Math::MAX<ElementType>, Math::MAX<ElementType> };
 
 	template<> inline constexpr static vec4f PI<vec4f> = { PI<float>, PI<float>, PI<float>, PI<float> };
 	template<> inline constexpr static vec2f PI<vec2f> = { PI<float>, PI<float> };
@@ -435,114 +429,46 @@ namespace Math
 	}
 
 	/**
-	 * @brief Truncates all elements the vector between 0 and 1
-	 * @param value - initial vector
-	 * @param min - minimum vector of clamp (optional)
-	 * @param max - maximum vector of clamp (optional)
-	 * @return clamped vector
-	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec2<ElementType> clamp( const vec2<ElementType>& vector, const vec2<ElementType>& min = ZERO<vec2<ElementType>>, const vec2<ElementType>& max = ONES<vec2<ElementType>> )
-	{
-		return { std::clamp( vector.x, min.x, max.x ), std::clamp( vector.y, min.y, max.y ) };
-	}
-
-	/**
 	 * @brief Truncates the vector by a minimum
 	 * @param vector - vector
 	 * @param min - minimum vector
-	 * @return absolute vector
+	 * @return minimum vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec2<ElementType> min( const vec2<ElementType> vector, const vec2<ElementType> min )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> min( const vec<N, T>& vector, const vec<N, T>& min )
 	{
-		return { std::min( vector.x, min.x ), std::min( vector.y, min.y ) };
-	}
-
-	/**
-	 * @brief Truncates the vector by a minimum
-	 * @param vector - vector
-	 * @param min - minimum vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] constexpr vec4f min( const vec4f& vector, const vec4f& min )
-	{
-		vec4f r;
+		vec<N, T> r;
 		vf::simd::min( r, vector, min );
 		return r;
 	}
 
 	/**
-	 * @brief Truncates the vector by a minimum
-	 * @param vector - vector
-	 * @param min - minimum vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] constexpr vec4i min( const vec4i& vector, const vec4i& min )
-	{
-		return { SIMD_4I_MIN( vector.simd, min.simd ) };
-	}
-
-	/**
 	 * @brief Truncates the vector by a maximum
 	 * @param vector - vector
 	 * @param max - maximum vector
-	 * @return absolute vector
+	 * @return maximum vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec2<ElementType> max( const vec2<ElementType> vector, const vec2<ElementType> max )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> max( const vec<N, T>& vector, const vec<N, T>& max )
 	{
-		return { std::max( vector.x, max.x ), std::max( vector.y, max.y ) };
-	}
-
-	/**
-	 * @brief Truncates the vector by a maximum
-	 * @param vector - vector
-	 * @param max - maximum vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] constexpr vec4f max( vec4f vector, const vec4f& max )
-	{
-		vec4f r;
+		vec<N, T> r;
 		vf::simd::max( r, vector, max );
 		return r;
 	}
 
 	/**
-	 * @brief Truncates the vector by a maximum
-	 * @param vector - vector
-	 * @param max - maximum vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] constexpr vec4i max( const vec4i& vector, const vec4i& max )
-	{
-		return { SIMD_4I_MAX( vector.simd, max.simd ) };
-	}
-
-	/**
-	 * @brief Truncates all elements the vector between 0 and 1
+	 * @brief Truncates all elements the vector between minimum and maximum
 	 * @param value - initial vector
 	 * @param min - minimum vector of clamp (optional)
 	 * @param max - maximum vector of clamp (optional)
 	 * @return clamped vector
 	*/
-	[[nodiscard]] constexpr vec4f clamp( vec4f vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> clamp( vec<N, T> vector, const vec<N, T>& min = ZERO<vec<N, T>>, const vec<N, T>& max = ONES<vec<N, T>> )
 	{
 		vf::simd::max( vector, vector, min );
 		vf::simd::min( vector, vector, max );
 		return vector;
-	}
-
-	/**
-	 * @brief Truncates all elements the vector between 0 and 1
-	 * @param value - initial vector
-	 * @param min - minimum vector of clamp (optional)
-	 * @param max - maximum vector of clamp (optional)
-	 * @return clamped vector
-	*/
-	[[nodiscard]] constexpr vec4i clamp( const vec4i vector, const vec4i min = ZERO<vec4i>, const vec4i& max = ONES<vec4i> )
-	{
-		return { SIMD_4I_MIN( SIMD_4I_MAX( vector.simd, min.simd ), max.simd ) };
 	}
 
 	/**

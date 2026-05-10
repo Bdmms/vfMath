@@ -26,10 +26,6 @@ struct vec : public VectorStorage<N, T>
 	using Storage = VectorStorage<N, T>;
 
 	// Default Constuctor
-	//template<typename ... TArgs>
-	//constexpr vec( TArgs&& ... args ) : VectorStorage<N, T>{ std::forward<TArgs>( args )... } {}
-
-	// Default Constuctor
 	constexpr vec() : VectorStorage<N, T>{} {}
 
 	// Initializing List
@@ -40,16 +36,6 @@ struct vec : public VectorStorage<N, T>
 
 	// Copy Constructor
 	constexpr vec( const vec<N, T>& copy ) : VectorStorage<N, T>( copy ) {}
-
-	// Cast Constructor
-	//template<typename DstType>
-	//constexpr vec( const vec<N, DstType>& cast_copy ) : VectorStorage<N, T>{}
-	//{
-	//	for( size_t i = 0LLU; i < N; ++i )
-	//	{
-	//		Storage::elements[i] = static_cast<DstType>( cast_copy.elements[i] );
-	//	}
-	//}
 
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
@@ -190,24 +176,27 @@ typedef vec2<u32> vec2u;
 
 typedef vec2<f32> vec2f32;
 typedef vec2<f64> vec2f64;
-
 typedef vec2<i8>  vec2i8;
 typedef vec2<i16> vec2i16;
 typedef vec2<i32> vec2i32;
 typedef vec2<i64> vec2i64;
-
 typedef vec2<u8>  vec2u8;
 typedef vec2<u16> vec2u16;
 typedef vec2<u32> vec2u32;
 typedef vec2<u64> vec2u64;
 
 typedef vec4<f32> vec4f;
+typedef vec4<i32> vec4i;
 
 typedef vec4<f32> vec4f32;
 typedef vec4<f64> vec4f64;
+typedef vec4<i8>  vec4i8;
+typedef vec4<i16> vec4i16;
+typedef vec4<i32> vec4i32;
+typedef vec4<i64> vec4i64;
 
-//struct vec4f;
-union vec4i;
+typedef vec4i vec3i;
+typedef vec4f vec3f;
 
 union mat2x2;
 union mat4x4;

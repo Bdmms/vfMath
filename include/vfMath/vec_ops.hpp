@@ -328,7 +328,7 @@ namespace vf::simd
 		return true;
 	}
 
-	// Optimized Operations
+	// SIMD 128-bit floating-point Operations
 
 	typedef VectorStorage<4, f32> simd4f32;
 
@@ -336,7 +336,9 @@ namespace vf::simd
 	constexpr simd4f32 set1( f32 value )
 	{
 		if( std::is_constant_evaluated() ) return compile_time::set1<4, f32>( value );
-		return _mm_set1_ps( value );
+		simd4f32 r;
+		r.simd = _mm_set1_ps( value );
+		return r;
 	}
 
 	template<>
@@ -476,6 +478,131 @@ namespace vf::simd
 	static void sqrt( simd4f32& r, const simd4f32& a )
 	{
 		r.simd = _mm_sqrt_ps( a.simd );
+	}
+
+	// SIMD 128-bit floating-point Operations
+
+	typedef VectorStorage<4, i32> simd4i32;
+
+	template<>
+	constexpr simd4i32 set1( i32 value )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::set1<4, i32>( value );
+		simd4i32 r;
+		r.simd = _mm_set1_epi32( value );
+		return r;
+	}
+
+	template<>
+	constexpr void add( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::add( r, a, b );
+		r.simd = _mm_add_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void sub( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::sub( r, a, b );
+		r.simd = _mm_sub_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void mul( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::mul( r, a, b );
+		r.simd = _mm_mul_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void div( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::div( r, a, b );
+		r.simd = _mm_div_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void mod( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::mod( r, a, b );
+		_mm_idivrem_epi32( &r.simd, a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void hadd( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::hadd( r, a, b );
+		r.simd = _mm_hadd_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void fmadd( simd4i32& r, const simd4i32& a, const simd4i32& b, const simd4i32& c )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::fmadd( r, a, b, c );
+		r.simd = _mm_add_epi32( _mm_mul_epi32( a.simd, b.simd ), c.simd );
+	}
+
+	template<>
+	constexpr void bitwise_and( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::bitwise_and( r, a, b );
+		r.simd = _mm_and_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void bitwise_or( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::bitwise_or( r, a, b );
+		r.simd = _mm_or_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void bitwise_xor( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::bitwise_xor( r, a, b );
+		r.simd = _mm_xor_epi32( a.simd, b.simd );
+	}
+
+	//template<>
+	//constexpr void cmpge( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	//{
+	//	if( std::is_constant_evaluated() ) return compile_time::cmpge( r, a, b );
+	//	r.simd = _mm_cmpge_epi32_mask( a.simd, b.simd );
+	//}
+
+	//template<>
+	//constexpr void cmple( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	//{
+	//	if( std::is_constant_evaluated() ) return compile_time::cmple( r, a, b );
+	//	r.simd = _mm_cmple_epi32_mask( a.simd, b.simd );
+	//}
+
+	//template<>
+	//constexpr void cmplt( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	//{
+	//	if( std::is_constant_evaluated() ) return compile_time::cmplt( r, a, b );
+	//	r.simd = _mm_cmplt_epi32_mask( a.simd, b.simd );
+	//}
+
+	//template<>
+	//constexpr void cmpgt( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	//{
+	//	if( std::is_constant_evaluated() ) return compile_time::cmpgt( r, a, b );
+	//	r.simd = _mm_cmpgt_epi32_mask( a.simd, b.simd );
+	//}
+
+	template<>
+	constexpr void min( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::min( r, a, b );
+		r.simd = _mm_min_epi32( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void max( simd4i32& r, const simd4i32& a, const simd4i32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::max( r, a, b );
+		r.simd = _mm_max_epi32( a.simd, b.simd );
 	}
 }
 

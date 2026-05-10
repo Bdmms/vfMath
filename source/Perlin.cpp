@@ -60,9 +60,9 @@ float grad2D( vec2i iPoint, vec2f weight )
 
 float grad3D( const vec3i& iPoint, const vec3f& weight )
 {
-    uint8_t a = PERMUTATIONS[iPoint.u_x & 0xFFu];
-    uint8_t b = PERMUTATIONS[iPoint.u_y & 0xFFu];
-    uint8_t c = PERMUTATIONS[iPoint.u_z & 0xFFu];
+    uint8_t a = PERMUTATIONS[iPoint.x & 0xFFu];
+    uint8_t b = PERMUTATIONS[iPoint.y & 0xFFu];
+    uint8_t c = PERMUTATIONS[iPoint.z & 0xFFu];
 
     uint32_t rx = ( a & 0x0F ) | ( ( b & 0x0F ) << 4 ) | ( ( c & 0x0F ) << 8 ); // 12-bits
     uint32_t ry = ( ( a & 0xF0 ) >> 4 ) | ( b & 0xF0 ) | ( ( c & 0xF0 ) << 4 ); // 12-bits
@@ -100,7 +100,7 @@ float Perlin::perlin2D( const vec2f point )
 
 float Perlin::perlin3D( const vec3f& point )
 {
-    vec3i ip = vf::cast_to_vec4i( point );
+    vec3i ip = static_cast<vec3i>( point );
     vec3f weight = point - Math::floor( point );
 
     // Calculate the noise at each of the 4 corners of the region

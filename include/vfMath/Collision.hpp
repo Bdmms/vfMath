@@ -478,9 +478,9 @@ private:
 	*/
 	constexpr const Unit& getUnit( const vec4i& idx ) const
 	{
-		size_t iz = size_t( idx.u_z ) * size_t( dimensions.u_y );
-		size_t iy = size_t( iz + idx.u_y ) * size_t( dimensions.u_x );
-		return units[size_t( iy + idx.u_x )];
+		size_t iz = size_t( idx.z ) * size_t( dimensions.y );
+		size_t iy = size_t( iz + idx.y ) * size_t( dimensions.x );
+		return units[size_t( iy + idx.x )];
 	}
 
 public:

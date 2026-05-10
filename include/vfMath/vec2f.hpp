@@ -2,6 +2,6 @@
 #ifndef VF_VEC_2D_FLOAT_HPP
 #define VF_VEC_2D_FLOAT_HPP
 
-#include "vec2.hpp"
+#include "vec.hpp"
 
 #endif
