@@ -163,6 +163,15 @@ namespace vf::simd
 		{
 			VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, roundf );
 		}
+
+		template<typename T>
+		constexpr void permute( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, int b )
+		{
+			r.elements[0] = a.elements[( b & 0x03 )];
+			r.elements[1] = a.elements[( b & 0x0C ) >> 2];
+			r.elements[2] = a.elements[( b & 0x30 ) >> 4];
+			r.elements[3] = a.elements[( b & 0xC0 ) >> 6];
+		}
 	}
 
 	template<size_t N, typename T>
@@ -306,6 +315,14 @@ namespace vf::simd
 	static void sqrt( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
 	{
 		VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, sqrtf );
+	}
+
+	template<typename T>
+	constexpr VectorStorage<4, T> permute( const VectorStorage<4, T>& a, int b )
+	{
+		VectorStorage<4, T> r;
+		compile_time::permute( r, a, b );
+		return r;
 	}
 
 	template<size_t N, typename T>
@@ -480,7 +497,16 @@ namespace vf::simd
 		r.simd = _mm_sqrt_ps( a.simd );
 	}
 
-	// SIMD 128-bit floating-point Operations
+	template<typename T>
+	constexpr simd4f32 permute( const simd4f32& a, int b )
+	{
+		simd4f32 r;
+		if( std::is_constant_evaluated() ) return compile_time::permute( r, a, b );
+		r.simd = _mm_permute_ps( a.simd, b );
+		return r;
+	}
+
+	// SIMD 128-bit Integer Operations
 
 	typedef VectorStorage<4, i32> simd4i32;
 

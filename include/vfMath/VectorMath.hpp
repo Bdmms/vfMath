@@ -3,8 +3,7 @@
 #define VF_VECTOR_MATH_HPP
 
 #include "Math.hpp"
-#include "vec4f.hpp"
-#include "vec4i.hpp"
+#include "vec.hpp"
 
 typedef vec3f AxisAngle;
 

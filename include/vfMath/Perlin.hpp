@@ -2,7 +2,7 @@
 #ifndef VF_PERLIN_HPP
 #define VF_PERLIN_HPP
 
-#include "vec4f.hpp"
+#include "vec.hpp"
 
 namespace Perlin
 {

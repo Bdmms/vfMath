@@ -2,7 +2,7 @@
 #ifndef VF_MATH_OPERATIONS_H
 #define VF_MATH_OPERATIONS_H
 
-#include "vec4f.hpp"
+#include "vec.hpp"
 
 enum class ScalarOperation : uint8_t
 {

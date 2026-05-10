@@ -2,7 +2,7 @@
 #ifndef VF_QUATERNION_HPP
 #define VF_QUATERNION_HPP
 
-#include "vec4f.hpp"
+#include "vec.hpp"
 
 static __m128 _mm_hamilton_ps( const __m128& q0, const __m128& q1 )
 {
