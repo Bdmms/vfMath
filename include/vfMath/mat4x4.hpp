@@ -59,6 +59,7 @@
 */
 union mat4x4
 {
+	std::array<float, 16LLU> m;
 	vec4f col[4];
 	struct { vec4f x_axis, y_axis, z_axis, origin; };
 	__m128 simd[4];
@@ -66,7 +67,6 @@ union mat4x4
 #if ENABLE_INSTRUCTIONS_AVX512
 	__m512 avx512;
 #endif
-	float m[16];
 
 	constexpr mat4x4() : m() {}
 
@@ -88,6 +88,12 @@ union mat4x4
 #if ENABLE_INSTRUCTIONS_AVX512
 	constexpr mat4x4( const __m512& a ) : avx512( a ) {}
 #endif
+
+	constexpr mat4x4( const mat4x4& copy ) : m( copy.m ) {}
+
+	constexpr float* data() { return m.data(); }
+	constexpr const float* data() const { return m.data(); }
+	constexpr size_t size() { return m.size(); }
 
 	constexpr float operator[]( const unsigned char i ) const { return m[i]; }
 	constexpr float& operator[]( const unsigned char i ) { return m[i]; }

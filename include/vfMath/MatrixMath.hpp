@@ -36,7 +36,7 @@ namespace Math
 	*/
 	constexpr void copy_mat3f( mat4f& dst, const mat4f& src )
 	{
-		std::copy( src.m, src.m + 12, dst.m );
+		std::copy( src.m.data(), src.m.data() + 12, dst.m.data() );
 	}
 
 	/**

@@ -114,6 +114,8 @@ float Perlin::perlin3D( const vec3f& point )
                   grad3D( ip + vec3i{ 1, 1, 1 }, weight ) };
 
     vec4f fz = Math::lerp( fz0, fz1, weight.z );
-    vec2f fy = Math::lerp( fz.front, fz.back, weight.y );
+    vec2f fz_front{ fz.x, fz.y };
+    vec2f fz_back{ fz.z, fz.w };
+    vec2f fy = Math::lerp( fz_front, fz_back, weight.y );
     return Math::lerp( fy.x, fy.y, weight.x );
 }

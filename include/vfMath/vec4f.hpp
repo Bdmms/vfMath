@@ -10,20 +10,22 @@
 /**
  * @brief 4D floating-point vector
 */
-union vec4f
+struct vec4f : public VectorStorage<4, float>
 {
 	using ElementType = float;
 	static constexpr uint32_t ElementSize = 4u;
 
-	__m128 simd;
-	float v[4];
-	struct { vec2f front, back; };
-	struct { float x, y, z, w; };
-	struct { float r, g, b, a; };
+	constexpr vec4f( float x = 0, float y = 0, float z = 0, float w = 0 ) : VectorStorage<4, float>( x, y, z, w ) {}
+	constexpr vec4f( const vec4f& copy ) : VectorStorage<4, float>( copy ) {}
+	constexpr vec4f( const __m128& copy ) : VectorStorage<4, float>( copy ) {}
+
+	constexpr float* data() { return elements.data(); }
+	constexpr const float* data() const { return elements.data(); }
+	constexpr size_t size() { return elements.size(); }
 
 	// Array Operators
-	constexpr float operator[]( uint32_t i ) const { return v[i]; }
-	constexpr float& operator[]( uint32_t i ) { return v[i]; }
+	constexpr float operator[]( uint32_t i ) const { return elements[i]; }
+	constexpr float& operator[]( uint32_t i ) { return elements[i]; }
 
 	// Arithmetic Operators
 	constexpr vec4f& operator+=( const vec4f& b ) noexcept { simd = SIMD_4F_ADD( simd, b.simd ); return *this; }

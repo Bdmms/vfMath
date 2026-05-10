@@ -4,6 +4,8 @@
 
 #include "swizzle.hpp"
 #include "primitives.hpp"
+#include "vec_store.hpp"
+#include "vec_ops.hpp"
 
 #include <immintrin.h>
 #include <memory>
@@ -29,7 +31,7 @@ typedef vec2<u16> vec2u16;
 typedef vec2<u32> vec2u32;
 typedef vec2<u64> vec2u64;
 
-union vec4f;
+struct vec4f;
 union vec4i;
 
 union mat2x2;
@@ -43,6 +45,140 @@ extern "C" int __isa_available;
 
 constexpr char BMSK = (char)0xFF;
 constexpr float FMSK = std::bit_cast<float>( -1 );
+
+template<size_t N, typename T> 
+struct vec : public VectorStorage<N, T>
+{
+	using Storage = VectorStorage<N, T>;
+
+	template<typename ... TArgs>
+	constexpr vec( TArgs&& ... args ) : VectorStorage<N, T>( std::forward<TArgs>( args )... ) {}
+
+	// Container Operations
+	constexpr float* data() { return Storage::elements.data(); }
+	constexpr const float* data() const { return Storage::elements.data(); }
+	constexpr size_t size() { return Storage::elements.size(); }
+
+	// Array Operators
+	constexpr float operator[]( uint32_t i ) const { return Storage::elements[i]; }
+	constexpr float& operator[]( uint32_t i ) { return Storage::elements[i]; }
+
+	// Unary Operators
+	[[nodiscard]] constexpr vec operator-() const 
+	{ 
+		vec<N, T> r;
+		vf::simd::negate( r, *this );
+		return r;
+	}
+	[[nodiscard]] constexpr vec operator~() const 
+	{
+		vec<N, T> r;
+		vf::simd::bitwise_not( r, *this );
+		return r;
+	}
+
+	// Arithmetic Operators
+	constexpr vec& operator+=( const vec& rhs ) noexcept { vf::simd::add( *this, *this, rhs ); return *this; }
+	constexpr vec& operator-=( const vec& rhs ) noexcept { vf::simd::sub( *this, *this, rhs ); return *this; }
+	constexpr vec& operator*=( const vec& rhs ) noexcept { vf::simd::mul( *this, *this, rhs ); return *this; }
+	constexpr vec& operator/=( const vec& rhs ) noexcept { vf::simd::div( *this, *this, rhs ); return *this; }
+	constexpr vec& operator%=( const vec& rhs ) noexcept { vf::simd::mod( *this, *this, rhs ); return *this; }
+
+	constexpr vec& operator+=( T rhs ) noexcept { vf::simd::add( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+	constexpr vec& operator-=( T rhs ) noexcept { vf::simd::sub( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+	constexpr vec& operator*=( T rhs ) noexcept { vf::simd::mul( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+	constexpr vec& operator/=( T rhs ) noexcept { vf::simd::div( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+	constexpr vec& operator%=( T rhs ) noexcept { vf::simd::mod( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+
+	// Logical Operators
+	constexpr vec& operator&=( const vec& rhs ) noexcept { vf::simd::bitwise_and( *this, *this, rhs ); return *this; }
+	constexpr vec& operator|=( const vec& rhs ) noexcept { vf::simd::bitwise_or(  *this, *this, rhs ); return *this; }
+	constexpr vec& operator^=( const vec& rhs ) noexcept { vf::simd::bitwise_xor( *this, *this, rhs ); return *this; }
+
+	constexpr vec& operator&=( T rhs ) noexcept { vf::simd::bitwise_and( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+	constexpr vec& operator|=( T rhs ) noexcept { vf::simd::bitwise_or(  *this, *this, vf::simd::set1( rhs ) ); return *this; }
+	constexpr vec& operator^=( T rhs ) noexcept { vf::simd::bitwise_xor( *this, *this, vf::simd::set1( rhs ) ); return *this; }
+
+	// Conversions
+	template<typename DstType>
+	[[nodiscard]] constexpr explicit operator vec<N, DstType>() const
+	{
+		vec<N, DstType> r;
+		for( size_t i = 0LLU; i < N; ++i )
+		{
+			r.elements[i] = static_cast<DstType>( Storage::elements[i] );
+		}
+		return r;
+	}
+};
+
+#define VF_SCALAR T
+#define VF_VECTOR vec<N, T>
+
+#define VF_VECTOR_OPERATOR_HEAD( Op ) template<size_t N, typename T> [[nodiscard]] constexpr VF_VECTOR operator##Op
+#define VF_VECTOR_OPERATOR_VECTOR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_VECTOR& b ) noexcept \
+	 { VF_VECTOR r; Func( r, a, b ); return r; }
+#define VF_VECTOR_OPERATOR_VECTOR_SCALAR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_SCALAR& b ) noexcept \
+	 { VF_VECTOR r; Func( r, a, vf::simd::set1( b ) ); return r; }
+#define VF_VECTOR_OPERATOR_SCALAR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_VECTOR& b ) noexcept \
+	 { VF_VECTOR r; Func( r, vf::simd::set1( a ), b ); return r; }
+
+// Non-Member Arithmetic Operators
+
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( +, vf::simd::add );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( -, vf::simd::sub );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( *, vf::simd::mul );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( /, vf::simd::div );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( %, vf::simd::mod );
+
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( +, vf::simd::add );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( -, vf::simd::sub );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( *, vf::simd::mul );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( /, vf::simd::div );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( %, vf::simd::mod );
+
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( +, vf::simd::add );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( -, vf::simd::sub );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( *, vf::simd::mul );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( /, vf::simd::div );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( %, vf::simd::mod );
+
+// Non-Member Logical Operators
+
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( &, vf::simd::bitwise_and );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( |, vf::simd::bitwise_or );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( ^, vf::simd::bitwise_xor );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( &&, vf::simd::bitwise_and );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( || , vf::simd::bitwise_or );
+
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( &, vf::simd::bitwise_and );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( |, vf::simd::bitwise_or );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( ^, vf::simd::bitwise_xor );
+
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( &, vf::simd::bitwise_and );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( |, vf::simd::bitwise_or );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( ^, vf::simd::bitwise_xor );
+
+// Non-Member Comparison Operators
+#define VF_OPERATOR_LE <=
+#define VF_OPERATOR_GE >=
+#define VF_OPERATOR_LT <
+#define VF_OPERATOR_GT >
+
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_LE, vf::simd::cmple );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_GE, vf::simd::cmpge );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_LT, vf::simd::cmplt );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_GT, vf::simd::cmpgt );
+
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_LE, vf::simd::cmple );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_GE, vf::simd::cmpge );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_LT, vf::simd::cmplt );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_GT, vf::simd::cmpgt );
+
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_LE, vf::simd::cmple );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_GE, vf::simd::cmpge );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_LT, vf::simd::cmplt );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_GT, vf::simd::cmpgt );
 
 namespace vf::native
 {

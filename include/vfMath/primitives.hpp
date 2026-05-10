@@ -345,57 +345,63 @@ constexpr float16_t operator ""_f16( long double value )
 #define VF_PRIMITIVE_BITWISE_UNARY_OPERATION( X, Op, Type ) std::bit_cast<Type>( Op std::bit_cast<vf::primitives::props<Type>::IntegralType>( X ) )
 #define VF_PRIMITIVE_BITWISE_BINARY_OPERATION( X, Y, Op, Type ) std::bit_cast<Type>( std::bit_cast<vf::primitives::props<Type>::IntegralType>( X ) Op std::bit_cast<vf::primitives::props<Type>::IntegralType>( Y ) )
 
-namespace vf::primitives
+namespace vf
 {
-	template<typename T>
-	struct props 
-	{ 
-		using IntegralType = T; 
-	};
-
-	template<>
-	struct props<float32_t>
-	{ 
-		using IntegralType = int32_t; 
-	};
-
-	template<>
-	struct props<float64_t>
+	namespace primitives
 	{
-		using IntegralType = int64_t;
-	};
+		template<typename T>
+		struct props
+		{
+			using IntegralType = T;
+		};
 
-	template<typename T> constexpr static T BITWISE_LOW = 0;
-	template<typename T> constexpr static T BITWISE_HIGH = std::numeric_limits<T>::max();
-	template<> constexpr static float32_t BITWISE_HIGH<float32_t> = std::bit_cast<float32_t>( BITWISE_HIGH<uint32_t> );
-	template<> constexpr static float64_t BITWISE_HIGH<float64_t> = std::bit_cast<float64_t>( BITWISE_HIGH<uint64_t> );
+		template<>
+		struct props<float32_t>
+		{
+			using IntegralType = int32_t;
+		};
 
-	template<typename T> constexpr T modulo( T x, T y ) { return x % y; }
+		template<>
+		struct props<float64_t>
+		{
+			using IntegralType = int64_t;
+		};
 
-	template<typename T> constexpr T bitwise_not( T x ) { return ~x; }
-	template<typename T> constexpr T bitwise_and( T x, T y ) { return x & y; }
-	template<typename T> constexpr T bitwise_or( T x, T y ) { return x | y; }
-	template<typename T> constexpr T bitwise_xor( T x, T y ) { return x ^ y; }
+		template<typename T> constexpr static T BITWISE_LOW = 0;
+		template<typename T> constexpr static T BITWISE_HIGH = std::numeric_limits<T>::max();
+		template<> constexpr static float32_t BITWISE_HIGH<float32_t> = std::bit_cast<float32_t>( BITWISE_HIGH<uint32_t> );
+		template<> constexpr static float64_t BITWISE_HIGH<float64_t> = std::bit_cast<float64_t>( BITWISE_HIGH<uint64_t> );
 
-	template<> constexpr float32_t modulo<float32_t>( float32_t x, float32_t y )
-	{ 
-		// return fmodf( a, b ); 
-		return x - static_cast<int64_t>( x / y ) * y;
+		template<typename T> constexpr T modulo( T x, T y ) { return x % y; }
+
+		template<typename T> constexpr T bitwise_not( T x ) { return ~x; }
+		template<typename T> constexpr T bitwise_and( T x, T y ) { return x & y; }
+		template<typename T> constexpr T bitwise_or( T x, T y ) { return x | y; }
+		template<typename T> constexpr T bitwise_xor( T x, T y ) { return x ^ y; }
+
+		template<> constexpr float32_t modulo<float32_t>( float32_t x, float32_t y )
+		{
+			if( std::is_constant_evaluated() ) return x - static_cast<int64_t>( x / y ) * y;
+			return fmodf( x, y );
+		}
+		template<> constexpr float64_t modulo<float64_t>( float64_t x, float64_t y )
+		{
+			if( std::is_constant_evaluated() ) return x - static_cast<int64_t>( x / y ) * y;
+			return fmod( x, y );
+		}
+
+		template<> constexpr float32_t bitwise_not<float32_t>( float32_t x ) { return VF_PRIMITIVE_BITWISE_UNARY_OPERATION( x, ~, float32_t ); }
+		template<> constexpr float64_t bitwise_not<float64_t>( float64_t x ) { return VF_PRIMITIVE_BITWISE_UNARY_OPERATION( x, ~, float64_t ); }
+		template<> constexpr float32_t bitwise_and<float32_t>( float32_t x, float32_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, &, float32_t ); }
+		template<> constexpr float64_t bitwise_and<float64_t>( float64_t x, float64_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, &, float64_t ); }
+		template<> constexpr float32_t bitwise_or<float32_t>( float32_t x, float32_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, | , float32_t ); }
+		template<> constexpr float64_t bitwise_or<float64_t>( float64_t x, float64_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, | , float64_t ); }
+		template<> constexpr float32_t bitwise_xor<float32_t>( float32_t x, float32_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, ^, float32_t ); }
+		template<> constexpr float64_t bitwise_xor<float64_t>( float64_t x, float64_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, ^, float64_t ); }
 	}
-	template<> constexpr float64_t modulo<float64_t>( float64_t x, float64_t y )
-	{ 
-		// return fmod( a, b ); 
-		return x - static_cast<int64_t>( x / y ) * y;
-	}
 
-	template<> constexpr float32_t bitwise_not<float32_t>( float32_t x ) { return VF_PRIMITIVE_BITWISE_UNARY_OPERATION( x, ~, float32_t ); }
-	template<> constexpr float64_t bitwise_not<float64_t>( float64_t x ) { return VF_PRIMITIVE_BITWISE_UNARY_OPERATION( x, ~, float64_t ); }
-	template<> constexpr float32_t bitwise_and<float32_t>( float32_t x, float32_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, &, float32_t ); }
-	template<> constexpr float64_t bitwise_and<float64_t>( float64_t x, float64_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, &, float64_t ); }
-	template<> constexpr float32_t bitwise_or<float32_t>(  float32_t x, float32_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, |, float32_t ); }
-	template<> constexpr float64_t bitwise_or<float64_t>(  float64_t x, float64_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, |, float64_t ); }
-	template<> constexpr float32_t bitwise_xor<float32_t>( float32_t x, float32_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, ^, float32_t ); }
-	template<> constexpr float64_t bitwise_xor<float64_t>( float64_t x, float64_t y ) { return VF_PRIMITIVE_BITWISE_BINARY_OPERATION( x, y, ^, float64_t ); }
+	constexpr auto fmod = primitives::modulo<f64>;
+	constexpr auto fmodf = primitives::modulo<f32>;
 }
 
 #endif
