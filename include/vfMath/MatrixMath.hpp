@@ -96,19 +96,19 @@ namespace Math
 	*/
 	static void setRotation( mat4f& matrix, const euler& rotation )
 	{
-		vec3f s = Math::sin( rotation );
-		vec3f c = Math::cos( rotation );
-		matrix.m[0] = c.z * c.y;
-		matrix.m[1] = s.z * c.y;
-		matrix.m[2] = -s.y;
+		euler s = Math::sin( rotation );
+		euler c = Math::cos( rotation );
+		matrix.m[0] = c.rz * c.ry;
+		matrix.m[1] = s.rz * c.ry;
+		matrix.m[2] = -s.ry;
 
-		matrix.m[4] = c.z * s.y * s.x - s.z * c.x;
-		matrix.m[5] = s.z * s.y * s.x + c.z * c.x;
-		matrix.m[6] = c.y * s.x;
+		matrix.m[4] = c.rz * s.ry * s.rx - s.rz * c.rx;
+		matrix.m[5] = s.rz * s.ry * s.rx + c.rz * c.rx;
+		matrix.m[6] = c.ry * s.rx;
 
-		matrix.m[8] = c.z * s.y * c.x + s.z * s.x;
-		matrix.m[9] = s.z * s.y * c.x - c.z * s.x;
-		matrix.m[10] = c.y * c.x;
+		matrix.m[8] = c.rz * s.ry * c.rx + s.rz * s.rx;
+		matrix.m[9] = s.rz * s.ry * c.rx - c.rz * s.rx;
+		matrix.m[10] = c.ry * c.rx;
 	}
 
 	/**
@@ -176,19 +176,19 @@ namespace Math
 	*/
 	static void setRotationInverse( mat4f& matrix, const euler& rotation )
 	{
-		vec3f s = Math::sin( rotation );
-		vec3f c = Math::cos( rotation );
-		matrix.m[0] = c.z * c.y;
-		matrix.m[4] = s.z * c.y;
-		matrix.m[8] = -s.y;
+		euler s = Math::sin( rotation );
+		euler c = Math::cos( rotation );
+		matrix.m[0] = c.rz * c.ry;
+		matrix.m[4] = s.rz * c.ry;
+		matrix.m[8] = -s.ry;
 
-		matrix.m[1] = c.z * s.y * s.x - s.z * c.x;
-		matrix.m[5] = s.z * s.y * s.x + c.z * c.x;
-		matrix.m[9] = c.y * s.x;
+		matrix.m[1] = c.rz * s.ry * s.rx - s.rz * c.rx;
+		matrix.m[5] = s.rz * s.ry * s.rx + c.rz * c.rx;
+		matrix.m[9] = c.ry * s.rx;
 
-		matrix.m[2] = c.z * s.y * c.x + s.z * s.x;
-		matrix.m[6] = s.z * s.y * c.x - c.z * s.x;
-		matrix.m[10] = c.y * c.x;
+		matrix.m[2] = c.rz * s.ry * c.rx + s.rz * s.rx;
+		matrix.m[6] = s.rz * s.ry * c.rx - c.rz * s.rx;
+		matrix.m[10] = c.ry * c.rx;
 	}
 
 	/**

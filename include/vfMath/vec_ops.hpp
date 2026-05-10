@@ -3,6 +3,7 @@
 #define VF_VECTOR_OPERATIONS_HPP
 
 #include "vec_store.hpp"
+#include <cmath>
 
 #define VF_VEC_N_LOOP( N, X ) for( size_t i = 0LLU; i < N; ++i ) X
 #define VF_VEC_N_UNARY_OPERATION( N, r, a, Op ) VF_VEC_N_LOOP( N, r[i] = Op a[i] )
@@ -34,7 +35,7 @@ namespace vf::simd
 		}
 
 		template<size_t N, typename T>
-		constexpr VectorStorage<N, T> negate( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+		constexpr void negate( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
 		{
 			VF_VEC_N_UNARY_OPERATION( N, r.elements, a.elements, - );
 		}
@@ -67,6 +68,22 @@ namespace vf::simd
 		constexpr void mod( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
 		{
 			VF_VEC_N_BINARY_FUNCTION( N, r.elements, a.elements, b.elements, vf::primitives::modulo );
+		}
+
+		template<typename T>
+		constexpr void hadd( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, const VectorStorage<4, T>& b )
+		{
+			r.elements[0] = a.elements[0] + a.elements[1];
+			r.elements[1] = a.elements[2] + a.elements[3];
+			r.elements[2] = b.elements[0] + b.elements[1];
+			r.elements[3] = b.elements[2] + b.elements[3];
+		}
+
+		template<size_t N, typename T>
+		constexpr void fmadd( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b, const VectorStorage<N, T>& c )
+		{
+			mul( r, a, b );
+			add( r, r, c );
 		}
 
 		template<size_t N, typename T>
@@ -115,6 +132,36 @@ namespace vf::simd
 		constexpr void cmplt( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
 		{
 			VF_VEC_N_LOOP( N, r.elements[i] = a.elements[i] < b.elements[i] ? vf::primitives::BITWISE_HIGH<T> : vf::primitives::BITWISE_LOW<T> );
+		}
+
+		template<size_t N, typename T>
+		constexpr void min( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+		{
+			VF_VEC_N_BINARY_FUNCTION( N, r.elements, a.elements, b.elements, std::min );
+		}
+
+		template<size_t N, typename T>
+		constexpr void max( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+		{
+			VF_VEC_N_BINARY_FUNCTION( N, r.elements, a.elements, b.elements, std::max );
+		}
+
+		template<size_t N, typename T>
+		constexpr void floor( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+		{
+			VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, floorf );
+		}
+
+		template<size_t N, typename T>
+		constexpr void ceil( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+		{
+			VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, ceilf );
+		}
+
+		template<size_t N, typename T>
+		constexpr void round( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+		{
+			VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, roundf );
 		}
 	}
 
@@ -165,8 +212,20 @@ namespace vf::simd
 		compile_time::mod( r, a, b );
 	}
 
+	template<typename T>
+	constexpr void hadd( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, const VectorStorage<4, T>& b )
+	{
+		compile_time::hadd( r, a, b );
+	}
+
 	template<size_t N, typename T>
-	constexpr VectorStorage<N, T> bitwise_not( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+	constexpr void fmadd( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b, const VectorStorage<N, T>& c )
+	{
+		compile_time::fmadd( r, a, b, c );
+	}
+
+	template<size_t N, typename T>
+	constexpr void bitwise_not( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
 	{
 		compile_time::bitwise_not( r, a );
 	}
@@ -211,6 +270,62 @@ namespace vf::simd
 	constexpr void cmplt( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
 	{
 		compile_time::cmplt( r, a, b );
+	}
+
+	template<size_t N, typename T>
+	constexpr void min( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+	{
+		compile_time::min( r, a, b );
+	}
+
+	template<size_t N, typename T>
+	constexpr void max( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+	{
+		compile_time::max( r, a, b );
+	}
+
+	template<size_t N, typename T>
+	constexpr void floor( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+	{
+		compile_time::floor( r, a );
+	}
+
+	template<size_t N, typename T>
+	constexpr void ceil( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+	{
+		compile_time::ceil( r, a );
+	}
+
+	template<size_t N, typename T>
+	constexpr void round( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+	{
+		compile_time::round( r, a );
+	}
+
+	template<size_t N, typename T>
+	static void sqrt( VectorStorage<N, T>& r, const VectorStorage<N, T>& a )
+	{
+		VF_VEC_N_UNARY_FUNCTION( N, r.elements, a.elements, sqrtf );
+	}
+
+	template<size_t N, typename T>
+	constexpr bool any( const VectorStorage<N, T>& a )
+	{
+		for( size_t i = 0LLU; i < N; ++i )
+		{
+			if( a.elements[i] ) return true;
+		}
+		return false;
+	}
+
+	template<size_t N, typename T>
+	constexpr bool all( const VectorStorage<N, T>& a )
+	{
+		for( size_t i = 0LLU; i < N; ++i )
+		{
+			if( !a.elements[i] ) return false;
+		}
+		return true;
 	}
 
 	// Optimized Operations
@@ -260,6 +375,20 @@ namespace vf::simd
 	}
 
 	template<>
+	constexpr void hadd( simd4f32& r, const simd4f32& a, const simd4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::hadd( r, a, b );
+		r.simd = _mm_hadd_ps( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void fmadd( simd4f32& r, const simd4f32& a, const simd4f32& b, const simd4f32& c )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::fmadd( r, a, b, c );
+		r.simd = _mm_fmadd_ps( a.simd, b.simd, c.simd );
+	}
+
+	template<>
 	constexpr void bitwise_and( simd4f32& r, const simd4f32& a, const simd4f32& b )
 	{
 		if( std::is_constant_evaluated() ) return compile_time::bitwise_and( r, a, b );
@@ -306,6 +435,47 @@ namespace vf::simd
 	{
 		if( std::is_constant_evaluated() ) return compile_time::cmpgt( r, a, b );
 		r.simd = _mm_cmpgt_ps( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void min( simd4f32& r, const simd4f32& a, const simd4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::min( r, a, b );
+		r.simd = _mm_min_ps( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void max( simd4f32& r, const simd4f32& a, const simd4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::max( r, a, b );
+		r.simd = _mm_max_ps( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void floor( simd4f32& r, const simd4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::floor( r, a );
+		r.simd = _mm_floor_ps( a.simd );
+	}
+
+	template<>
+	constexpr void ceil( simd4f32& r, const simd4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::ceil( r, a );
+		r.simd = _mm_ceil_ps( a.simd );
+	}
+
+	template<>
+	constexpr void round( simd4f32& r, const simd4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::round( r, a );
+		r.simd = _mm_round_ps( a.simd, 0b00 );
+	}
+
+	template<>
+	static void sqrt( simd4f32& r, const simd4f32& a )
+	{
+		r.simd = _mm_sqrt_ps( a.simd );
 	}
 }
 

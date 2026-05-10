@@ -282,7 +282,12 @@ namespace Math
 	*/
 	[[nodiscard]] constexpr vec3f cross( const vec3f& a, const vec3f& b )
 	{
-		return { SIMD_4F_CROSS( a.simd, b.simd ) };
+		return {
+			a.y * b.z - a.z * b.y,
+			a.z * b.x - a.x * b.z,
+			a.x * b.y - a.y * b.x,
+			Math::ZERO<f32>
+		};
 	}
 
 	/**
@@ -358,7 +363,7 @@ namespace Math
 
 		float vLength = sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
 		if( vLength == 0.0f ) return Math::ZERO<vec4f>;
-		return { _mm_div_ps( v.simd, _mm_set1_ps( vLength ) ) };
+		return v / vLength;
 	}
 
 	/**
@@ -443,90 +448,6 @@ namespace Math
 	}
 
 	/**
-	 * @brief Truncates all elements the vector between 0 and 1
-	 * @param value - initial vector
-	 * @param min - minimum vector of clamp (optional)
-	 * @param max - maximum vector of clamp (optional)
-	 * @return clamped vector
-	*/
-	[[nodiscard]] constexpr vec4f clamp( const vec4f& vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
-	{
-		return { SIMD_4F_MIN( SIMD_4F_MAX( vector.simd, min.simd ), max.simd ) };
-	}
-
-	/**
-	 * @brief Truncates all elements the vector between 0 and 1
-	 * @param value - initial vector
-	 * @param min - minimum vector of clamp (optional)
-	 * @param max - maximum vector of clamp (optional)
-	 * @return clamped vector
-	*/
-	[[nodiscard]] constexpr vec4i clamp( const vec4i vector, const vec4i min = ZERO<vec4i>, const vec4i& max = ONES<vec4i> )
-	{
-		return { SIMD_4I_MIN( SIMD_4I_MAX( vector.simd, min.simd ), max.simd ) };
-	}
-
-	/**
-	 * @brief Rounds the vector down
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec2f floor( const vec2f v )
-	{
-		return { floorf( v.x ), floorf( v.y ) };
-	}
-
-	/**
-	 * @brief Rounds the vector down
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f floor( const vec4f& v )
-	{
-		return { _mm_floor_ps( v.simd ) };
-	}
-
-	/**
-	 * @brief Rounds the vector up
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec2f ceil( const vec2f v )
-	{
-		return { ceilf( v.x ), ceilf( v.y ) };
-	}
-
-	/**
-	 * @brief Rounds the vector up
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f ceil( const vec4f& v )
-	{
-		return { _mm_ceil_ps( v.simd ) };
-	}
-	
-	/**
-	 * @brief Rounds the vector to the closest integer
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec2f round( const vec2f v )
-	{
-		return { roundf( v.x ), roundf( v.y ) };
-	}
-
-	/**
-	 * @brief Rounds the vector to the closest integer
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f round( const vec4f& v )
-	{
-		return { _mm_round_ps( v.simd, 0b00 ) };
-	}
-
-	/**
 	 * @brief Truncates the vector by a minimum
 	 * @param vector - vector
 	 * @param min - minimum vector
@@ -546,7 +467,9 @@ namespace Math
 	*/
 	[[nodiscard]] constexpr vec4f min( const vec4f& vector, const vec4f& min )
 	{
-		return { SIMD_4F_MIN( vector.simd, min.simd ) };
+		vec4f r;
+		vf::simd::min( r, vector, min );
+		return r;
 	}
 
 	/**
@@ -578,9 +501,11 @@ namespace Math
 	 * @param max - maximum vector
 	 * @return absolute vector
 	*/
-	[[nodiscard]] constexpr vec4f max( const vec4f& vector, const vec4f& max )
+	[[nodiscard]] constexpr vec4f max( vec4f vector, const vec4f& max )
 	{
-		return { SIMD_4F_MAX( vector.simd, max.simd ) };
+		vec4f r;
+		vf::simd::max( r, vector, max );
+		return r;
 	}
 
 	/**
@@ -593,7 +518,96 @@ namespace Math
 	{
 		return { SIMD_4I_MAX( vector.simd, max.simd ) };
 	}
+
+	/**
+	 * @brief Truncates all elements the vector between 0 and 1
+	 * @param value - initial vector
+	 * @param min - minimum vector of clamp (optional)
+	 * @param max - maximum vector of clamp (optional)
+	 * @return clamped vector
+	*/
+	[[nodiscard]] constexpr vec4f clamp( vec4f vector, const vec4f& min = ZERO<vec4f>, const vec4f& max = ONES<vec4f> )
+	{
+		vf::simd::max( vector, vector, min );
+		vf::simd::min( vector, vector, max );
+		return vector;
+	}
+
+	/**
+	 * @brief Truncates all elements the vector between 0 and 1
+	 * @param value - initial vector
+	 * @param min - minimum vector of clamp (optional)
+	 * @param max - maximum vector of clamp (optional)
+	 * @return clamped vector
+	*/
+	[[nodiscard]] constexpr vec4i clamp( const vec4i vector, const vec4i min = ZERO<vec4i>, const vec4i& max = ONES<vec4i> )
+	{
+		return { SIMD_4I_MIN( SIMD_4I_MAX( vector.simd, min.simd ), max.simd ) };
+	}
+
+	/**
+	 * @brief Rounds the vector down
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec2f floor( const vec2f v )
+	{
+		return { floorf( v.x ), floorf( v.y ) };
+	}
+
+	/**
+	 * @brief Rounds the vector down
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec4f floor( vec4f v )
+	{
+		vf::simd::floor( v, v );
+		return v;
+	}
+
+	/**
+	 * @brief Rounds the vector up
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec2f ceil( const vec2f v )
+	{
+		return { ceilf( v.x ), ceilf( v.y ) };
+	}
+
+	/**
+	 * @brief Rounds the vector up
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec4f ceil( vec4f v )
+	{
+		vf::simd::ceil( v, v );
+		return v;
+	}
 	
+	/**
+	 * @brief Rounds the vector to the closest integer
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec2f round( const vec2f v )
+	{
+		return { roundf( v.x ), roundf( v.y ) };
+	}
+
+	/**
+	 * @brief Rounds the vector to the closest integer
+	 * @param a - vector
+	 * @return rounded vector
+	*/
+	[[nodiscard]] static vec4f round( vec4f v )
+	{
+		vf::simd::round( v, v );
+		return v;
+	}
+
 	/**
 	 * @brief Calculates the square root of a vector
 	 * @param a - vector
@@ -606,12 +620,13 @@ namespace Math
 
 	/**
 	 * @brief Calculates the square root of a vector
-	 * @param a - vector
+	 * @param v - vector
 	 * @return square root vector
 	*/
-	[[nodiscard]] static vec4f sqrt( const vec4f& a )
+	[[nodiscard]] static vec4f sqrt( vec4f v )
 	{
-		return { _mm_sqrt_ps( a.simd ) };
+		vf::simd::sqrt( v, v );
+		return v;
 	}
 
 	/**
@@ -693,7 +708,9 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f sin( const vec4f& v )
 	{
-		return { _mm_sin_ps( v.simd ) };
+		vec4f r;
+		r.simd = _mm_sin_ps( v.simd );
+		return r;
 	}
 
 	/**
@@ -713,7 +730,9 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f cos( const vec4f& v )
 	{
-		return { _mm_cos_ps( v.simd ) };
+		vec4f r;
+		r.simd = _mm_cos_ps( v.simd );
+		return r;
 	}
 
 	/**
@@ -733,7 +752,9 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f tan( const vec4f& v )
 	{
-		return { _mm_tan_ps( v.simd ) };
+		vec4f r;
+		r.simd = _mm_tan_ps( v.simd );
+		return r;
 	}
 
 	/**
@@ -755,7 +776,9 @@ namespace Math
 	*/
 	[[nodiscard]] static vec4f pow( const vec4f& a, const vec4f& b )
 	{
-		return { _mm_pow_ps( a.simd, b.simd ) };
+		vec4f r;
+		r.simd = _mm_pow_ps( a.simd, b.simd );
+		return r;
 	}
 
 	/**
@@ -800,7 +823,10 @@ namespace Math
 	*/
 	template<> [[nodiscard]] constexpr vec4f lerp<vec4f>( const vec4f& a, const vec4f& b, const float t )
 	{
-		return { SIMD_4F_FMADD( SIMD_4F_SUB( b.simd, a.simd ), SIMD_4F_SET1( t ), a.simd ) };
+		vec4f r;
+		vf::simd::sub( r, b, a );
+		vf::simd::fmadd( r, r, vf::simd::set1<4, f32>( t ), a );
+		return r;
 	}
 
 	/**
@@ -813,9 +839,11 @@ namespace Math
 	[[nodiscard]] static vec4f rotate( const vec4f& position, const vec3f& axis, const float angle )
 	{
 		// Based on quaternion implementation, but without using a quaternion
+		vec4f r;
 		__m128 qxyz = _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) );
-		return { _mm_add_ps( position.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ),
-			_mm_cross_ps( qxyz, _mm_add_ps( _mm_cross_ps( qxyz, position.simd ), _mm_mul_ps( position.simd, _mm_set1_ps( cosf( angle * 0.5f ) ) ) ) ) ) ) };
+		r.simd = _mm_add_ps( position.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ),
+			_mm_cross_ps( qxyz, _mm_add_ps( _mm_cross_ps( qxyz, position.simd ), _mm_mul_ps( position.simd, _mm_set1_ps( cosf( angle * 0.5f ) ) ) ) ) ) );
+		return r;
 	}
 
 	/**
@@ -891,7 +919,9 @@ namespace Math
 		*/
 		[[nodiscard]] constexpr vec4f hsum( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f> )
 		{
-			return VECTOR_FORWARD( SIMD_4F_SUM4( a.simd, b.simd, c.simd, d.simd ) );
+			vec4f r;
+			r.simd = SIMD_4F_SUM4( a.simd, b.simd, c.simd, d.simd );
+			return r;
 		}
 
 		/**
@@ -902,7 +932,9 @@ namespace Math
 		*/
 		[[nodiscard]] constexpr vec4f hsum( const vec4f& a, const vec4f& b )
 		{
-			return VECTOR_FORWARD( SIMD_4F_SUM2( a.simd, b.simd ) );
+			vec4f r;
+			r.simd = SIMD_4F_SUM2( a.simd, b.simd );
+			return r;
 		}
 
 		/**
@@ -920,7 +952,9 @@ namespace Math
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d,
 			const vec4f& e, const vec4f& f, const vec4f& g, const vec4f& h )
 		{
-			return VECTOR_FORWARD( SIMD_4F_DOT4( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd ) );
+			vec4f r;
+			r.simd = SIMD_4F_DOT4( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd );
+			return r;
 		}
 
 		/**
@@ -935,7 +969,9 @@ namespace Math
 		*/
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d, const vec4f& e, const vec4f& f )
 		{
-			return VECTOR_FORWARD( SIMD_4F_DOT3( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd ) );
+			vec4f r;
+			r.simd = SIMD_4F_DOT3( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd );
+			return r;
 		}
 
 		/**
@@ -948,7 +984,9 @@ namespace Math
 		*/
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d )
 		{
-			return VECTOR_FORWARD( SIMD_4F_DOT2( a.simd, b.simd, c.simd, d.simd ) );
+			vec4f r;
+			r.simd = SIMD_4F_DOT2( a.simd, b.simd, c.simd, d.simd );
+			return r;
 		}
 
 		/**
@@ -961,7 +999,9 @@ namespace Math
 		*/
 		[[nodiscard]] static vec4f length( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d )
 		{
-			return VECTOR_FORWARD( _mm_mag_ps( a.simd, b.simd, c.simd, d.simd ) );
+			vec4f r;
+			r.simd = _mm_mag_ps( a.simd, b.simd, c.simd, d.simd );
+			return r;
 		}
 
 		/**
@@ -973,7 +1013,9 @@ namespace Math
 		*/
 		[[nodiscard]] static vec4f length( const vec4f& a, const vec4f& b, const vec4f& c )
 		{
-			return VECTOR_FORWARD( _mm_mag3_ps( a.simd, b.simd, c.simd ) );
+			vec4f r;
+			r.simd = _mm_mag3_ps( a.simd, b.simd, c.simd );
+			return r;
 		}
 
 		/**
@@ -984,7 +1026,9 @@ namespace Math
 		*/
 		[[nodiscard]] static vec4f length( const vec4f& a, const vec4f& b )
 		{
-			return VECTOR_FORWARD( _mm_mag2_ps( a.simd, b.simd ) );
+			vec4f r;
+			r.simd = _mm_mag2_ps( a.simd, b.simd );
+			return r;
 		}
 	};
 
@@ -1007,7 +1051,9 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static vec4f random<vec4f>( const vec4f& min, const vec4f& max )
 	{
-		return { _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd ) };
+		vec4f r;
+		r.simd = _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd );
+		return r;
 	}
 
 	/**

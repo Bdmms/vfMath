@@ -79,7 +79,7 @@ namespace Math
 	 * @param a - euler angles
 	 * @return sin vector
 	*/
-	[[nodiscard]] static vec4f sin( const euler& rotation )
+	[[nodiscard]] static euler sin( const euler& rotation )
 	{
 		return { _mm_sin_ps( rotation.simd ) };
 	}
@@ -89,7 +89,7 @@ namespace Math
 	 * @param a - euler angles
 	 * @return cos vector
 	*/
-	[[nodiscard]] static vec4f cos( const euler& rotation )
+	[[nodiscard]] static euler cos( const euler& rotation )
 	{
 		return { _mm_cos_ps( rotation.simd ) };
 	}
@@ -99,7 +99,7 @@ namespace Math
 	 * @param a - euler angles
 	 * @return tan vector
 	*/
-	[[nodiscard]] static vec4f tan( const euler& rotation )
+	[[nodiscard]] static euler tan( const euler& rotation )
 	{
 		return { _mm_tan_ps( rotation.simd ) };
 	}
@@ -112,17 +112,16 @@ namespace Math
 	*/
 	[[nodiscard]] static vec3f rotate( const vec3f& position, const euler& rotation )
 	{
-		vec3f s = sin( rotation );
-		vec3f c = cos( rotation );
+		euler s = sin( rotation );
+		euler c = cos( rotation );
 
-		return {
-			_mm_dot_ps(
-				position.simd, _mm_xyzw_ps( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, 0.0f ),
-				position.simd, _mm_xyzw_ps( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, 0.0f ),
-				position.simd, _mm_xyzw_ps( -s.y, c.y * s.x, c.y * c.x, 0.0f ),
-				position.simd, SIMD_4f_W
-			)
-		};
+		vec4f r;
+		r.simd = _mm_dot_ps(
+				position.simd, _mm_xyzw_ps( c.rz * c.ry, c.rz * s.ry * s.rx - s.rz * c.rx, c.rz * s.ry * c.rx + s.rz * s.rx, 0.0f ),
+				position.simd, _mm_xyzw_ps( s.rz * c.ry, s.rz * s.ry * s.rx + c.rz * c.rx, s.rz * s.ry * c.rx - c.rz * s.rx, 0.0f ),
+				position.simd, _mm_xyzw_ps( -s.ry, c.ry * s.rx, c.ry * c.rx, 0.0f ),
+				position.simd, SIMD_4f_W );
+		return r;
 	}
 
 	/**

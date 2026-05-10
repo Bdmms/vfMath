@@ -672,8 +672,8 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	Bounds<vec3f> triangleBounds;
 	AABB_TRIANGLE( unitXform.transform, triangleBounds.min.simd, triangleBounds.max.simd );
 
-	vec3i minIdx = Math::clamp( vec3i( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
-	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec3i>, dimensions );
+	vec3i minIdx = Math::clamp( vf::cast_to_vec4i( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
+	vec3i maxIdx = Math::clamp( vf::cast_to_vec4i( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec3i>, dimensions );
 	minIdx.w = 0;
 	maxIdx.w = 0;
 
@@ -855,8 +855,8 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 
 	// Compute the bounds of the sphere in unit space
 	Bounds<vec3f> aabb = Math::Box::calculateAABB( unitXform.transform );
-	vec3i minIdx = Math::clamp( vec3i( Math::floor( aabb.min ) ), Math::ZERO<vec3i>, dimensions );
-	vec3i maxIdx = Math::clamp( vec3i( Math::ceil(  aabb.max ) ), Math::ZERO<vec3i>, dimensions );
+	vec3i minIdx = Math::clamp( vf::cast_to_vec4i( Math::floor( aabb.min ) ), Math::ZERO<vec3i>, dimensions );
+	vec3i maxIdx = Math::clamp( vf::cast_to_vec4i( Math::ceil(  aabb.max ) ), Math::ZERO<vec3i>, dimensions );
 
 	// Iterate over the units the sphere overlaps with
 	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
@@ -969,9 +969,9 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	float relDistance = rayClip.max;
 
 	// This stores whether the line is moving in the direction of -1 or 1 across each axis
-	vec3i idxSign = vec3i( Math::sign( line ) );
+	vec3i idxSign = vf::cast_to_vec4i( Math::sign( line ) );
 	vec3i idxUnit = ( idxSign + Math::ONES<vec3i> ) / 2;
-	vec3i idx = vec3i( Math::floor( origin + line * traveled ) );
+	vec3i idx = vf::cast_to_vec4i( Math::floor( origin + line * traveled ) );
 
 	// Check that the starting idx is within bounds (Fail-safe)
 	bool xInBounds = idx.x >= 0 && idx.x < dimensions.x;

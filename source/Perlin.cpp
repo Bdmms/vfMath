@@ -100,7 +100,7 @@ float Perlin::perlin2D( const vec2f point )
 
 float Perlin::perlin3D( const vec3f& point )
 {
-    vec3i ip = (vec3i)point;
+    vec3i ip = vf::cast_to_vec4i( point );
     vec3f weight = point - Math::floor( point );
 
     // Calculate the noise at each of the 4 corners of the region

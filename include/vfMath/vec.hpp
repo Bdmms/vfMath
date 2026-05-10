@@ -11,12 +11,6 @@
 #include <memory>
 #include <bit>
 
-struct vec4f;
-union vec4i;
-
-union mat2x2;
-union mat4x4;
-
 extern "C" int __isa_available;
 
 #define ENABLE_INSTRUCTIONS_SSE2	__isa_available >= __ISA_AVAILABLE_SSE2
@@ -187,6 +181,8 @@ VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_GT, vf::simd::cmpgt );
 
 template <typename T>
 using vec2 = vec<2, T>;
+template <typename T>
+using vec4 = vec<4, T>;
 
 typedef vec2<f32> vec2f;
 typedef vec2<i32> vec2i;
@@ -204,6 +200,17 @@ typedef vec2<u8>  vec2u8;
 typedef vec2<u16> vec2u16;
 typedef vec2<u32> vec2u32;
 typedef vec2<u64> vec2u64;
+
+typedef vec4<f32> vec4f;
+
+typedef vec4<f32> vec4f32;
+typedef vec4<f64> vec4f64;
+
+//struct vec4f;
+union vec4i;
+
+union mat2x2;
+union mat4x4;
 
 namespace vf::native
 {

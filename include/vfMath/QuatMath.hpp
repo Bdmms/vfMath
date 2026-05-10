@@ -24,14 +24,14 @@ namespace Math
 	*/
 	[[nodiscard]] static quat toQuat( const euler& rotation )
 	{
-		vec3f s = sin( rotation * 0.5f );
-		vec3f c = cos( rotation * 0.5f );
+		euler s = sin( rotation * 0.5f );
+		euler c = cos( rotation * 0.5f );
 
 		return {
-			s.x * c.y * c.z - c.x * s.y * s.z,
-			c.x * s.y * c.z + s.x * c.y * s.z,
-			c.x * c.y * s.z - s.x * s.y * c.z,
-			c.x * c.y * c.z + s.x * s.y * s.z
+			s.rx * c.ry * c.rz - c.rx * s.ry * s.rz,
+			c.rx * s.ry * c.rz + s.rx * c.ry * s.rz,
+			c.rx * c.ry * s.rz - s.rx * s.ry * c.rz,
+			c.rx * c.ry * c.rz + s.rx * s.ry * s.rz
 		};
 	}
 
@@ -81,7 +81,9 @@ namespace Math
 	[[nodiscard]] static vec4f rotate( const vec4f& v, const quat& q )
 	{
 		// v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
-		return { _mm_add_ps( v.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ), _mm_cross_ps( q.simd, _mm_add_ps( _mm_cross_ps( q.simd, v.simd ), _mm_mul_ps( v.simd, _mm_set1_ps( q.w ) ) ) ) ) ) };
+		vec4f r;
+		r.simd = _mm_add_ps( v.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ), _mm_cross_ps( q.simd, _mm_add_ps( _mm_cross_ps( q.simd, v.simd ), _mm_mul_ps( v.simd, _mm_set1_ps( q.w ) ) ) ) ) );
+		return r;
 	}
 
 	/**

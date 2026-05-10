@@ -212,7 +212,9 @@ union mat4x4
 		constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, -1.0f };
 
 		// Dot product between simdumn and its cofactor expansion
-		return Math::dot( col[0], { _mm_mul_ps( msk, cofactorExpansion_SSE2( simd[1], simd[2], simd[3] ) ) } );
+		vec4f r;
+		r.simd = _mm_mul_ps( msk, cofactorExpansion_SSE2( simd[1], simd[2], simd[3] ) );
+		return Math::dot( col[0], r );
 	}
 
 	/**
@@ -429,11 +431,13 @@ union mat4x4
 	__m128 t1 = _mm_shuffle_ps( a.z_axis.simd, a.origin.simd, 0x44 );
 	__m128 t3 = _mm_shuffle_ps( a.z_axis.simd, a.origin.simd, 0xEE );
 
-	return { _mm_dot_ps(
+	vec4f r;
+	r.simd = _mm_dot_ps(
 		_mm_shuffle_ps( t0, t1, 0x88 ), b.simd,
 		_mm_shuffle_ps( t0, t1, 0xDD ), b.simd,
 		_mm_shuffle_ps( t2, t3, 0x88 ), b.simd,
-		_mm_shuffle_ps( t2, t3, 0xDD ), b.simd ) };
+		_mm_shuffle_ps( t2, t3, 0xDD ), b.simd );
+	return r;
 
 	/*return {_mm_dot_ps(b.simd, _mm_xyzw_ps(a.m[0], a.m[4], a.m[8], a.m[12]),
 						b.simd, _mm_xyzw_ps(a.m[1], a.m[5], a.m[9], a.m[13]),
@@ -447,7 +451,9 @@ union mat4x4
 [[nodiscard]] constexpr vec4f operator*( const vec4f& a, const mat4x4& b ) noexcept
 {
 #if ENABLE_INSTRUCTIONS_SSE2
-	return { SIMD_4F_DOT4( a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3] ) };
+	vec4f r;
+	r.simd = SIMD_4F_DOT4( a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3] );
+	return r;
 #else
 	// TODO
 #endif
