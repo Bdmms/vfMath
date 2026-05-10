@@ -46,14 +46,20 @@ namespace Math
 	template<typename ElementType>
 	inline constexpr static vec4<ElementType> MAX<vec4<ElementType>> = { Math::MAX<ElementType>, Math::MAX<ElementType>, Math::MAX<ElementType>, Math::MAX<ElementType> };
 
-	template<> inline constexpr static vec4f PI<vec4f> = { PI<float>, PI<float>, PI<float>, PI<float> };
-	template<> inline constexpr static vec2f PI<vec2f> = { PI<float>, PI<float> };
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> PI<vec2<ElementType>> = { Math::PI<ElementType>, Math::PI<ElementType> };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> PI<vec4<ElementType>> = { Math::PI<ElementType>, Math::PI<ElementType>, Math::PI<ElementType>, Math::PI<ElementType> };
 
-	template<> inline constexpr static vec4f TWO_PI<vec4f> = { TWO_PI<float>, TWO_PI<float>, TWO_PI<float>, TWO_PI<float> };
-	template<> inline constexpr static vec2f TWO_PI<vec2f> = { TWO_PI<float>, TWO_PI<float> };
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> TWO_PI<vec2<ElementType>> = { Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType> };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> TWO_PI<vec4<ElementType>> = { Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType> };
 
-	template<> inline constexpr static vec4f HALF_PI<vec4f> = { HALF_PI<float>, HALF_PI<float>, HALF_PI<float>, HALF_PI<float> };
-	template<> inline constexpr static vec2f HALF_PI<vec2f> = { HALF_PI<float>, HALF_PI<float> };
+	template<typename ElementType>
+	inline constexpr static vec2<ElementType> HALF_PI<vec2<ElementType>> = { Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType> };
+	template<typename ElementType>
+	inline constexpr static vec4<ElementType> HALF_PI<vec4<ElementType>> = { Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType> };
 
 	// Unit vectors for each axis
 	namespace axis
@@ -63,58 +69,32 @@ namespace Math
 		template<typename T> inline constexpr static T Z;
 		template<typename T> inline constexpr static T W;
 
-		template<> inline constexpr static vec4f X<vec4f> = { 1.0f, 0.0f, 0.0f, 0.0f };
-		template<> inline constexpr static vec4i X<vec4i> = { 1, 0, 0, 0 };
-		
 		template<typename ElementType>
 		inline constexpr static vec2<ElementType> X<vec2<ElementType>> = { Math::ONES<ElementType>, Math::ZERO<ElementType> };
-
-		template<> inline constexpr static vec4f Y<vec4f> = { 0.0f, 1.0f, 0.0f, 0.0f };
-		template<> inline constexpr static vec4i Y<vec4i> = { 0, 1, 0, 0 };
+		template<typename ElementType>
+		inline constexpr static vec4<ElementType> X<vec4<ElementType>> = { Math::ONES<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType> };
 
 		template<typename ElementType>
 		inline constexpr static vec2<ElementType> Y<vec2<ElementType>> = { Math::ZERO<ElementType>, Math::ONES<ElementType> };
+		template<typename ElementType>
+		inline constexpr static vec4<ElementType> Y<vec4<ElementType>> = { Math::ZERO<ElementType>, Math::ONES<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType> };
 
-		template<> inline constexpr static vec4f Z<vec4f> = { 0.0f, 0.0f, 1.0f, 0.0f };
-		template<> inline constexpr static vec4i Z<vec4i> = { 0, 0, 1, 0 };
+		template<typename ElementType>
+		inline constexpr static vec4<ElementType> Z<vec4<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ONES<ElementType>, Math::ZERO<ElementType> };
 
-		template<> inline constexpr static vec4f W<vec4f> = { 0.0f, 0.0f, 0.0f, 1.0f };
-		template<> inline constexpr static vec4i W<vec4i> = { 0, 0, 0, 1 };
+		template<typename ElementType>
+		inline constexpr static vec4<ElementType> W<vec4<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ONES<ElementType> };
 	};
 
 	/**
-	 * @brief Returns a composite value depending on the input condition vector
+	 * @brief Returns a composite value resulting on the lane-wise condition of the input vector.
 	 * @param input - condition input vector
 	 * @param trueVal - vector components returned on true input
 	 * @param falseVal - vector components returned on false input
 	 * @return output vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec2<ElementType> condition( const vec2<ElementType>& input, const vec2<ElementType>& trueVal, const vec2<ElementType>& falseVal )
-	{
-		return { input.x ? trueVal.x : falseVal.x, input.y ? trueVal.y : falseVal.y };
-	}
-
-	/**
-	 * @brief Returns a composite value depending on the input condition vector
-	 * @param input - condition input vector
-	 * @param trueVal - vector components returned on true input
-	 * @param falseVal - vector components returned on false input
-	 * @return output vector
-	*/
-	[[nodiscard]] static vec4f condition( const vec4f& input, const vec4f& trueVal, const vec4f& falseVal )
-	{
-		return ( input & trueVal ) | ( ( ~input ) & falseVal );
-	}
-
-	/**
-	 * @brief Returns a composite value depending on the input condition vector
-	 * @param input - condition input vector
-	 * @param trueVal - vector components returned on true input
-	 * @param falseVal - vector components returned on false input
-	 * @return output vector
-	*/
-	[[nodiscard]] static vec4i condition( const vec4i& input, const vec4i& trueVal, const vec4i& falseVal )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> condition( const vec<N, T>& input, const vec<N, T>& trueVal, const vec<N, T>& falseVal )
 	{
 		return ( input & trueVal ) | ( ( ~input ) & falseVal );
 	}
@@ -127,34 +107,8 @@ namespace Math
 	 * @param max1 - maximum of second bounds
 	 * @return Boolean vector for whether the two boundaries overlap 
 	*/
-	[[nodiscard]] static vec4f overlaps( const vec4f& min0, const vec4f& max0, const vec4f& min1, const vec4f& max1 )
-	{
-		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
-	}
-
-	/**
-	 * @brief Checks if two overlapping boundaries overlap
-	 * @param min0 - minimum of first bounds
-	 * @param max0 - maximum of first bounds
-	 * @param min1 - minimum of second bounds
-	 * @param max1 - maximum of second bounds
-	 * @return Whether the two boundaries overlap
-	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec2<ElementType> overlaps( const vec2<ElementType>& min0, const vec2<ElementType>& max0, const vec2<ElementType>& min1, const vec2<ElementType>& max1 )
-	{
-		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
-	}
-
-	/**
-	 * @brief Checks if two overlapping boundaries overlap
-	 * @param min0 - minimum of first bounds
-	 * @param max0 - maximum of first bounds
-	 * @param min1 - minimum of second bounds
-	 * @param max1 - maximum of second bounds
-	 * @return Whether the two boundaries overlap
-	*/
-	[[nodiscard]] static vec4i overlaps( const vec4i& min0, const vec4i& max0, const vec4i& min1, const vec4i& max1 )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> overlaps( const vec<N, T>& min0, const vec<N, T>& max0, const vec<N, T>& min1, const vec<N, T>& max1 )
 	{
 		return ( min0 >= min1 && min0 <= max1 ) || ( min1 >= min0 && min1 <= max0 );
 	}
@@ -165,7 +119,7 @@ namespace Math
 	 * @param b - second bound range
 	 * @return Whether the boundaries overlap
 	*/
-	static bool overlaps3D( const Bounds<vec4f>& a, const Bounds<vec4f>& b )
+	constexpr bool overlaps3D( const Bounds<vec4f>& a, const Bounds<vec4f>& b )
 	{
 		vec4f result = overlaps( a.min, a.max, b.min, b.max );
 		return result.x && result.y && result.z;
@@ -177,21 +131,10 @@ namespace Math
 	 * @param b - second bound range
 	 * @return Whether the boundaries overlap
 	*/
-	static bool overlaps3D( const Bounds<vec4i>& a, const Bounds<vec4i>& b )
+	constexpr bool overlaps3D( const Bounds<vec4i>& a, const Bounds<vec4i>& b )
 	{
 		vec4i result = overlaps( a.min, a.max, b.min, b.max );
 		return result.x && result.y && result.z;
-	}
-
-	/**
-	 * @brief Re-maps the components of the vector using the specified swizzle code
-	 * @param v - vector
-	 * @return swizzled vector
-	*/
-	template <unsigned int swizzle>
-	[[nodiscard]] constexpr vec4f map( const vec4f& v )
-	{
-		return { SIMD_4F_PERMUTE( v.simd, swizzle ) };
 	}
 
 	/**
@@ -200,8 +143,8 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr ElementType dot( const vec2<ElementType>& a, const vec2<ElementType>& b )
+	template<typename T>
+	[[nodiscard]] constexpr T dot( const vec2<T>& a, const vec2<T>& b )
 	{
 		return a.x * b.x + a.y * b.y;
 	}
@@ -212,18 +155,8 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot( const vec4f& a, const vec4f& b )
-	{
-		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-	}
-
-	/**
-	 * @brief Calculates the 4D dot product of this vector with another vector
-	 * @param a - first vector
-	 * @param b - second vector
-	 * @return dot product result
-	*/
-	[[nodiscard]] constexpr int dot( const vec4i& a, const vec4i& b )
+	template<typename T>
+	[[nodiscard]] constexpr T dot( const vec4<T>& a, const vec4<T>& b )
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 	}
@@ -234,18 +167,8 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot_3D( const vec4f& a, const vec4f& b )
-	{
-		return a.x * b.x + a.y * b.y + a.z * b.z;
-	}
-
-	/**
-	 * @brief Calculates the 3D dot product of this vector with another vector
-	 * @param a - first vector
-	 * @param b - second vector
-	 * @return dot product result
-	*/
-	[[nodiscard]] constexpr int dot_3D( const vec4i& a, const vec4i& b )
+	template<typename T>
+	[[nodiscard]] constexpr T dot_3D( const vec4<T>& a, const vec4<T>& b )
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
@@ -256,14 +179,14 @@ namespace Math
 	 * @param b - second vector
 	 * @return cross product of the two vectors
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec3f cross( const vec2<ElementType>& a, const vec2<ElementType>& b )
+	template<typename T>
+	[[nodiscard]] constexpr vec4<T> cross( const vec2<T>& a, const vec2<T>& b )
 	{
 		return { 
-			Math::ZERO<ElementType>, 
-			Math::ZERO<ElementType>, 
+			Math::ZERO<T>, 
+			Math::ZERO<T>, 
 			a.x * b.y - a.y * b.x, 
-			Math::ZERO<ElementType> 
+			Math::ZERO<T> 
 		};
 	}
 
@@ -273,13 +196,14 @@ namespace Math
 	 * @param b - second vector
 	 * @return cross product of the two vectors
 	*/
-	[[nodiscard]] constexpr vec3f cross( const vec3f& a, const vec3f& b )
+	template<typename T>
+	[[nodiscard]] constexpr vec4<T> cross( const vec4<T>& a, const vec4<T>& b )
 	{
 		return {
 			a.y * b.z - a.z * b.y,
 			a.z * b.x - a.x * b.z,
 			a.x * b.y - a.y * b.x,
-			Math::ZERO<f32>
+			Math::ZERO<T>
 		};
 	}
 
@@ -287,8 +211,8 @@ namespace Math
 	 * @brief Calculates the squared length of the vector
 	 * @return squared length of the vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr ElementType length2( const vec2<ElementType>& v )
+	template<typename T>
+	[[nodiscard]] constexpr T length2( const vec2<T>& v )
 	{
 		return v.x * v.x + v.y * v.y;
 	}
@@ -297,16 +221,8 @@ namespace Math
 	 * @brief Calculates the squared length of the vector
 	 * @return squared length of the vector
 	*/
-	[[nodiscard]] constexpr float length2( const vec4f& v )
-	{
-		return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
-	}
-
-	/**
-	 * @brief Calculates the squared length of the vector
-	 * @return squared length of the vector
-	*/
-	[[nodiscard]] constexpr int length2( const vec4i& v )
+	template<typename T>
+	[[nodiscard]] constexpr T length2( const vec4<T>& v )
 	{
 		return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
 	}
@@ -315,8 +231,8 @@ namespace Math
 	 * @brief Calculates the length of the vector
 	 * @return length of the vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] static ElementType length( const vec2<ElementType>& v ) noexcept
+	template<typename T>
+	[[nodiscard]] static T length( const vec2<T>& v ) noexcept
 	{
 		return sqrt( v.x * v.x + v.y * v.y );
 	}
@@ -325,37 +241,22 @@ namespace Math
 	 * @brief Calculates the length of the vector
 	 * @return length of the vector
 	*/
-	[[nodiscard]] static float length( const vec4f& v ) noexcept
+	template<typename T>
+	[[nodiscard]] static T length( const vec4<T>& v ) noexcept
 	{
-		return sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
+		return sqrt( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
 	}
 
 	/**
-	 * @brief Calculates the unit 2D vector. Returns zero vector if length is zero.
+	 * @brief Calculates the unit vector. Returns zero vector if length is zero.
 	 * @param v - vector
 	 * @return normalized vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] static vec2<ElementType> normalize( const vec2<ElementType>& v )
+	template<size_t N, typename T>
+	[[nodiscard]] static vec<N, T> normalize( const vec<N, T>& v )
 	{
-		ElementType vLength = length( v );
-		if( vLength == Math::ZERO<ElementType> ) return Math::ZERO<vec2<ElementType>>;
-		return v / vLength;
-	}
-
-	/**
-	 * @brief Calculates the unit 3D/4D vector. Returns zero vector if length is zero.
-	 * @param v - vector
-	 * @return normalized vector
-	*/
-	[[nodiscard]] static vec4f normalize( const vec4f& v )
-	{
-		//__m128 product = _mm_mul_ps(v.simd, v.simd);
-		//__m128 half = _mm_hadd_ps( product, product );
-		//return { _mm_mul_ps( v.simd, _mm_invsqrt_ps( _mm_hadd_ps( half, half ) ) ) };
-
-		float vLength = sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
-		if( vLength == 0.0f ) return Math::ZERO<vec4f>;
+		T vLength = length( v );
+		if( vLength == Math::ZERO<T> ) return Math::ZERO<vec<N, T>>;
 		return v / vLength;
 	}
 
@@ -365,19 +266,8 @@ namespace Math
 	 * @param b - second vector
 	 * @return squared distance
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr ElementType distance2( const vec2<ElementType>& a, const vec2<ElementType>& b )
-	{
-		return length2( a - b );
-	}
-
-	/**
-	 * @brief Calculates the squared distance between vectors
-	 * @param a - first vector
-	 * @param b - second vector
-	 * @return squared distance
-	*/
-	[[nodiscard]] constexpr float distance2( const vec4f& a, const vec4f& b )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr T distance2( const vec<N, T>& a, const vec<N, T>& b )
 	{
 		return length2( a - b );
 	}
@@ -388,21 +278,10 @@ namespace Math
 	 * @param b - second vector
 	 * @return distance
 	*/
-	template<typename ElementType>
-	[[nodiscard]] static ElementType distance( const vec2<ElementType>& a, const vec2<ElementType>& b )
+	template<size_t N, typename T>
+	[[nodiscard]] static T distance( const vec<N, T>& a, const vec<N, T>& b )
 	{
 		return sqrt( distance2( a, b ) );
-	}
-
-	/**
-	 * @brief Calculates the distance between vectors
-	 * @param a - first vector
-	 * @param b - second vector
-	 * @return distance
-	*/
-	[[nodiscard]] static float distance( const vec4f& a, const vec4f& b )
-	{
-		return sqrtf( distance2( a, b ) );
 	}
 
 	/**
@@ -424,7 +303,7 @@ namespace Math
 	*/
 	template<typename T> [[nodiscard]] constexpr T reflect( const T& a, const T& b )
 	{
-		return a - b * dot( a, b ) * 2.0f;
+		return a - b * dot( a, b ) * 2.0f; // TODO: Constant floating point value
 	}
 
 	/**
@@ -475,17 +354,8 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec2f floor( const vec2f v )
-	{
-		return { floorf( v.x ), floorf( v.y ) };
-	}
-
-	/**
-	 * @brief Rounds the vector down
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f floor( vec4f v )
+	template<size_t N, typename T>
+	[[nodiscard]] static vec<N, T> floor( vec<N, T> v )
 	{
 		vf::simd::floor( v, v );
 		return v;
@@ -496,17 +366,8 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec2f ceil( const vec2f v )
-	{
-		return { ceilf( v.x ), ceilf( v.y ) };
-	}
-
-	/**
-	 * @brief Rounds the vector up
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f ceil( vec4f v )
+	template<size_t N, typename T>
+	[[nodiscard]] static vec<N, T> ceil( vec<N, T> v )
 	{
 		vf::simd::ceil( v, v );
 		return v;
@@ -517,17 +378,8 @@ namespace Math
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	[[nodiscard]] static vec2f round( const vec2f v )
-	{
-		return { roundf( v.x ), roundf( v.y ) };
-	}
-
-	/**
-	 * @brief Rounds the vector to the closest integer
-	 * @param a - vector
-	 * @return rounded vector
-	*/
-	[[nodiscard]] static vec4f round( vec4f v )
+	template<size_t N, typename T>
+	[[nodiscard]] static vec<N, T> round( vec<N, T> v )
 	{
 		vf::simd::round( v, v );
 		return v;
@@ -535,20 +387,11 @@ namespace Math
 
 	/**
 	 * @brief Calculates the square root of a vector
-	 * @param a - vector
-	 * @return square root vector
-	*/
-	[[nodiscard]] static vec2f sqrt( const vec2f a )
-	{
-		return { sqrtf( a.x ), sqrtf( a.y ) };
-	}
-
-	/**
-	 * @brief Calculates the square root of a vector
 	 * @param v - vector
 	 * @return square root vector
 	*/
-	[[nodiscard]] static vec4f sqrt( vec4f v )
+	template<size_t N, typename T>
+	[[nodiscard]] static vec<N, T> sqrt( vec<N, T> v )
 	{
 		vf::simd::sqrt( v, v );
 		return v;
@@ -559,30 +402,10 @@ namespace Math
 	 * @param a - vector
 	 * @return absolute vector
 	*/
-	template<typename ElementType>
-	[[nodiscard]] static vec2<ElementType> abs( const vec2<ElementType>& a )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> abs( const vec<N, T>& a )
 	{
-		return { abs( a.x ), abs( a.y ) };
-	}
-
-	/**
-	 * @brief Calculates the absolute of a vector
-	 * @param a - vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] static vec4f abs( const vec4f& a )
-	{
-		return condition( a >= ZERO<vec4f>, a, -a );
-	}
-
-	/**
-	 * @brief Calculates the absolute of a vector
-	 * @param a - vector
-	 * @return absolute vector
-	*/
-	[[nodiscard]] static vec4i abs( const vec4i& a )
-	{
-		return condition( a >= ZERO<vec4i>, a, -a );
+		return condition( a >= ZERO<vec<N, T>>, a, -a );
 	}
 
 	/**
@@ -590,30 +413,10 @@ namespace Math
 	 * @param vector - vector components
 	 * @return sign of the vector components
 	*/
-	template<typename ElementType>
-	[[nodiscard]] constexpr vec2<ElementType> sign( const vec2<ElementType>& vector )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr vec<N, T> sign( const vec<N, T>& vector )
 	{
-		return { Math::sign( vector.x ), Math::sign( vector.y ) };
-	}
-
-	/**
-	 * @brief Determines the sign of the vector's components in the form of 1.0 or -1.0
-	 * @param vector - vector components
-	 * @return sign of the vector components
-	*/
-	[[nodiscard]] static vec4f sign( const vec4f& vector )
-	{
-		return Math::condition( vector >= Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::NEGATIVE<vec4f> );
-	}
-
-	/**
-	 * @brief Determines the sign of the vector's components in the form of 1 or -1
-	 * @param vector - vector components
-	 * @return sign of the vector components
-	*/
-	[[nodiscard]] static vec4i sign( const vec4i& vector )
-	{
-		return Math::condition( vector >= Math::ZERO<vec4i>, Math::ONES<vec4i>, Math::NEGATIVE<vec4i> );
+		return Math::condition( vector >= Math::ZERO<vec<N, T>>, Math::ONES<vec<N, T>>, Math::NEGATIVE<vec<N, T>> );
 	}
 
 	/**
@@ -711,7 +514,8 @@ namespace Math
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
 	*/
-	[[nodiscard]] constexpr vec2f orthogonal( const vec2f vector )
+	template<typename T>
+	[[nodiscard]] constexpr vec2<T> orthogonal( const vec2<T>& vector )
 	{
 		return { vector.y, -vector.x };
 	}
@@ -721,11 +525,13 @@ namespace Math
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
 	*/
-	[[nodiscard]] static vec3f orthogonal( const vec3f& vector )
+	template<typename T>
+	[[nodiscard]] static vec4<T> orthogonal( const vec4<T>& vector )
 	{
-		return fabsf( dot_3D( Math::axis::X<vec3f>, vector ) ) > 0.9f ?
-			Math::normalize( Math::cross( vector, Math::axis::Z<vec3f> ) ) :
-			Math::normalize( Math::cross( vector, Math::axis::X<vec3f> ) );
+		// TODO: This is a 3D vector operation, not a 4D vector
+		return fabsf( dot_3D( Math::axis::X<vec4<T>>, vector ) ) > 0.9f ?
+			Math::normalize( Math::cross( vector, Math::axis::Z<vec4<T>> ) ) :
+			Math::normalize( Math::cross( vector, Math::axis::X<vec4<T>> ) );
 	}
 
 	/**
@@ -734,8 +540,10 @@ namespace Math
 	 * @param direction - direction vector (normalized)
 	 * @return vector orthogonal to direction
 	*/
-	[[nodiscard]] constexpr vec3f orthogonal( const vec3f& vector, const vec3f& direction )
+	template<typename T>
+	[[nodiscard]] constexpr vec4<T> orthogonal( const vec4<T>& vector, const vec4<T>& direction )
 	{
+		// TODO: This is a 3D vector operation, not a 4D vector
 		return vector - direction * dot_3D( vector, direction );
 	}
 
@@ -746,11 +554,12 @@ namespace Math
 	 * @param t - weight
 	 * @return weighted vector
 	*/
-	template<> [[nodiscard]] constexpr vec4f lerp<vec4f>( const vec4f& a, const vec4f& b, const float t )
+	template<size_t N, typename T> 
+	[[nodiscard]] constexpr vec<N, T> lerp( const vec<N, T>& a, const vec<N, T>& b, const float t )
 	{
-		vec4f r;
+		vec<N, T> r;
 		vf::simd::sub( r, b, a );
-		vf::simd::fmadd( r, r, vf::simd::set1<4, f32>( t ), a );
+		vf::simd::fmadd( r, r, vf::simd::set1<N, T>( t ), a );
 		return r;
 	}
 

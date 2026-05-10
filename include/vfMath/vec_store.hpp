@@ -62,10 +62,6 @@ struct VectorStorage<4LLU, f32>
 		struct { f32 x, y, z, w; };
 		__m128 simd;
 	};
-
-	constexpr VectorStorage( float x = 0, float y = 0, float z = 0, float w = 0 ) : elements{ x, y, z, w } {}
-	constexpr VectorStorage( const VectorStorage& copy ) : elements( copy.elements ) {}
-	constexpr VectorStorage( const __m128& copy ) : simd( copy ) {}
 };
 
 #endif

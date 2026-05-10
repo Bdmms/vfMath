@@ -165,6 +165,8 @@ VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_GT, vf::simd::cmpgt );
 template <typename T>
 using vec2 = vec<2, T>;
 template <typename T>
+using vec3 = vec<3, T>;
+template <typename T>
 using vec4 = vec<4, T>;
 
 typedef vec2<f32> vec2f;
@@ -192,6 +194,7 @@ typedef vec4<i16> vec4i16;
 typedef vec4<i32> vec4i32;
 typedef vec4<i64> vec4i64;
 
+// TODO: Temporary until true 3D vectors are implemented
 typedef vec4i vec3i;
 typedef vec4f vec3f;
 
