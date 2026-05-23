@@ -93,8 +93,7 @@ namespace Math
 		return {
 			atan2f( 2.0f * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
 			asinf( std::clamp( -2.0f * ( q.x * q.z - q.w * q.y ), -1.0f, 1.0f ) ),
-			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z ),
-			0.0f
+			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z )
 		};
 	}
 

@@ -44,8 +44,7 @@ namespace Math
 		return {
 			atan2f( 2.0f * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
 			asinf( std::clamp( -2.0f * ( q.x * q.z - q.w * q.y ), -1.0f, 1.0f ) ),
-			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z ),
-			0.0f
+			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z )
 		};
 	}
 
@@ -59,7 +58,7 @@ namespace Math
 	template<> [[nodiscard]] static eulerf32 rotationBetween( const vec3f& from, const vec3f& to )
 	{
 		float product = dot_3D( from, to );
-		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
+		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f };
 		if( product < -0.999999f ) return rotationAround<eulerf32>( orthogonal( from ), Math::PI<float> );
 		return rotationAround<eulerf32>( normalize( cross( from, to ) ), acosf( product ) );
 	}

@@ -52,10 +52,7 @@ struct quat : public VectorStorage<4, float>
 	constexpr quat() : Storage{} {}
 
 	// Initializing List
-	constexpr quat( const std::initializer_list<T>& list ) : Storage{}
-	{
-		std::copy( list.begin(), list.end(), Storage::elements.data() );
-	}
+	constexpr quat( T x, T y, T z, T w ) : Storage{ x, y, z, w } {}
 
 	// TODO: Temp Constructor
 	constexpr quat( const __m128& copy ) : Storage() { simd = copy; }

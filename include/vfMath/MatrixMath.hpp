@@ -429,7 +429,7 @@ namespace Math
 	static void decompose( const mat4f& matrix, vec4f& position, quat& rotation, vec3f& scale )
 	{
 		scale = Math::parallel::length( matrix.x_axis, matrix.y_axis, matrix.z_axis );
-		rotation = toQuat( { matrix.x_axis / scale.x, matrix.y_axis / scale.y, matrix.z_axis / scale.z, Math::axis::W<vec4f> } );
+		rotation = toQuat( mat4f{ matrix.x_axis / scale.x, matrix.y_axis / scale.y, matrix.z_axis / scale.z, Math::axis::W<vec4f> } );
 		position = matrix.origin;
 	}
 

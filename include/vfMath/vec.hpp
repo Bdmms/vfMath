@@ -1,6 +1,6 @@
 #pragma once
-#ifndef VF_VEC_HPP
-#define VF_VEC_HPP
+#ifndef VF_VECTOR_HPP
+#define VF_VECTOR_HPP
 
 #include "swizzle.hpp"
 #include "primitives.hpp"
@@ -10,6 +10,8 @@
 #include <immintrin.h>
 #include <memory>
 #include <bit>
+#include <type_traits>
+#include <utility>
 
 /**
  * @brief Generalized vector type with built-in vector operations.
@@ -23,13 +25,12 @@ struct vec : public VectorStorage<N, T>
 	constexpr vec() : Storage{} {}
 
 	// Initializing List
-	constexpr vec( const std::initializer_list<T>& list ) : Storage{} 
-	{
-		std::copy( list.begin(), list.end(), Storage::elements.data() );
-	}
+	template<typename ... Args, typename = std::enable_if_t<( 1LLU < sizeof...( Args ) ) && ( sizeof...( Args ) <= N )>> // ( std::is_constructible_v<T, Args&&> && ... )
+	constexpr vec( Args&& ... args ) : Storage{ std::forward<Args>( args )... } {}
 
 	// Copy Constructor
-	constexpr vec( const vec<N, T>& copy ) : Storage( copy ) {}
+	constexpr vec( const vec<N, T>& copy ) = default;
+	constexpr vec& operator=( const vec& copy ) = default;
 
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }

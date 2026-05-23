@@ -15,10 +15,7 @@ struct euler : public VectorStorage<3, T>
 	constexpr euler() : Storage{} {}
 
 	// Initializing List
-	constexpr euler( const std::initializer_list<T>& list ) : Storage{}
-	{
-		std::copy( list.begin(), list.end(), Storage::elements.data() );
-	}
+	constexpr euler( T x, T y, T z ) : Storage{ x, y, z } {}
 
 	// Copy Constructor
 	constexpr euler( const euler& copy ) : Storage( copy ) {}
