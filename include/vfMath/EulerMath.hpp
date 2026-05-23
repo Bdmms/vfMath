@@ -70,9 +70,9 @@ namespace Math
 	 * @return angle in radians
 	*/
 	template<typename T>
-	[[nodiscard]] static euler<T> toRadians( const euler<T>& degrees )
+	[[nodiscard]] constexpr euler<T> toRadians( const euler<T>& degrees )
 	{
-		return degrees * ( Math::PI<float> / 180.0f );
+		return degrees * ( Math::PI<T> / 180.0f ); // TODO: Constant floating-point value
 	}
 
 	/**
@@ -81,9 +81,9 @@ namespace Math
 	 * @return angle in degrees
 	*/
 	template<typename T>
-	[[nodiscard]] static euler<T> toDegrees( const euler<T>& radians )
+	[[nodiscard]] constexpr euler<T> toDegrees( const euler<T>& radians )
 	{
-		return radians * ( 180.0f / Math::PI<float> );
+		return radians * ( 180.0f / Math::PI<T> ); // TODO: Constant floating-point value
 	}
 
 	/**

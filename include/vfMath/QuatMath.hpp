@@ -3,10 +3,7 @@
 #define VF_QUAT_MATH_HPP
 
 #include "EulerMath.hpp"
-
 #include "quaternion.hpp"
-
-typedef quat (*QuatInterpolator)(const quat& a, const quat& b, const float weight);
 
 /**
  * @brief Utilities for quaternions

@@ -4,61 +4,97 @@
 
 #include "vec.hpp"
 
-static __m128 _mm_hamilton_ps( const __m128& q0, const __m128& q1 )
+namespace vf::simd
 {
-	constexpr static __m128 mskx = { 1.0f,  1.0f, -1.0f, 1.0f };
-	constexpr static __m128 msky = { -1.0f,  1.0f,  1.0f, 1.0f };
-	constexpr static __m128 mskz = { 1.0f, -1.0f,  1.0f, 1.0f };
-	constexpr static __m128 mskw = { -1.0f, -1.0f, -1.0f, 1.0f };
+	namespace compile_time
+	{
+		template<typename T>
+		constexpr void hamilton_product( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, const VectorStorage<4, T>& b )
+		{
+			r.x =  a.x * b.w + a.y * b.z - a.z * b.y + a.w * b.x;
+			r.y = -a.x * b.z + a.y * b.w + a.z * b.x + a.w * b.y;
+			r.z =  a.x * b.y - a.y * b.x + a.z * b.w + a.w * b.z;
+			r.w = -a.x * b.x - a.y * b.y - a.z * b.z + a.w * b.w;
+		}
+	}
 
-	return _mm_dot_ps(
-		_mm_mul_ps( q0, mskx ), _mm_permute_ps( q1, swizzle::WZYX ),
-		_mm_mul_ps( q0, msky ), _mm_permute_ps( q1, swizzle::ZWXY ),
-		_mm_mul_ps( q0, mskz ), _mm_permute_ps( q1, swizzle::YXWZ ),
-		_mm_mul_ps( q0, mskw ), _mm_permute_ps( q1, swizzle::XYZW )
-	);
+	template<typename T>
+	constexpr void hamilton_product( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, const VectorStorage<4, T>& b )
+	{
+		compile_time::hamilton_product( r, a, b );
+	}
 
-	/*
-	return {
-		 q0.x * q1.w + q0.y * q1.z - q0.z * q1.y + q0.w * q1.x,
-		-q0.x * q1.z + q0.y * q1.w + q0.z * q1.x + q0.w * q1.y,
-		 q0.x * q1.y - q0.y * q1.x + q0.z * q1.w + q0.w * q1.z,
-		-q0.x * q1.x - q0.y * q1.y - q0.z * q1.z + q0.w * q1.w
-	};*/
+	template<>
+	constexpr void hamilton_product( simd4f32& r, const simd4f32& a, const simd4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return hamilton_product( r, a, b );
+
+		constexpr static __m128 mskx = { 1.0f,  1.0f, -1.0f, 1.0f };
+		constexpr static __m128 msky = { -1.0f,  1.0f,  1.0f, 1.0f };
+		constexpr static __m128 mskz = { 1.0f, -1.0f,  1.0f, 1.0f };
+		constexpr static __m128 mskw = { -1.0f, -1.0f, -1.0f, 1.0f };
+
+		r.simd = _mm_dot_ps(
+			_mm_mul_ps( a.simd, mskx ), _mm_permute_ps( b.simd, swizzle::WZYX ),
+			_mm_mul_ps( a.simd, msky ), _mm_permute_ps( b.simd, swizzle::ZWXY ),
+			_mm_mul_ps( a.simd, mskz ), _mm_permute_ps( b.simd, swizzle::YXWZ ),
+			_mm_mul_ps( a.simd, mskw ), _mm_permute_ps( b.simd, swizzle::XYZW )
+		);
+	}
 }
 
-union quat
+struct quat : public VectorStorage<4, float>
 {
-	using ElementType = float;
-	static constexpr uint32_t ElementSize = 4u;
+	using Storage = VectorStorage<4, float>;
+	using T = float;
 
-	__m128 simd;
-	float v[4];
-	struct { float x, y, z, w; };
+	// Default Constuctor
+	constexpr quat() : Storage{} {}
 
-	constexpr float* data() { return v; }
-	constexpr const float* data() const { return v; }
-	constexpr size_t size() { return 4LLU; }
+	// Initializing List
+	constexpr quat( const std::initializer_list<T>& list ) : Storage{}
+	{
+		std::copy( list.begin(), list.end(), Storage::elements.data() );
+	}
+
+	// TODO: Temp Constructor
+	constexpr quat( const __m128& copy ) : Storage() { simd = copy; }
+
+	// Copy Constructor
+	constexpr quat( const quat& copy ) : Storage( copy ) {}
+
+	// Container Operations
+	constexpr T* data() { return Storage::elements.data(); }
+	constexpr const T* data() const { return Storage::elements.data(); }
+	constexpr size_t size() { return Storage::elements.size(); }
 
 	// Array Operators
-	constexpr float operator[]( uint32_t i ) const { return v[i]; }
-	constexpr float& operator[]( uint32_t i ) { return v[i]; }
+	constexpr T operator[]( size_t i ) const { return Storage::elements[i]; }
+	constexpr T& operator[]( size_t i ) { return Storage::elements[i]; }
 
 	// Arithmetic Operators
-	quat& operator+=( const quat& b ) noexcept { simd = _mm_add_ps( simd, b.simd ); return *this; }
-	quat& operator-=( const quat& b ) noexcept { simd = _mm_sub_ps( simd, b.simd ); return *this; }
-	quat& operator*=( const quat& b ) noexcept { simd = _mm_hamilton_ps( simd, b.simd ); return *this; }
-	quat& operator*=( const float b ) noexcept { simd = _mm_mul_ps( simd, _mm_set1_ps( b ) ); return *this; }
-	quat& operator/=( const float b ) noexcept { simd = _mm_div_ps( simd, _mm_set1_ps( b ) ); return *this; }
+	constexpr quat& operator+=( const quat& rhs ) noexcept { vf::simd::add<4, T>( *this, *this, rhs ); return *this; }
+	constexpr quat& operator-=( const quat& rhs ) noexcept { vf::simd::sub<4, T>( *this, *this, rhs ); return *this; }
+	constexpr quat& operator*=( const quat& rhs ) noexcept { vf::simd::hamilton_product<T>( *this, *this, rhs ); return *this; }
+
+	constexpr quat& operator+=( T rhs ) noexcept { vf::simd::add<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
+	constexpr quat& operator-=( T rhs ) noexcept { vf::simd::sub<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
+	constexpr quat& operator*=( T rhs ) noexcept { vf::simd::mul<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
+	constexpr quat& operator/=( T rhs ) noexcept { vf::simd::div<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
 
 	// Unary Operators
-	[[nodiscard]] quat operator-() const { return quat{ _mm_mul_ps( simd, _mm_set1_ps( -1.0f ) ) }; }
+	[[nodiscard]] constexpr quat operator-() const
+	{
+		quat r;
+		vf::simd::negate<4, T>( r, *this );
+		return r;
+	}
 
 	/**
 	 * @brief Calculates the squared norm of the quaternion
 	 * @return squared norm of the quaternion
 	*/
-	[[nodiscard]] constexpr float norm2() const noexcept
+	[[nodiscard]] constexpr T norm2() const noexcept
 	{
 		return x * x + y * y + z * z + w * w;
 	}
@@ -67,28 +103,43 @@ union quat
 	 * @brief Calculates the norm of the quaternion
 	 * @return norm of the quaternion
 	*/
-	[[nodiscard]] float norm() const noexcept
+	[[nodiscard]] T norm() const noexcept
 	{
-		return sqrtf( x * x + y * y + z * z + w * w );
+		return sqrt( x * x + y * y + z * z + w * w );
 	}
 
 	/**
 	 * @brief Calculates the inverse of the quaternion
 	 * @return inverse of the quaternion
 	*/
-	[[nodiscard]] quat inverse() const noexcept
+	[[nodiscard]] constexpr quat inverse() const noexcept
 	{
-		return { _mm_mul_ps( simd, _mm_xyzw_ps( -1.0f, -1.0f, -1.0f, 1.0f ) ) };
+		quat r{ -1.0f, -1.0f, -1.0f, 1.0f };
+		vf::simd::mul( r, r, *this );
+		return r;
 	}
 };
 
-// Arithmetic Operators
-[[nodiscard]] static quat operator+( const quat& a, const quat& b ) noexcept { return { _mm_add_ps( a.simd, b.simd ) }; }
-[[nodiscard]] static quat operator-( const quat& a, const quat& b ) noexcept { return { _mm_sub_ps( a.simd, b.simd ) }; }
-[[nodiscard]] static quat operator*( const quat& a, const quat& b ) noexcept { return { _mm_hamilton_ps( a.simd, b.simd ) }; }
+#define VF_QUAT quat
 
-[[nodiscard]] static quat operator*( const quat& a, const float b ) noexcept { return { _mm_mul_ps( a.simd, _mm_set1_ps( b ) ) }; }
-[[nodiscard]] static quat operator/( const quat& a, const float b ) noexcept { return { _mm_div_ps( a.simd, _mm_set1_ps( b ) ) }; }
-[[nodiscard]] static quat operator*( const float a, const quat& b ) noexcept { return { _mm_mul_ps( _mm_set1_ps( a ), b.simd ) }; }
+#define VF_QUAT_OPERATOR_HEAD( Op ) [[nodiscard]] constexpr VF_QUAT operator##Op
+#define VF_QUAT_OPERATOR_QUAT_QUAT( Op, Func )   VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const VF_QUAT& b )  noexcept { VF_QUAT r; Func( r, a, b ); return r; }
+#define VF_QUAT_OPERATOR_QUAT_SCALAR( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const f32& b ) noexcept { VF_QUAT r; Func( r, a, vf::simd::set1<4,f32>( b ) ); return r; }
+#define VF_QUAT_OPERATOR_SCALAR_QUAT( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const f32& a, const VF_QUAT& b ) noexcept { VF_QUAT r; Func( r, vf::simd::set1<4,f32>( a ), b ); return r; }
+
+// Non-Member Arithmetic Operators
+
+VF_QUAT_OPERATOR_QUAT_QUAT( +, vf::simd::add );
+VF_QUAT_OPERATOR_QUAT_QUAT( -, vf::simd::sub );
+VF_QUAT_OPERATOR_QUAT_QUAT( *, vf::simd::hamilton_product );
+
+VF_QUAT_OPERATOR_QUAT_SCALAR( +, vf::simd::add );
+VF_QUAT_OPERATOR_QUAT_SCALAR( -, vf::simd::sub );
+VF_QUAT_OPERATOR_QUAT_SCALAR( *, vf::simd::mul );
+VF_QUAT_OPERATOR_QUAT_SCALAR( / , vf::simd::div );
+
+VF_QUAT_OPERATOR_SCALAR_QUAT( +, vf::simd::add );
+VF_QUAT_OPERATOR_SCALAR_QUAT( -, vf::simd::sub );
+VF_QUAT_OPERATOR_SCALAR_QUAT( *, vf::simd::mul );
 
 #endif
