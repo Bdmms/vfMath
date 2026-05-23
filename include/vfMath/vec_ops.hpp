@@ -23,9 +23,8 @@ namespace vf::simd
 	namespace compile_time
 	{
 		template<size_t N, typename T>
-		constexpr VectorStorage<N, T> set1( T value )
+		constexpr VectorStorage<N, T>& set1( VectorStorage<N, T>& r, T value )
 		{
-			VectorStorage<N, T> r;
 			for( size_t i = 0LLU; i < N; ++i )
 			{
 				r.elements[i] = value;
@@ -171,6 +170,17 @@ namespace vf::simd
 			r.elements[2] = a.elements[( b & 0x30 ) >> 4];
 			r.elements[3] = a.elements[( b & 0xC0 ) >> 6];
 		}
+
+		template<size_t N, typename T>
+		[[nodiscard]] constexpr T dot( const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+		{
+			T r{};
+			for( size_t i = 0LLU; i < N; ++i )
+			{
+				r += a.elements[i] * b.elements[i];
+			}
+			return r;
+		}
 	}
 
 	template<size_t N, typename T>
@@ -179,9 +189,37 @@ namespace vf::simd
 	// Default Operations
 
 	template<size_t N, typename T>
-	constexpr VectorStorage<N, T> set1( T value )
+	[[nodiscard]] constexpr VectorStorage<N, T> set1( T value )
 	{
-		return compile_time::set1<N, T>( value );
+		VectorStorage<N, T> r;
+		return compile_time::set1<N, T>( r, value );
+	}
+
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr T dot( const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+	{
+		return compile_time::dot( a, b );
+	}
+
+	template<typename T>
+	[[nodiscard]] constexpr T dot( const VectorStorage<2, T>& a, const VectorStorage<2, T>& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::dot( a, b );
+		return a.x * b.x + a.y * b.y;
+	}
+
+	template<typename T>
+	[[nodiscard]] constexpr T dot( const VectorStorage<3, T>& a, const VectorStorage<3, T>& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::dot( a, b );
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
+	template<typename T>
+	[[nodiscard]] constexpr T dot( const VectorStorage<4, T>& a, const VectorStorage<4, T>& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::dot( a, b );
+		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 	}
 
 	template<size_t N, typename T>
@@ -352,8 +390,8 @@ namespace vf::simd
 	template<>
 	constexpr simd4f32 set1( f32 value )
 	{
-		if( std::is_constant_evaluated() ) return compile_time::set1<4, f32>( value );
 		simd4f32 r;
+		if( std::is_constant_evaluated() ) return compile_time::set1<4, f32>( r, value );
 		r.simd = _mm_set1_ps( value );
 		return r;
 	}
@@ -515,8 +553,8 @@ namespace vf::simd
 	template<>
 	constexpr simd4i32 set1( i32 value )
 	{
-		if( std::is_constant_evaluated() ) return compile_time::set1<4, i32>( value );
 		simd4i32 r;
+		if( std::is_constant_evaluated() ) return compile_time::set1<4, i32>( r, value );
 		r.simd = _mm_set1_epi32( value );
 		return r;
 	}

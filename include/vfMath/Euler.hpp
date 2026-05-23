@@ -26,7 +26,7 @@ struct euler : public VectorStorage<3, T>
 	constexpr size_t size() { return Storage::elements.size(); }
 
 	// Array Operators
-	constexpr T operator[]( size_t i ) const { return Storage::elements[i]; }
+	constexpr const T& operator[]( size_t i ) const { return Storage::elements[i]; }
 	constexpr T& operator[]( size_t i ) { return Storage::elements[i]; }
 
 	// Unary Operators

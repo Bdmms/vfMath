@@ -138,27 +138,15 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the 2D dot product of this vector with another vector
+	 * @brief Calculates the N-dimensional dot product of this vector with another vector
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	template<typename T>
-	[[nodiscard]] constexpr T dot( const vec2<T>& a, const vec2<T>& b )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr T dot( const vec<N, T>& a, const vec<N, T>& b )
 	{
-		return a.x * b.x + a.y * b.y;
-	}
-
-	/**
-	 * @brief Calculates the 4D dot product of this vector with another vector
-	 * @param a - first vector
-	 * @param b - second vector
-	 * @return dot product result
-	*/
-	template<typename T>
-	[[nodiscard]] constexpr T dot( const vec4<T>& a, const vec4<T>& b )
-	{
-		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+		return vf::simd::dot( a, b );
 	}
 
 	/**

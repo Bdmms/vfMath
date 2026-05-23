@@ -200,9 +200,6 @@ union mat4x4
 		return *this;
 	}
 
-	// Conversions
-	[[nodiscard]] operator mat2x2() const;
-
 	/**
 	 * @brief Calculates the determinant of this matrix
 	 * @return determinant

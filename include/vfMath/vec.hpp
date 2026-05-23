@@ -38,7 +38,7 @@ struct vec : public VectorStorage<N, T>
 	constexpr size_t size() { return Storage::elements.size(); }
 
 	// Array Operators
-	constexpr T operator[]( size_t i ) const { return Storage::elements[i]; }
+	constexpr const T& operator[]( size_t i ) const { return Storage::elements[i]; }
 	constexpr T& operator[]( size_t i ) { return Storage::elements[i]; }
 
 	// Unary Operators
@@ -193,7 +193,7 @@ typedef vec4<i64> vec4i64;
 typedef vec4i vec3i;
 typedef vec4f vec3f;
 
-struct mat2x2;
+// TODO: Temporary until mat4x4 is converted
 union mat4x4;
 
 // TODO: Deprecated

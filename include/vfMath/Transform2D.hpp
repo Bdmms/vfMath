@@ -46,7 +46,7 @@ struct Transform2D
 
 	Transform2D inverse() const
 	{
-		mat2f inv = rotScale.inverse();
+		mat2f inv = Math::invert( rotScale );
 		return { inv, inv * -position };
 	}
 };

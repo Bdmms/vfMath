@@ -66,7 +66,7 @@ struct quat : public VectorStorage<4, float>
 	constexpr size_t size() { return Storage::elements.size(); }
 
 	// Array Operators
-	constexpr T operator[]( size_t i ) const { return Storage::elements[i]; }
+	constexpr const T& operator[]( size_t i ) const { return Storage::elements[i]; }
 	constexpr T& operator[]( size_t i ) { return Storage::elements[i]; }
 
 	// Arithmetic Operators

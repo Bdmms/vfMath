@@ -4,21 +4,60 @@
 
 #include "QuatMath.hpp"
 #include "mat4x4.hpp"
-#include "mat2x2.hpp"
+#include "mat.hpp"
 
 /**
  * @brief Utilities for matrices
 */
 namespace Math
 {
-	template<> inline constexpr static mat2f ZERO<mat2f> = { 0.f, 0.f, 0.f, 0.f };
+	template<> inline constexpr static mat2f ZERO<mat2f> = { Math::ZERO<vec2f>, Math::ZERO<vec2f> };
 	template<> inline constexpr static mat4f ZERO<mat4f> = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 
-	template<> inline constexpr static mat2f ONES<mat2f> = { 1.f, 1.f, 1.f, 1.f };
+	template<> inline constexpr static mat2f ONES<mat2f> = { Math::ONES<vec2f>, Math::ONES<vec2f> };
 	template<> inline constexpr static mat4f ONES<mat4f> = { 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f };
 
-	template<> inline constexpr static mat2f IDENTITY<mat2f> = { 1.f, 0.f, 0.f, 1.f };
+	template<> inline constexpr static mat2f IDENTITY<mat2f> = { Math::axis::X<vec2f>, Math::axis::Y<vec2f> };
 	template<> inline constexpr static mat4f IDENTITY<mat4f> = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
+
+	/**
+	 * @brief Calculates the determinant of this matrix
+	 * @return determinant
+	*/
+	template<size_t N, typename T>
+	constexpr T determinant( const mat<N, N, T>& matrix )
+	{
+		return vf::simd::determinant( matrix );
+	}
+
+	/**
+	 * @brief Creates a transposed matrix
+	 * @return transposed matrix
+	*/
+	template<size_t M, size_t N, typename T>
+	constexpr mat<N, M, T> transpose( const mat<M, N, T>& matrix )
+	{
+		mat<N, M, T> result;
+		vf::simd::transpose( result, matrix );
+		return result;
+	}
+
+	/**
+	 * @brief Creates an inverse matrix
+	 * @return inverse matrix
+	*/
+	template<size_t N, typename T>
+	constexpr mat<N, N, T> invert( const mat<N, N, T>& matrix )
+	{
+		mat<N, N, T> result;
+		vf::simd::invert( result, matrix );
+		return result;
+	}
+
+	constexpr mat2f toMat2x2( const mat4f& matrix )
+	{
+		return { vec2f( matrix[0], matrix[1] ), vec2f( matrix[4], matrix[5] ) };
+	}
 
 	/**
 	 * @brief Truncates a 4x4 matrix into a 3x3 matrix
@@ -83,10 +122,12 @@ namespace Math
 	*/
 	static void setRotation( mat2f& matrix, float rotation )
 	{
-		matrix.m[0] = cosf( rotation );
-		matrix.m[1] = sinf( rotation );
-		matrix.m[2] = -matrix.m[1];
-		matrix.m[3] = matrix.m[0];
+		float s = sinf( rotation );
+		float c = cosf( rotation );
+		matrix[0, 0] = c;
+		matrix[1, 0] = s;
+		matrix[0, 1] = -s;
+		matrix[1, 1] = c;
 	}
 
 	/**
@@ -163,10 +204,12 @@ namespace Math
 	*/
 	static void setRotationInverse( mat2f& matrix, float rotation )
 	{
-		matrix.m[0] = cosf( rotation );
-		matrix.m[1] = -matrix.m[1];
-		matrix.m[2] = sinf( rotation );
-		matrix.m[3] = matrix.m[0];
+		float s = sinf( rotation );
+		float c = cosf( rotation );
+		matrix[0, 0] = c;
+		matrix[1, 0] = -s;
+		matrix[0, 1] = s;
+		matrix[1, 1] = c;
 	}
 
 	/**
@@ -219,10 +262,10 @@ namespace Math
 	static void setTransform( mat2f& matrix, const float rotation, const vec2f scale )
 	{
 		setRotation( matrix, rotation );
-		matrix.m[0] *= scale.x;
-		matrix.m[1] *= scale.x;
-		matrix.m[2] *= scale.y;
-		matrix.m[3] *= scale.y;
+		matrix[0, 0] *= scale.x;
+		matrix[1, 0] *= scale.x;
+		matrix[0, 1] *= scale.y;
+		matrix[1, 1] *= scale.y;
 	}
 
 	/**
@@ -277,10 +320,10 @@ namespace Math
 	static void setTransformInverse( mat2f& matrix, const float rotation, const vec2f scale )
 	{
 		setRotationInverse( matrix, rotation );
-		matrix.m[0] /= scale.x;
-		matrix.m[1] /= scale.y;
-		matrix.m[2] /= scale.x;
-		matrix.m[3] /= scale.y;
+		matrix[0, 0] /= scale.x;
+		matrix[1, 0] /= scale.y;
+		matrix[0, 1] /= scale.x;
+		matrix[1, 1] /= scale.y;
 	}
 
 	/**
@@ -789,7 +832,7 @@ namespace Math
 		*/
 		constexpr mat2f scale( const vec2f sc )
 		{
-			return mat2f{ sc.x, 0.0f, 0.0f, sc.y };
+			return { vec2f( sc.x, 0.0f ), vec2f( 0.0f, sc.y ) };
 		}
 
 		/**
