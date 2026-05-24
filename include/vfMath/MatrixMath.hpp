@@ -54,53 +54,31 @@ namespace Math
 		return result;
 	}
 
-	constexpr mat2f toMat2x2( const mat4f& matrix )
+	template<size_t M, size_t N, typename T>
+	constexpr mat<2, 2, T> toMat2x2( const mat<M, N, T>& matrix )
 	{
-		return { vec2f( matrix[0], matrix[1] ), vec2f( matrix[4], matrix[5] ) };
+		mat<2, 2, T> r;
+		r.cols[0] = { matrix[0,0], matrix[1,0] };
+		r.cols[1] = { matrix[0,1], matrix[1,1] };
+		return r;
 	}
 
 	/**
-	 * @brief Truncates a 4x4 matrix into a 3x3 matrix
-	 * @param matrix - source matrix
-	*/
-	constexpr mat4f cast_mat3f( const mat4f& matrix )
-	{
-		return { matrix.x_axis, matrix.y_axis, matrix.z_axis, ZERO<vec4f> };
-	}
-
-	/**
+	 * DEPRECATED
 	 * @brief Truncates a 4x4 matrix into a 3x3 matrix
 	 * @param dst - destination matrix
 	 * @param src - source matrix
 	*/
 	constexpr void copy_mat3f( mat4f& dst, const mat4f& src )
 	{
-		std::copy( src.m.data(), src.m.data() + 12, dst.m.data() );
-	}
-
-	/**
-	 * @brief Inverses the 3x3 matrix of a 4x4 matrix and copies it to another 4x4 matrix.
-	 * @param dst - destination matrix
-	 * @param src - source matrix
-	*/
-	static void inverse_mat3f( mat4f& dst, const mat4f& src )
-	{
-		constexpr static __m128 m0 = { 1.0f, -1.0f, 1.0f, 0.0f };
-		constexpr static __m128 m1 = { -1.0f, 1.0f, -1.0f, 0.0f };
-
-		__m128 adj0 = _mm_mul_ps( m0, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[1], swizzle::YXX ), _mm_permute_ps( src.simd[2], swizzle::ZZY ) ),
-			_mm_mul_ps( _mm_permute_ps( src.simd[1], swizzle::ZZY ), _mm_permute_ps( src.simd[2], swizzle::YXX ) ) ) );
-		__m128 adj1 = _mm_mul_ps( m1, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::YXX ), _mm_permute_ps( src.simd[2], swizzle::ZZY ) ),
-			_mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::ZZY ), _mm_permute_ps( src.simd[2], swizzle::YXX ) ) ) );
-		__m128 adj2 = _mm_mul_ps( m0, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::YXX ), _mm_permute_ps( src.simd[1], swizzle::ZZY ) ),
-			_mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::ZZY ), _mm_permute_ps( src.simd[1], swizzle::YXX ) ) ) );
-
-		const __m128& srcC = src.cols[0].simd;
-
-		__m128 det = _mm_set1_ps( srcC.m128_f32[0] * adj0.m128_f32[0] + srcC.m128_f32[1] * adj0.m128_f32[1] + srcC.m128_f32[2] * adj0.m128_f32[2] );
-		dst.simd[0] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::XXX ), det );
-		dst.simd[1] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::YYY ), det );
-		dst.simd[2] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::ZZZ ), det );
+		for( size_t c = 0LLU; c < 3LLU; ++c )
+		{
+			// TODO: Requires copying last row
+			for( size_t r = 0LLU; r < 4LLU; ++r )
+			{
+				dst[r, c] = src[r, c];
+			}
+		}
 	}
 
 	/**
@@ -110,9 +88,9 @@ namespace Math
 	*/
 	constexpr void setTranslation( mat4f& matrix, const vec3f& translation )
 	{
-		matrix.m[12] = translation.x;
-		matrix.m[13] = translation.y;
-		matrix.m[14] = translation.z;
+		matrix[0,3] = translation.x;
+		matrix[1,3] = translation.y;
+		matrix[2,3] = translation.z;
 	}
 
 	/**
@@ -124,10 +102,10 @@ namespace Math
 	{
 		float s = sinf( rotation );
 		float c = cosf( rotation );
-		matrix[0, 0] = c;
-		matrix[1, 0] = s;
-		matrix[0, 1] = -s;
-		matrix[1, 1] = c;
+		matrix[0,0] = c;
+		matrix[1,0] = s;
+		matrix[0,1] = -s;
+		matrix[1,1] = c;
 	}
 
 	/**
@@ -139,17 +117,17 @@ namespace Math
 	{
 		eulerf32 s = Math::sin( rotation );
 		eulerf32 c = Math::cos( rotation );
-		matrix.m[0] = c.z * c.y;
-		matrix.m[1] = s.z * c.y;
-		matrix.m[2] = -s.y;
+		matrix[0,0] = c.z * c.y;
+		matrix[1,0] = s.z * c.y;
+		matrix[2,0] = -s.y;
 
-		matrix.m[4] = c.z * s.y * s.x - s.z * c.x;
-		matrix.m[5] = s.z * s.y * s.x + c.z * c.x;
-		matrix.m[6] = c.y * s.x;
+		matrix[0,1] = c.z * s.y * s.x - s.z * c.x;
+		matrix[1,1] = s.z * s.y * s.x + c.z * c.x;
+		matrix[2,1] = c.y * s.x;
 
-		matrix.m[8] = c.z * s.y * c.x + s.z * s.x;
-		matrix.m[9] = s.z * s.y * c.x - c.z * s.x;
-		matrix.m[10] = c.y * c.x;
+		matrix[0,2] = c.z * s.y * c.x + s.z * s.x;
+		matrix[1,2] = s.z * s.y * c.x - c.z * s.x;
+		matrix[2,2] = c.y * c.x;
 	}
 
 	/**
@@ -159,17 +137,17 @@ namespace Math
 	*/
 	constexpr void setRotation( mat4f& matrix, const quat& q )
 	{
-		matrix.m[0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
-		matrix.m[1] = 2.0f * ( q.x * q.y + q.w * q.z );
-		matrix.m[2] = 2.0f * ( q.x * q.z - q.w * q.y );
+		matrix[0,0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
+		matrix[1,0] = 2.0f * ( q.x * q.y + q.w * q.z );
+		matrix[2,0] = 2.0f * ( q.x * q.z - q.w * q.y );
 
-		matrix.m[4] = 2.0f * ( q.x * q.y - q.w * q.z );
-		matrix.m[5] = 1.0f - 2.0f * ( q.x * q.x + q.z * q.z );
-		matrix.m[6] = 2.0f * ( q.y * q.z + q.w * q.x );
+		matrix[0,1] = 2.0f * ( q.x * q.y - q.w * q.z );
+		matrix[1,1] = 1.0f - 2.0f * ( q.x * q.x + q.z * q.z );
+		matrix[2,1] = 2.0f * ( q.y * q.z + q.w * q.x );
 
-		matrix.m[8] = 2.0f * ( q.x * q.z + q.w * q.y );
-		matrix.m[9] = 2.0f * ( q.y * q.z - q.w * q.x );
-		matrix.m[10] = 1.0f - 2.0f * ( q.x * q.x + q.y * q.y );
+		matrix[0,2] = 2.0f * ( q.x * q.z + q.w * q.y );
+		matrix[1,2] = 2.0f * ( q.y * q.z - q.w * q.x );
+		matrix[2,2] = 1.0f - 2.0f * ( q.x * q.x + q.y * q.y );
 	}
 
 	/**
@@ -191,9 +169,9 @@ namespace Math
 			float cos = cosf( angle );
 			vec3f tpose = ( 1.0f - cos ) * axis;
 
-			matrix.simd[0] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
-			matrix.simd[1] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
-			matrix.simd[2] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+			vf::simd::fmadd( matrix.cols[0], axis, vec4f32::set1( tpose.x ), vec4f( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
+			vf::simd::fmadd( matrix.cols[1], axis, vec4f32::set1( tpose.y ), vec4f( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
+			vf::simd::fmadd( matrix.cols[2], axis, vec4f32::set1( tpose.z ), vec4f( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
 		}
 	}
 
@@ -221,17 +199,17 @@ namespace Math
 	{
 		eulerf32 s = Math::sin( rotation );
 		eulerf32 c = Math::cos( rotation );
-		matrix.m[0] = c.z * c.y;
-		matrix.m[4] = s.z * c.y;
-		matrix.m[8] = -s.y;
+		matrix[0,0] = c.z * c.y;
+		matrix[0,1] = s.z * c.y;
+		matrix[0,2] = -s.y;
 
-		matrix.m[1] = c.z * s.y * s.x - s.z * c.x;
-		matrix.m[5] = s.z * s.y * s.x + c.z * c.x;
-		matrix.m[9] = c.y * s.x;
+		matrix[1,0] = c.z * s.y * s.x - s.z * c.x;
+		matrix[1,1] = s.z * s.y * s.x + c.z * c.x;
+		matrix[1,2] = c.y * s.x;
 
-		matrix.m[2] = c.z * s.y * c.x + s.z * s.x;
-		matrix.m[6] = s.z * s.y * c.x - c.z * s.x;
-		matrix.m[10] = c.y * c.x;
+		matrix[2,0] = c.z * s.y * c.x + s.z * s.x;
+		matrix[2,1] = s.z * s.y * c.x - c.z * s.x;
+		matrix[2,2] = c.y * c.x;
 	}
 
 	/**
@@ -241,17 +219,17 @@ namespace Math
 	*/
 	constexpr void setRotationInverse( mat4f& matrix, const quat& q )
 	{
-		matrix.m[0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
-		matrix.m[4] = 2.0f * ( q.x * q.y + q.w * q.z );
-		matrix.m[8] = 2.0f * ( q.x * q.z - q.w * q.y );
+		matrix[0,0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
+		matrix[0,1] = 2.0f * ( q.x * q.y + q.w * q.z );
+		matrix[0,2] = 2.0f * ( q.x * q.z - q.w * q.y );
 
-		matrix.m[1] = 2.0f * ( q.x * q.y - q.w * q.z );
-		matrix.m[5] = 1.0f - 2.0f * ( q.x * q.x + q.z * q.z );
-		matrix.m[9] = 2.0f * ( q.y * q.z + q.w * q.x );
+		matrix[1,0] = 2.0f * ( q.x * q.y - q.w * q.z );
+		matrix[1,1] = 1.0f - 2.0f * ( q.x * q.x + q.z * q.z );
+		matrix[1,2] = 2.0f * ( q.y * q.z + q.w * q.x );
 
-		matrix.m[2] = 2.0f * ( q.x * q.z + q.w * q.y );
-		matrix.m[6] = 2.0f * ( q.y * q.z - q.w * q.x );
-		matrix.m[10] = 1.0f - 2.0f * ( q.x * q.x + q.y * q.y );
+		matrix[2,0] = 2.0f * ( q.x * q.z + q.w * q.y );
+		matrix[2,1] = 2.0f * ( q.y * q.z - q.w * q.x );
+		matrix[2,2] = 1.0f - 2.0f * ( q.x * q.x + q.y * q.y );
 	}
 
 	/*
@@ -262,10 +240,10 @@ namespace Math
 	static void setTransform( mat2f& matrix, const float rotation, const vec2f scale )
 	{
 		setRotation( matrix, rotation );
-		matrix[0, 0] *= scale.x;
-		matrix[1, 0] *= scale.x;
-		matrix[0, 1] *= scale.y;
-		matrix[1, 1] *= scale.y;
+		matrix[0,0] *= scale.x;
+		matrix[1,0] *= scale.x;
+		matrix[0,1] *= scale.y;
+		matrix[1,1] *= scale.y;
 	}
 
 	/**
@@ -278,9 +256,9 @@ namespace Math
 	static void setTransform( mat4f& matrix, const vec3f translation, const eulerf32& rotation, const vec3f& scale )
 	{
 		setRotation( matrix, rotation );
-		matrix.cols[0] *= scale.x;
-		matrix.cols[1] *= scale.y;
-		matrix.cols[2] *= scale.z;
+		matrix[0] *= scale.x;
+		matrix[1] *= scale.y;
+		matrix[2] *= scale.z;
 		setTranslation( matrix, translation );
 	}
 
@@ -294,9 +272,9 @@ namespace Math
 	constexpr void setTransform( mat4f& matrix, const vec3f translation, const quat& q, const vec3f& scale )
 	{
 		setRotation( matrix, q );
-		matrix.cols[0] *= scale.x;
-		matrix.cols[1] *= scale.y;
-		matrix.cols[2] *= scale.z;
+		matrix[0] *= scale.x;
+		matrix[1] *= scale.y;
+		matrix[2] *= scale.z;
 		setTranslation( matrix, translation );
 	}
 
@@ -340,9 +318,9 @@ namespace Math
 		matrix.x_axis /= copiedScale;
 		matrix.y_axis /= copiedScale;
 		matrix.z_axis /= copiedScale;
-		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
-		matrix.m[13] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
-		matrix.m[14] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
+		matrix[0,3] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
+		matrix[1,3] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
+		matrix[2,3] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
 	}
 
 	/**
@@ -359,9 +337,9 @@ namespace Math
 		matrix.x_axis /= copiedScale;
 		matrix.y_axis /= copiedScale;
 		matrix.z_axis /= copiedScale;
-		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
-		matrix.m[13] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
-		matrix.m[14] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
+		matrix[0,3] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
+		matrix[1,3] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
+		matrix[2,3] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
 	}
 
 	/**
@@ -373,9 +351,9 @@ namespace Math
 	constexpr void setTransformInverse( mat4f& matrix, const vec3f& translation, const quat& q )
 	{
 		setRotationInverse( matrix, q );
-		matrix.m[12] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
-		matrix.m[13] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
-		matrix.m[14] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
+		matrix[0,3] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
+		matrix[1,3] = -( matrix.x_axis.y * translation.x + matrix.y_axis.y * translation.y + matrix.z_axis.y * translation.z );
+		matrix[2,3] = -( matrix.x_axis.z * translation.x + matrix.y_axis.z * translation.y + matrix.z_axis.z * translation.z );
 	}
 
 	/**
@@ -412,10 +390,10 @@ namespace Math
 	static quat toQuat( const mat4f& rotation )
 	{
 		// TODO: This may flip signs
-		float a = rotation[0] - rotation[5] - rotation[10];
-		float b = rotation[5] - rotation[0] - rotation[10];
-		float c = rotation[10] - rotation[0] - rotation[5];
-		float d = rotation[0] + rotation[5] + rotation[10];
+		float a = rotation[0,0] - rotation[1,1] - rotation[2,2];
+		float b = rotation[1,1] - rotation[0,0] - rotation[2,2];
+		float c = rotation[2,2] - rotation[0,0] - rotation[1,1];
+		float d = rotation[0,0] + rotation[1,1] + rotation[2,2];
 		quat q;
 		float t;
 		float fac;
@@ -424,25 +402,25 @@ namespace Math
 		{
 			t = sqrtf( c + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
-			q = { ( rotation[8] + rotation[2] ) * fac, ( rotation[6] + rotation[9] ) * fac, t, ( rotation[1] - rotation[4] ) * fac };
+			q = { ( rotation[0,2] + rotation[2,0] ) * fac, ( rotation[2,1] + rotation[1,2] ) * fac, t, ( rotation[1,0] - rotation[0,1] ) * fac };
 		}
 		else if( b > d )
 		{
 			t = sqrtf( b + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
-			q = { ( rotation[1] + rotation[4] ) * fac, t, ( rotation[6] + rotation[9] ) * fac, ( rotation[8] - rotation[2] ) * fac };
+			q = { ( rotation[1,0] + rotation[0,1] ) * fac, t, ( rotation[2,1] + rotation[1,2] ) * fac, ( rotation[0,2] - rotation[2,0] ) * fac };
 		}
 		else if( a > d )
 		{
 			t = sqrtf( a + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
-			q = { t, ( rotation[1] + rotation[4] ) * fac, ( rotation[8] + rotation[2] ) * fac, ( rotation[6] - rotation[9] ) * fac };
+			q = { t, ( rotation[1,0] + rotation[0,1] ) * fac, ( rotation[0,2] + rotation[2,0] ) * fac, ( rotation[2,1] - rotation[1,2] ) * fac };
 		}
 		else
 		{
 			t = sqrtf( d + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
-			q = { ( rotation[6] - rotation[9] ) * fac, ( rotation[8] - rotation[2] ) * fac, ( rotation[1] - rotation[4] ) * fac, t };
+			q = { ( rotation[2,1] - rotation[1,2] ) * fac, ( rotation[0,2] - rotation[2,0] ) * fac, ( rotation[1,0] - rotation[0,1] ) * fac, t };
 		}
 
 		return q;
@@ -485,6 +463,7 @@ namespace Math
 	*/
 	static void lookAt( mat4f& mat, const vec4f& eye, const vec4f& center, const vec3f& up )
 	{
+		// TODO: Re-write without intrinsics !!!
 		vec3f f = Math::normalize( eye - center );
 		vec3f s = Math::normalize( Math::cross( up, f ) );
 		vec3f u = Math::cross( f, s );
@@ -579,10 +558,10 @@ namespace Math
 		vec3f tpose = ( 1.0f - cos ) * axis;
 
 		mat4f r;
-		r.simd[0] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
-		r.simd[1] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
-		r.simd[2] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
-		r.simd[3] = SIMD_4f_W;
+		vf::simd::fmadd( r.x_axis, axis, vec4f::set1( tpose.x ), vec4f( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
+		vf::simd::fmadd( r.y_axis, axis, vec4f::set1( tpose.y ), vec4f( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
+		vf::simd::fmadd( r.z_axis, axis, vec4f::set1( tpose.z ), vec4f( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+		r.origin = axis::W<vec4f>;
 		return r;
 	}
 
@@ -604,10 +583,10 @@ namespace Math
 		vec3f tpose = ( 1.0f - cos ) * axis;
 
 		mat4f r;
-		r.simd[0] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
-		r.simd[1] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
-		r.simd[2] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
-		r.simd[3] = SIMD_4f_W;
+		vf::simd::fmadd( r.x_axis, axis, vec4f::set1( tpose.x ), vec4f( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
+		vf::simd::fmadd( r.y_axis, axis, vec4f::set1( tpose.y ), vec4f( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
+		vf::simd::fmadd( r.z_axis, axis, vec4f::set1( tpose.z ), vec4f( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+		r.origin = axis::W<vec4f>;
 		return r;
 	}
 
@@ -621,22 +600,22 @@ namespace Math
 	 * @param zNear - boundary of closest z
 	 * @param zFar - boundary of farthest z
 	*/
-	static void setOrthographic( mat4f& mat, const float left, const float right, const float bottom, const float top, const float zNear, const float zFar )
+	constexpr void setOrthographic( mat4f& mat, const float left, const float right, const float bottom, const float top, const float zNear, const float zFar )
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
-		mat.m[0] = 2.0f / ( right - left );
-		mat.m[5] = -2.0f / ( top - bottom );
-		mat.m[10] = 1.0f / ( zNear - zFar );
-		mat.m[12] = -( right + left ) / ( right - left );
-		mat.m[13] = -( top + bottom ) / ( top - bottom );
-		mat.m[14] = -zNear / ( zFar - zNear );
+		mat[0,0] = 2.0f / ( right - left );
+		mat[1,1] = -2.0f / ( top - bottom );
+		mat[2,2] = 1.0f / ( zNear - zFar );
+		mat[0,3] = -( right + left ) / ( right - left );
+		mat[1,3] = -( top + bottom ) / ( top - bottom );
+		mat[2,3] = -zNear / ( zFar - zNear );
 #else
-		mat.m[0] = 2.0f / ( right - left );
-		mat.m[5] = 2.0f / ( top - bottom );
-		mat.m[10] = 2.0f / ( zNear - zFar );
-		mat.m[12] = -( right + left ) / ( right - left );
-		mat.m[13] = -( top + bottom ) / ( top - bottom );
-		mat.m[14] = -( zFar + zNear ) / ( zFar - zNear );
+		mat[0,0] = 2.0f / ( right - left );
+		mat[1,1] = 2.0f / ( top - bottom );
+		mat[2,2] = 2.0f / ( zNear - zFar );
+		mat[0,3] = -( right + left ) / ( right - left );
+		mat[1,3] = -( top + bottom ) / ( top - bottom );
+		mat[2,3] = -( zFar + zNear ) / ( zFar - zNear );
 #endif
 	}
 
@@ -652,54 +631,24 @@ namespace Math
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
 		float tanHalfFovy = tanf( fovy / 2.0f );
-		mat.m[0] = 1.0f / ( aspect * tanHalfFovy );
-		mat.m[5] = -1.0f / tanHalfFovy;
-		mat.m[10] = zFar / ( zNear - zFar );
-		mat.m[11] = -1.0f;
-		mat.m[14] = -( zFar * zNear ) / ( zFar - zNear );
-		mat.m[15] = 0.0f;
+		mat[0,0] = 1.0f / ( aspect * tanHalfFovy );
+		mat[1,1] = -1.0f / tanHalfFovy;
+		mat[2,2] = zFar / ( zNear - zFar );
+		mat[3,2] = -1.0f;
+		mat[2,3] = -( zFar * zNear ) / ( zFar - zNear );
+		mat[3,3] = 0.0f;
 #else
 		float tanHalfFovy = tanf( fovy / 2.0f );
-		mat.m[0] = 1.0f / ( aspect * tanHalfFovy );
-		mat.m[5] = 1.0f / tanHalfFovy;
-		mat.m[10] = -( zFar + zNear ) / ( zFar - zNear );
-		mat.m[11] = -1.0f;
-		mat.m[14] = -( 2.0f * zFar * zNear ) / ( zFar - zNear );
-		mat.m[15] = 0.0f;
+		mat[0,0] = 1.0f / ( aspect * tanHalfFovy );
+		mat[1,1] = 1.0f / tanHalfFovy;
+		mat[2,2] = -( zFar + zNear ) / ( zFar - zNear );
+		mat[3,2] = -1.0f;
+		mat[2,3] = -( 2.0f * zFar * zNear ) / ( zFar - zNear );
+		mat[3,3] = 0.0f;
 #endif
 	}
 
-	/**
-	 * @brief Linear interpolation between two matrices
-	 * @param a - first matrix
-	 * @param b - second matrix
-	 * @param t - weight
-	 * @return weighted matrix
-	*/
-	template<> [[nodiscard]] static mat4f lerp( const mat4f& a, const mat4f& b, const float t )
-	{
-#if ENABLE_INSTRUCTIONS_AVX2
-
-		__m256 weight = _mm256_set1_ps( t );
-
-		mat4f r;
-		r.avx2[0] = _mm256_fmadd_ps( _mm256_sub_ps( b.avx2[0], a.avx2[0] ), weight, a.avx2[0] );
-		r.avx2[1] = _mm256_fmadd_ps( _mm256_sub_ps( b.avx2[1], a.avx2[1] ), weight, a.avx2[1] );
-		return r;
-
-#elif ENABLE_INSTRUCTIONS_SSE2
-		__m128 weight = _mm_set1_ps( t );
-		return {
-			_mm_fmadd_ps( _mm_sub_ps( b.simd[0], a.simd[0] ), weight, a.simd[0] ),
-			_mm_fmadd_ps( _mm_sub_ps( b.simd[1], a.simd[1] ), weight, a.simd[1] ),
-			_mm_fmadd_ps( _mm_sub_ps( b.simd[2], a.simd[2] ), weight, a.simd[2] ),
-			_mm_fmadd_ps( _mm_sub_ps( b.simd[3], a.simd[3] ), weight, a.simd[3] )
-		};
-#else
-		return ( b - a ) * t + a;
-#endif
-	}
-
+	// TODO: Re-write without intrinsics !!!
 	static void slerp( mat4f& result, const mat4f& a, const mat4f& b, const float t )
 	{
 		// Calculate rotation between a and b
@@ -737,7 +686,7 @@ namespace Math
 	 * @param translation - displacement vector
 	 * @return translated transform
 	*/
-	static mat4f translate( const mat4f& matrix, const vec3f& translation )
+	constexpr mat4f translate( const mat4f& matrix, const vec3f& translation )
 	{
 		mat4f copy = matrix;
 		copy.origin += translation;
@@ -750,26 +699,14 @@ namespace Math
 	 * @param scale - scale vector
 	 * @return scaled transform
 	*/
-	static mat2f scale( const mat2f& matrix, const vec2f scale )
+	template<size_t N, typename T>
+	constexpr mat<N, N, T> scale( const mat<N, N, T>& matrix, const vec<N, T> scale )
 	{
-		mat2f copy = matrix;
-		copy.x_axis *= scale.x;
-		copy.y_axis *= scale.y;
-		return copy;
-	}
-
-	/**
-	 * @brief Creates a copy of the matrix scaled around its origin
-	 * @param matrix - source transform
-	 * @param scale - scale vector
-	 * @return scaled transform
-	*/
-	static mat4f scale( const mat4f& matrix, const vec3f& scale )
-	{
-		mat4f copy = matrix;
-		copy.x_axis *= scale.x;
-		copy.y_axis *= scale.y;
-		copy.z_axis *= scale.z;
+		mat<N, N, T> copy = matrix;
+		for( size_t i = 0LLU; i < N; ++i )
+		{
+			copy[i] *= scale[i];
+		}
 		return copy;
 	}
 

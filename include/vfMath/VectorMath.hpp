@@ -16,50 +16,25 @@ typedef vec3f AxisAngle;
 */
 namespace Math
 {
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> ZERO<vec2<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> ZERO<vec4<ElementType>> = { Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType>, Math::ZERO<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> ONES<vec2<ElementType>> = { Math::ONES<ElementType>, Math::ONES<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> ONES<vec4<ElementType>> = { Math::ONES<ElementType>, Math::ONES<ElementType>, Math::ONES<ElementType>, Math::ONES<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> IDENTITY<vec2<ElementType>> = ZERO<vec2<ElementType>>;
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> IDENTITY<vec4<ElementType>> = ZERO<vec4<ElementType>>;
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> NEGATIVE<vec2<ElementType>> = { Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> NEGATIVE<vec4<ElementType>> = { Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType>, Math::NEGATIVE<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> MIN<vec2<ElementType>> = { Math::MIN<ElementType>, Math::MIN<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> MIN<vec4<ElementType>> = { Math::MIN<ElementType>, Math::MIN<ElementType>, Math::MIN<ElementType>, Math::MIN<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> MAX<vec2<ElementType>> = { Math::MAX<ElementType>, Math::MAX<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> MAX<vec4<ElementType>> = { Math::MAX<ElementType>, Math::MAX<ElementType>, Math::MAX<ElementType>, Math::MAX<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> PI<vec2<ElementType>> = { Math::PI<ElementType>, Math::PI<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> PI<vec4<ElementType>> = { Math::PI<ElementType>, Math::PI<ElementType>, Math::PI<ElementType>, Math::PI<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> TWO_PI<vec2<ElementType>> = { Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> TWO_PI<vec4<ElementType>> = { Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType>, Math::TWO_PI<ElementType> };
-
-	template<typename ElementType>
-	inline constexpr static vec2<ElementType> HALF_PI<vec2<ElementType>> = { Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType> };
-	template<typename ElementType>
-	inline constexpr static vec4<ElementType> HALF_PI<vec4<ElementType>> = { Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType>, Math::HALF_PI<ElementType> };
+	// TODO: This generalization of constants doesn't work
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> ZERO<vec<N, T>> = vec<N, T>::set1( Math::ZERO<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> ONES<vec<N, T>> = vec<N, T>::set1( Math::ONES<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> IDENTITY<vec<N, T>> = ZERO<vec<N, T>>;
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> NEGATIVE<vec<N, T>> = vec<N, T>::set1( Math::NEGATIVE<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> MIN<vec<N, T>> = vec<N, T>::set1( Math::MIN<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> MAX<vec<N, T>> = vec<N, T>::set1( Math::MAX<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> PI<vec<N, T>> = vec<N, T>::set1( Math::PI<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> TWO_PI<vec<N, T>> = vec<N, T>::set1( Math::TWO_PI<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> HALF_PI<vec<N, T>> = vec<N, T>::set1( Math::HALF_PI<T> );
 
 	// Unit vectors for each axis
 	namespace axis
@@ -773,6 +748,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static vec4f random<vec4f>( const vec4f& min, const vec4f& max )
 	{
+		// TODO: Re-write without intrinsics !!!
 		vec4f r;
 		r.simd = _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd );
 		return r;

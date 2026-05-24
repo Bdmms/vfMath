@@ -45,6 +45,10 @@ struct vec : public VectorStorage<N, T>
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
 	constexpr const T* data() const { return Storage::elements.data(); }
+	constexpr auto begin() { return Storage::elements.begin(); }
+	constexpr const auto begin() const { return Storage::elements.begin(); }
+	constexpr auto end() { return Storage::elements.end(); }
+	constexpr const auto end() const { return Storage::elements.end(); }
 	constexpr size_t size() { return Storage::elements.size(); }
 
 	// Array Operators
@@ -207,7 +211,6 @@ typedef vec4f vec3f;
 #if ENABLE_INSTRUCTIONS_SSE2
 
 constexpr char BMSK = (char)0xFF;
-constexpr float FMSK = std::bit_cast<float>( -1 );
 
 constexpr __m128	SIMD_4f_ZERO = { 0.0f, 0.0f, 0.0f, 0.0f };
 constexpr __m128i	SIMD_4i_ZERO = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -217,8 +220,6 @@ constexpr __m128	SIMD_4f_NEG = { -1.0f, -1.0f, -1.0f, -1.0f };
 constexpr __m128i	SIMD_4i_NEG = { BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK };
 constexpr __m128	SIMD_4f_W = { 0.0f, 0.0f, 0.0f, 1.0f };
 constexpr __m128i	SIMD_4i_W = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
-constexpr __m128	SIMD_4f_MASK = { FMSK, FMSK, FMSK, FMSK };
-constexpr __m128i   SIMD_4i_MASK = SIMD_4i_NEG;
 
 #define _mm_xyzw_epi32(x,y,z,w) _mm_set_epi32(w,z,y,x)
 

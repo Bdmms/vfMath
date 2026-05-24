@@ -45,17 +45,21 @@ struct mat : public MatrixStorage<M, N, T>
 		return r;
 	}
 
-	// Container Operations
-	//constexpr T* data() { return Storage::elements.data(); }
-	//constexpr const T* data() const { return Storage::elements.data(); }
-	//constexpr size_t size() { return Storage::elements.size(); }
+	// Container Operations (TODO: make usable in contexpr)
+	inline T* data() { return Storage::m; }
+	inline const T* data() const { return Storage::m; }
+	inline auto begin() { return std::begin( Storage::m ); }
+	inline const auto begin() const { return std::begin( Storage::m ); }
+	inline auto end() { return std::end( Storage::m ); }
+	inline const auto end() const { return std::end( Storage::m ); }
+	constexpr size_t size() { return M * N; }
 
 	// Array Operators
 	constexpr const T& operator[]( size_t r, size_t c ) const { return Storage::cols[c].elements[r]; }
 	constexpr T& operator[]( size_t r, size_t c ) { return Storage::cols[c].elements[r]; }
 
-	inline const T& operator[]( size_t i ) const { return Storage::m[i]; }
-	inline T& operator[]( size_t i ) { return Storage::m[i]; }
+	constexpr const vec<M, T>& operator[]( size_t i ) const { return Storage::cols[i]; }
+	constexpr vec<M, T>& operator[]( size_t i ) { return Storage::cols[i]; }
 
 	// Arithmetic Operators
 	constexpr mat& operator+=( const mat& rhs ) noexcept { vf::simd::add<M, N, T>( *this, *this, rhs ); return *this; }
