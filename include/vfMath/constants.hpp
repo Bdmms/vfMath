@@ -10,19 +10,25 @@ namespace Math
 {
 	template<typename T> inline constexpr static T ZERO = 0;
 	template<typename T> inline constexpr static T ONES;
+	template<typename T> inline constexpr static T HALF;
 
-	template<> inline constexpr static i8  ONES<i8> = 1;
+	template<> inline constexpr static i8  ONES<i8>  = 1;
 	template<> inline constexpr static i16 ONES<i16> = 1;
 	template<> inline constexpr static i32 ONES<i32> = 1;
 	template<> inline constexpr static i64 ONES<i64> = 1LL;
-	template<> inline constexpr static u8  ONES<u8> = 1U;
+	template<> inline constexpr static u8  ONES<u8>  = 1U;
 	template<> inline constexpr static u16 ONES<u16> = 1U;
 	template<> inline constexpr static u32 ONES<u32> = 1U;
 	template<> inline constexpr static u64 ONES<u64> = 1LLU;
-	template<> inline constexpr static f8  ONES<f8> = 1.0_f8;
+	template<> inline constexpr static f8  ONES<f8>  = 1.0_f8;
 	template<> inline constexpr static f16 ONES<f16> = 1.0_f16;
 	template<> inline constexpr static f32 ONES<f32> = 1.0f;
 	template<> inline constexpr static f64 ONES<f64> = 1.0;
+
+	template<> inline constexpr static f8  HALF<f8>  = 0.5_f8;
+	template<> inline constexpr static f16 HALF<f16> = 0.5_f16;
+	template<> inline constexpr static f32 HALF<f32> = 0.5f;
+	template<> inline constexpr static f64 HALF<f64> = 0.5;
 
 	template<typename T> inline constexpr static T IDENTITY = ONES<T>;
 	template<typename T> inline constexpr static T NEGATIVE = -ONES<T>;

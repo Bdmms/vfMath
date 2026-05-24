@@ -2,9 +2,10 @@
 #ifndef VF_MATH_H
 #define VF_MATH_H
 
-#include "constants.hpp"
+#include "constexpr_math.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 /**
  * @brief Pair of values that form a range.
@@ -55,6 +56,13 @@ namespace Math
 	[[nodiscard]] constexpr float toDegrees( const float radians )
 	{
 		return radians * 180.0f / Math::PI<float>;
+	}
+
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] constexpr T sqrt( T x ) noexcept
+	{
+		if( std::is_constant_evaluated() ) return vf::math::compile_time::sqrt( x );
+		return std::sqrt( x );
 	}
 
 	/**

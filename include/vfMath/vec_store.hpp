@@ -82,6 +82,17 @@ struct VectorStorage<4LLU, i32>
 };
 
 template<>
+struct VectorStorage<4LLU, u32>
+{
+	union
+	{
+		std::array<u32, 4LLU> elements;
+		struct { u32 x, y, z, w; };
+		__m128i simd;
+	};
+};
+
+template<>
 struct VectorStorage<4LLU, f32>
 {
 	union

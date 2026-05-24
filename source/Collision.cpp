@@ -380,7 +380,8 @@ float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin
 	// Calculate the line-plane intersection
 	vec4f displaced = triangle.origin - rayOrigin;
 	vec4f normal = Math::cross( triangle.x_axis, triangle.y_axis );
-	vec4f product = Math::parallel::dot(
+	vec4f product;
+	vf::simd::dot4( product,
 		normal, displaced,
 		Math::cross( rayVector, triangle.y_axis ), displaced,
 		Math::cross( triangle.x_axis, rayVector ), displaced,
@@ -505,7 +506,8 @@ bool Math::Box::sphereCollision( vec4f& displacement, const TransformSpace& sphe
 		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.y_axis * quadrant.y ) + rz + rx,
 		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.z_axis * quadrant.z ) + rx + ry
 	};
-	vec4f lengthBoxSpace = Math::parallel::length( vectorBoxSpace[0], vectorBoxSpace[1], vectorBoxSpace[2] );
+	vec4f lengthBoxSpace;
+	vf::simd::length4( lengthBoxSpace, vectorBoxSpace[0], vectorBoxSpace[1], vectorBoxSpace[2], Math::ZERO<vec4f> );
 
 	uint8_t idx = minIndex( lengthBoxSpace );
 	displacement = sphere.transform * vectorBoxSpace[idx];

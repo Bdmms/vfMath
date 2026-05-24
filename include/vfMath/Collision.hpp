@@ -240,7 +240,8 @@ namespace Math
 		vec4f bitangent = cross( normal, tangent );
 		vec4f displacement = originB - originA;
 
-		vec4f p = Math::parallel::dot( displacement, tangent, displacement, bitangent, lineB, tangent, lineB, bitangent );
+		vec4f p;
+		vf::simd::dot4( p, displacement, tangent, displacement, bitangent, lineB, tangent, lineB, bitangent );
 		if( p.w <= Math::EPSILON<float> ) return { 0.0f, 0.0f };
 
 		return { p.x - p.y * p.z / p.w, -p.y / p.w };
