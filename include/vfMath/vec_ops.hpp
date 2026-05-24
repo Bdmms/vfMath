@@ -133,6 +133,12 @@ namespace vf::simd
 		}
 
 		template<size_t N, typename T>
+		constexpr void cmpeq( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+		{
+			VF_VEC_N_LOOP( N, r.elements[i] = a.elements[i] == b.elements[i] ? vf::primitives::BITWISE_HIGH<T> : vf::primitives::BITWISE_LOW<T> );
+		}
+
+		template<size_t N, typename T>
 		constexpr void min( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
 		{
 			VF_VEC_N_BINARY_FUNCTION( N, r.elements, a.elements, b.elements, std::min );
@@ -318,6 +324,12 @@ namespace vf::simd
 	}
 
 	template<size_t N, typename T>
+	constexpr void cmpeq( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
+	{
+		compile_time::cmpeq( r, a, b );
+	}
+
+	template<size_t N, typename T>
 	constexpr void min( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b )
 	{
 		compile_time::min( r, a, b );
@@ -490,6 +502,13 @@ namespace vf::simd
 	{
 		if( std::is_constant_evaluated() ) return compile_time::cmpgt( r, a, b );
 		r.simd = _mm_cmpgt_ps( a.simd, b.simd );
+	}
+
+	template<>
+	constexpr void cmpeq( simd4f32& r, const simd4f32& a, const simd4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::cmpeq( r, a, b );
+		r.simd = _mm_cmpeq_ps( a.simd, b.simd );
 	}
 
 	template<>

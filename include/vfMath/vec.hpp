@@ -153,21 +153,25 @@ VF_VECTOR_OPERATOR_SCALAR_VECTOR( ^, vf::simd::bitwise_xor );
 #define VF_OPERATOR_GE >=
 #define VF_OPERATOR_LT <
 #define VF_OPERATOR_GT >
+#define VF_OPERATOR_EQ ==
 
 VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_LE, vf::simd::cmple );
 VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_GE, vf::simd::cmpge );
 VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_LT, vf::simd::cmplt );
 VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_GT, vf::simd::cmpgt );
+VF_VECTOR_OPERATOR_VECTOR_VECTOR( VF_OPERATOR_EQ, vf::simd::cmpeq );
 
 VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_LE, vf::simd::cmple );
 VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_GE, vf::simd::cmpge );
 VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_LT, vf::simd::cmplt );
 VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_GT, vf::simd::cmpgt );
+VF_VECTOR_OPERATOR_VECTOR_SCALAR( VF_OPERATOR_EQ, vf::simd::cmpeq );
 
 VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_LE, vf::simd::cmple );
 VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_GE, vf::simd::cmpge );
 VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_LT, vf::simd::cmplt );
 VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_GT, vf::simd::cmpgt );
+VF_VECTOR_OPERATOR_SCALAR_VECTOR( VF_OPERATOR_EQ, vf::simd::cmpeq );
 
 // Explcit Vector Typedefs
 
@@ -210,17 +214,6 @@ typedef vec4f vec3f;
 // High-level SSE2 vector instructions
 #if ENABLE_INSTRUCTIONS_SSE2
 
-constexpr char BMSK = (char)0xFF;
-
-constexpr __m128	SIMD_4f_ZERO = { 0.0f, 0.0f, 0.0f, 0.0f };
-constexpr __m128i	SIMD_4i_ZERO = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-constexpr __m128	SIMD_4f_ONES = { 1.0f, 1.0f, 1.0f, 1.0f };
-constexpr __m128i	SIMD_4i_ONES = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 };
-constexpr __m128	SIMD_4f_NEG = { -1.0f, -1.0f, -1.0f, -1.0f };
-constexpr __m128i	SIMD_4i_NEG = { BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK };
-constexpr __m128	SIMD_4f_W = { 0.0f, 0.0f, 0.0f, 1.0f };
-constexpr __m128i	SIMD_4i_W = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
-
 #define _mm_xyzw_epi32(x,y,z,w) _mm_set_epi32(w,z,y,x)
 
 #define _mm_xyzw_ps(x,y,z,w) _mm_set_ps(w,z,y,x)
@@ -231,11 +224,11 @@ constexpr __m128i	SIMD_4i_W = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 }
 #define _mm_transpose_ps(a,b,c,d,msk) _mm_shuffle_ps(_mm_shuffle_ps(a, b, msk), _mm_shuffle_ps(c, d, msk), swizzle::XZXZ)
 #define _mm_clamp_ps(a,min,max) _mm_max_ps(_mm_min_ps(a, max), min)
 
-#define _mm_sum2_ps(a,b) _mm_hadd_ps(_mm_hadd_ps(a,b), SIMD_4f_ZERO)
+#define _mm_sum2_ps(a,b) _mm_hadd_ps(_mm_hadd_ps(a,b), _mm_set1_ps(0.0f))
 #define _mm_dot2_ps(a,b,c,d) _mm_sum2_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d))
 #define _mm_mag2_ps(a,b) _mm_sqrt_ps(_mm_dot2_ps(a,a,b,b))
 
-#define _mm_dot3_ps(a,b,c,d,e,f) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), SIMD_4f_ZERO)
+#define _mm_dot3_ps(a,b,c,d,e,f) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), _mm_set1_ps(0.0f))
 #define _mm_dot3v_ps(a,b,c,d,e,f,v) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), v)
 #define _mm_mag3_ps(a,b,c) _mm_sqrt_ps(_mm_dot3_ps(a,a,b,b,c,c))
 #define _mm_mag3v_ps(a,b,c,v) _mm_sqrt_ps(_mm_dot3v_ps(a,a,b,b,c,c,v))
@@ -244,22 +237,9 @@ constexpr __m128i	SIMD_4i_W = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 }
 // High-level AVX2 vector instructions
 #if ENABLE_INSTRUCTIONS_AVX2
 
-constexpr __m256	SIMD_8f_ZERO = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-constexpr __m256i	SIMD_8i_ZERO = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-constexpr __m256	SIMD_8f_ONES = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-constexpr __m256i	SIMD_8i_ONES = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 };
-constexpr __m256	SIMD_8f_NEG = { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f };
-constexpr __m256i	SIMD_8i_NEG = { BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK, BMSK };
-constexpr __m256	SIMD_8f_W = { 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
-constexpr __m256i	SIMD_8i_W = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
-
 #define _mm256_sum_ps(a,b,c,d) _mm256_hadd_ps(_mm256_hadd_ps(a,b), _mm256_hadd_ps(c,d))
 #define _mm256_dot_ps(a,b,c,d,e,f,g,h) _mm256_sum_ps(_mm256_mul_ps(a, b), _mm256_mul_ps(c, d), _mm256_mul_ps(e, f), _mm256_mul_ps(g, h))
-#define _mm256_mag_ps(a,b,c,d) _mm256_sqrt_ps(_mm256_dot_ps(a,a,b,b,c,c,d,d))
-#define _mm256_transpose_ps(a,b,msk) _mm256_shuffle_ps(_mm256_shuffle_ps(a, b, msk), _mm256_shuffle_ps(c, d, msk), swizzle::XZXZ)
-#define _mm256_clamp_ps(a,min,max) _mm256_min_ps(_mm256_max_ps(a, max), min)
 
-#define _mm256_dot3_ps(a,b,c,d,e,f,g,h) _mm256_sum_ps(_mm256_mul_ps(a, b), _mm256_mul_ps(c, d), _mm256_mul_ps(e, f), SIMD_8f_ZERO)
 #endif
 
 #endif

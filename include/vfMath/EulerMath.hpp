@@ -137,7 +137,7 @@ namespace Math
 				position.simd, _mm_xyzw_ps( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, 0.0f ),
 				position.simd, _mm_xyzw_ps( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, 0.0f ),
 				position.simd, _mm_xyzw_ps( -s.y, c.y * s.x, c.y * c.x, 0.0f ),
-				position.simd, SIMD_4f_W );
+				position.simd, _mm_xyzw_ps( 0.0f, 0.0f, 0.0f, 1.0f ) );
 		return r;
 	}
 

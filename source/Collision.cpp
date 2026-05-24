@@ -102,70 +102,72 @@ std::vector<CollisionFace> Collision::createCubeMesh()
 // Other Functions
 // ---------------------------
 
-#define _mm_not_ps( v ) _mm_xor_ps( v, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) )
 #define _mm_transform_ps( point, r0, r1, r2, r3 ) _mm_dot_ps( point, r0, point, r1, point, r2, point, r3 )
-#define _mm_condition_ps( cmp, a, b ) _mm_or_ps( _mm_and_ps( cmp, a ), _mm_and_ps( _mm_not_ps( cmp ), b ) )
-#define _mm_overlaps_ps( a, b, x, y ) _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( a, x ), _mm_cmple_ps( a, y ) ), _mm_and_ps( _mm_cmpge_ps( x, a ), _mm_cmple_ps( x, b ) ) );
 
-#define AABB_TRIANGLE( t, min, max )\
-			min = _mm_min_ps( t.origin.simd, _mm_min_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), _mm_add_ps( t.origin.simd, t.y_axis.simd ) ) );\
-			max = _mm_max_ps( t.origin.simd, _mm_max_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), _mm_add_ps( t.origin.simd, t.y_axis.simd ) ) )
+static void AABB_TRIANGLE( const mat4f& t, vec4f& min, vec4f& max )
+{
+	min.simd = _mm_min_ps( t.origin.simd, _mm_min_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), _mm_add_ps( t.origin.simd, t.y_axis.simd ) ) );
+	max.simd = _mm_max_ps( t.origin.simd, _mm_max_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), _mm_add_ps( t.origin.simd, t.y_axis.simd ) ) );
+}
 
-#define AABB_BOX_FULL( t, min, max ) \
-			__m128 point__ = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = point__;\
-			max = point__;\
-			\
-			point__ = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ );\
-			\
-			point__ = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ );\
-			\
-			point__ = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			max = _mm_max_ps( max, point__ )
+static void AABB_BOX_FULL( const mat4f& t, vec4f& min, vec4f& max )
+{
+	__m128 point = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = point;
+	max.simd = point;
 
-#define AABB_BOX_HALF( t, min ) \
-			__m128 point__ = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = point__;\
-			\
-			point__ = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			\
-			point__ = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
-			\
-			point__ = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );\
-			min = _mm_min_ps( min, point__ );\
+	point = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
 
+	point = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
+
+	point = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
+
+	point = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
+
+	point = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
+
+	point = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
+
+	point = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min.simd = _mm_min_ps( min.simd, point );
+	max.simd = _mm_max_ps( max.simd, point );
+}
+
+static void AABB_BOX_HALF( const mat4f& t, __m128& min )
+{
+	__m128 point__ = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = point__;
+	
+	point__ = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = _mm_min_ps( min, point__ );
+	
+	point__ = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = _mm_min_ps( min, point__ );
+	
+	point__ = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = _mm_min_ps( min, point__ );
+	
+	point__ = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = _mm_min_ps( min, point__ );
+	
+	point__ = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = _mm_min_ps( min, point__ );
+	
+	point__ = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
+	min = _mm_min_ps( min, point__ );
+}
 
 
 constexpr __m128 SIMD_X_AXIS = { 1.0f, 0.0f, 0.0f, 0.0f };
@@ -186,7 +188,7 @@ constexpr float P_EPSILON = 2E-5f;
 constexpr float N_EPSILON = -P_EPSILON;
 constexpr float ONE_EPSILON = 1.0f + P_EPSILON;
 
-__m128 COMPLETE_AXIS_SEPARATION_TEST( const mat4f& t, const __m128& min, const __m128& max )
+__m128 COMPLETE_AXIS_SEPARATION_TEST( const mat4f& t, const vec4f& min, const vec4f& max )
 {
 	__m128 _Tmp0 = _mm_shuffle_ps( t.x_axis.simd, t.y_axis.simd, 0x44 );
 	__m128 _Tmp2 = _mm_shuffle_ps( t.x_axis.simd, t.y_axis.simd, 0xEE );
@@ -232,10 +234,11 @@ __m128 COMPLETE_AXIS_SEPARATION_TEST( const mat4f& t, const __m128& min, const _
 	minBounds = _mm_min_ps( minBounds, point );
 	maxBounds = _mm_max_ps( maxBounds, point );
 
-	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min ), _mm_cmple_ps( minBounds, max ) ), _mm_and_ps( _mm_cmpge_ps( min, minBounds ), _mm_cmple_ps( min, maxBounds ) ) );
+	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min.simd ), _mm_cmple_ps( minBounds, max.simd ) ), 
+		_mm_and_ps( _mm_cmpge_ps( min.simd, minBounds ), _mm_cmple_ps( min.simd, maxBounds ) ) );
 }
 
-__m128 AFFINE_AABB_SEPARATION_TEST( const mat4f& t, const __m128& min, const __m128& max )
+__m128 AFFINE_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& min, const vec4f& max )
 {
 	__m128 point = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
 	__m128 minBounds = point;
@@ -269,201 +272,175 @@ __m128 AFFINE_AABB_SEPARATION_TEST( const mat4f& t, const __m128& min, const __m
 	minBounds = _mm_min_ps( minBounds, point );
 	maxBounds = _mm_max_ps( maxBounds, point );
 
-	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min ), _mm_cmple_ps( minBounds, max ) ), _mm_and_ps( _mm_cmpge_ps( min, minBounds ), _mm_cmple_ps( min, maxBounds ) ) );
+	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min.simd ), _mm_cmple_ps( minBounds, max.simd ) ), 
+		_mm_and_ps( _mm_cmpge_ps( min.simd, minBounds ), _mm_cmple_ps( min.simd, maxBounds ) ) );
 }
 
-__m128 MIRRORED_AABB_SEPARATION_TEST( const mat4f& t, const __m128& max )
+static vec4f MIRRORED_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& max )
 {
 	// Create a sign vector to select the corner of the box
-	__m128 comparison = _mm_cmpge_ps( t.origin.simd, SIMD_4f_ZERO );
-	__m128 quadrant = _mm_or_ps( _mm_and_ps( comparison, SIMD_4f_ONES ), _mm_and_ps( _mm_xor_ps( comparison, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) ), SIMD_4f_NEG ) );
+	vec4f quadrant = Math::sign( t.origin );
 
-	// Calculate the minimum bounds along each axis
-	__m128 bounds = _mm_xyzw_ps( Math::MAX<float>, Math::MAX<float>, Math::MAX<float>, Math::MIN<float> );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
-	bounds = _mm_min_ps( bounds, _mm_mul_ps( quadrant, _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd ) ) );
+	vec4f bounds( Math::MAX<float>, Math::MAX<float>, Math::MAX<float>, Math::MIN<float> );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis + t.y_axis + t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis + t.y_axis - t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis - t.y_axis + t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis - t.y_axis - t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis + t.y_axis + t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis + t.y_axis - t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis - t.y_axis + t.z_axis ) );
+	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis - t.y_axis - t.z_axis ) );
 
-	return _mm_cmple_ps( bounds, max );
+	return bounds <= max;
 }
 
-__m128 PROJECTED_AABB_SEPARATION_TEST( const mat4f& t, const __m128& min, const __m128& max )
+constexpr vec4f PROJECTED_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& min, const vec4f& max )
 {
-	__m128 point = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	__m128 minBounds = point;
-	__m128 maxBounds = point;
+	vec4f point = t.origin + t.x_axis + t.y_axis + t.z_axis;
+	vec4f scale = vec4f::set1( point.w );
+	vf::simd::div( point, point, scale );
+	vec4f minBounds = point;
+	vec4f maxBounds = point;
 
-	point = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin + t.x_axis + t.y_axis - t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	point = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin + t.x_axis - t.y_axis + t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	point = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin + t.x_axis - t.y_axis - t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	point = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin - t.x_axis + t.y_axis + t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	point = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin - t.x_axis + t.y_axis - t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	point = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin - t.x_axis - t.y_axis + t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	point = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	point = _mm_div_ps( point, _mm_set1_ps( point.m128_f32[3] ) );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
+	point = t.origin - t.x_axis - t.y_axis - t.z_axis;
+	vf::simd::set1( scale, point.w );
+	vf::simd::div( point, point, scale );
+	vf::simd::min( minBounds, minBounds, point );
+	vf::simd::max( maxBounds, maxBounds, point );
 
-	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min ), _mm_cmple_ps( minBounds, max ) ), _mm_and_ps( _mm_cmpge_ps( min, minBounds ), _mm_cmple_ps( min, maxBounds ) ) );
+	return Math::overlaps( min, max, minBounds, maxBounds );
 }
 
 bool Math::AABB::rayTest( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
 {
-	__m128 intersect0 = _mm_div_ps( _mm_sub_ps( min.simd, point.simd ), ray.simd );
-	__m128 intersect1 = _mm_div_ps( _mm_sub_ps( max.simd, point.simd ), ray.simd );
+	vec4f intersect0 = ( min - point ) / ray;
+	vec4f intersect1 = ( max - point ) / ray;
 
-	__m128 tmin = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ZERO, _mm_min_ps( intersect0, intersect1 ) );
-	__m128 tmax = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ONES, _mm_max_ps( intersect0, intersect1 ) );
-	
-	float minBounds = std::max( std::max( tmin.m128_f32[0], tmin.m128_f32[1] ), std::max( tmin.m128_f32[2], 0.0f ) );
-	float maxBounds = std::min( std::min( tmax.m128_f32[0], tmax.m128_f32[1] ), std::min( tmax.m128_f32[2], 1.0f ) );
+	vec4f tmin = Math::condition( ray == Math::ZERO<vec4f>, Math::ZERO<vec4f>, Math::min( intersect0, intersect1 ) );
+	vec4f tmax = Math::condition( ray == Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::max( intersect0, intersect1 ) );
 
+	float minBounds = std::max( std::max( tmin.x, tmin.y ), std::max( tmin.z, 0.0f ) );
+	float maxBounds = std::min( std::min( tmax.x, tmax.y ), std::min( tmax.z, 1.0f ) );
 	return minBounds <= maxBounds;
 }
 
 Bounds<float> Math::AABB::rayBounds( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
 {
-	__m128 intersect0 = _mm_div_ps( _mm_sub_ps( min.simd, point.simd ), ray.simd );
-	__m128 intersect1 = _mm_div_ps( _mm_sub_ps( max.simd, point.simd ), ray.simd );
+	vec4f intersect0 = ( min - point ) / ray;
+	vec4f intersect1 = ( max - point ) / ray;
 
-	__m128 tmin = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ZERO, _mm_min_ps( intersect0, intersect1 ) );
-	__m128 tmax = _mm_condition_ps( _mm_cmpeq_ps( ray.simd, SIMD_4f_ZERO ), SIMD_4f_ONES, _mm_max_ps( intersect0, intersect1 ) );
+	vec4f tmin = Math::condition( ray == Math::ZERO<vec4f>, Math::ZERO<vec4f>, Math::min( intersect0, intersect1 ) );
+	vec4f tmax = Math::condition( ray == Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::max( intersect0, intersect1 ) );
 
 	return
 	{
-		std::clamp( std::max( std::max( tmin.m128_f32[0], tmin.m128_f32[1] ), tmin.m128_f32[2] ), 0.0f, 1.0f ),
-		std::clamp( std::min( std::min( tmax.m128_f32[0], tmax.m128_f32[1] ), tmax.m128_f32[2] ), 0.0f, 1.0f )
+		std::clamp( std::max( std::max( tmin.x, tmin.y ), tmin.z ), 0.0f, 1.0f ),
+		std::clamp( std::min( std::min( tmax.x, tmax.y ), tmax.z ), 0.0f, 1.0f )
 	};
 }
 
 float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector )
 {
 	// Calculate the line-plane intersection
-	__m128 displaced = _mm_sub_ps( triangle.origin.simd, rayOrigin.simd );
-	__m128 normal = _mm_cross_ps( triangle.x_axis.simd, triangle.y_axis.simd );
-
-	__m128 product = _mm_dot_ps( normal, displaced,
-		_mm_cross_ps( rayVector.simd, triangle.y_axis.simd ), displaced,
-		_mm_cross_ps( triangle.x_axis.simd, rayVector.simd ), displaced,
-		normal, rayVector.simd );
+	vec4f displaced = triangle.origin - rayOrigin;
+	vec4f normal = Math::cross( triangle.x_axis, triangle.y_axis );
+	vec4f product = Math::parallel::dot(
+		normal, displaced,
+		Math::cross( rayVector, triangle.y_axis ), displaced,
+		Math::cross( triangle.x_axis, rayVector ), displaced,
+		normal, rayVector
+	);
 
 	// Check that the plane intersection hits the region of the triangle
-	__m128 intersectData = _mm_div_ps( product, _mm_set1_ps( product.m128_f32[3] ) );
-	vec3f& intersection = reinterpret_cast<vec3f&>( intersectData );
+	vec4f intersection = product / product.w;
 	return intersection.y >= 0.0f && intersection.z >= 0.0f && intersection.y + intersection.z <= 1.0f ? intersection.x : INFINITY;
 }
 
 bool Math::Box::pointTest( const vec4f& point )
 {
-	__m128 isInside = _mm_and_ps( _mm_cmpge_ps( point.simd, SIMD_4f_NEG ), _mm_cmple_ps( point.simd, SIMD_4f_ONES ) );
-	return isInside.m128_u32[0] && isInside.m128_u32[1] && isInside.m128_u32[2];
+	vec4f isInside = point >= Math::NEGATIVE<vec4f> && point <= Math::ONES<vec4f>;
+	return isInside.x && isInside.y && isInside.z;
 }
 
 bool Math::Box::rayTest( const vec4f& origin, const vec3f& ray )
 {
 	return Math::AABB::rayTest( Math::NEGATIVE<vec4f>, Math::ONES<vec4f>, origin, ray );
-
-	// OLD Implementation (TODO: Delete after proving new implementation)
-	/*if( pointTest(rayOrigin) || pointTest(rayOrigin + rayVector) ) return true;
-
-	// Create a sign vector to select the corner of the box
-	__m128 comparison = _mm_cmpge_ps( rayOrigin.simd, SIMD_4f_ZERO );
-	__m128 quadrant = _mm_or_ps( _mm_and_ps( comparison, SIMD_4f_ONES ), _mm_and_ps( _mm_xor_ps( comparison, reinterpret_cast<const __m128&>( SIMD_4i_NEG ) ), SIMD_4f_NEG ) );
-
-	// Calculate the vectors in the mirrored quadrant
-	__m128 vector = _mm_mul_ps( quadrant, rayVector.simd );								// l1 - l0
-	__m128 origin = _mm_sub_ps( SIMD_4f_W, _mm_mul_ps( quadrant, rayOrigin.simd ) );	// p0 - l0
-
-	// Calculate UV vectors
-	__m128 xProduct = _mm_cross_ps( vector, Math::axis::X<vec3f>.simd );
-	__m128 yProduct = _mm_cross_ps( vector, Math::axis::Y<vec3f>.simd );
-	__m128 zProduct = _mm_cross_ps( vector, Math::axis::Z<vec3f>.simd );
-
-	// Calculate the TUV values for 3 line-plane intersections simultaneously
-	__m128 denominator = _mm_dot3_ps( SIMD_X_AXIS, vector, SIMD_Y_AXIS, vector, SIMD_Z_AXIS, vector );
-	__m128 t = _mm_div_ps( _mm_dot3_ps( SIMD_X_AXIS, origin, SIMD_Y_AXIS, origin, SIMD_Z_AXIS, origin ), denominator );
-	__m128 u = _mm_div_ps( _mm_dot3_ps( yProduct, origin, xProduct, origin, xProduct, origin ), denominator );
-	__m128 v = _mm_div_ps( _mm_dot3_ps( zProduct, origin, zProduct, origin, yProduct, origin ), denominator );
-
-	// Check if the intersection is within the correct bounds
-	__m128 isValid = _mm_and_ps( 
-		_mm_and_ps( _mm_cmpge_ps( t, SIMD_4f_ZERO ), _mm_cmple_ps( t, SIMD_4f_ONES ) ), _mm_and_ps(
-		_mm_and_ps( _mm_cmpge_ps( u, SIMD_4f_NEG ), _mm_cmple_ps( u, SIMD_4f_ONES ) ),
-		_mm_and_ps( _mm_cmpge_ps( v, SIMD_4f_NEG ), _mm_cmple_ps( v, SIMD_4f_ONES ) ) ) );
-
-	// Check if either of the 3 faces intersected the ray
-	return isValid.m128_u32[0] || isValid.m128_u32[1] || isValid.m128_u32[2];*/
 }
 
 bool Math::Box::triangleTest( const TransformSpace& triangle )
 {
 	// Test triangle overlapping box
 	const mat4x4& tri = triangle.transform;
-	__m128 min, max;
+	vec4f min, max;
 
 	AABB_TRIANGLE( tri, min, max );
 
-	__m128 minBounds = _mm_xyzw_ps( -ONE_EPSILON, -ONE_EPSILON, -ONE_EPSILON, 0.0f );
-	__m128 maxBounds = _mm_xyzw_ps(  ONE_EPSILON,  ONE_EPSILON,  ONE_EPSILON, 0.0f );
-	__m128 overlaps = _mm_overlaps_ps( min, max, minBounds, maxBounds );
-	if( !( overlaps.m128_f32[0] && overlaps.m128_f32[1] && overlaps.m128_f32[2] ) ) return false;
+	vec4f minBounds( -ONE_EPSILON, -ONE_EPSILON, -ONE_EPSILON, 0.0f );
+	vec4f maxBounds(  ONE_EPSILON,  ONE_EPSILON,  ONE_EPSILON, 0.0f );
+	vec4f overlaps = Math::overlaps( min, max, minBounds, maxBounds );
+	if( !( overlaps.x && overlaps.y && overlaps.z ) ) return false;
 	
 	// Test box overlapping triangle
 	AABB_BOX_FULL( triangle.inverse, min, max );
 
-	return max.m128_f32[0] >= N_EPSILON && max.m128_f32[1] >= N_EPSILON
-		&& min.m128_f32[0] + min.m128_f32[1] <= ONE_EPSILON
-		&& min.m128_f32[2] <= P_EPSILON && max.m128_f32[2] >= N_EPSILON;
+	return max.x >= N_EPSILON && max.y >= N_EPSILON
+		&& min.x + min.y <= ONE_EPSILON && min.z <= P_EPSILON && max.z >= N_EPSILON;
 }
 
 bool Math::Box::boxTest( const TransformSpace& box )
 {
 	// Test regular overlap
-	__m128 overlaps = MIRRORED_AABB_SEPARATION_TEST( box.transform, SIMD_4f_ONES );
-	if( !( overlaps.m128_f32[0] && overlaps.m128_f32[1] && overlaps.m128_f32[2] ) ) return false;
+	vec4f overlaps = MIRRORED_AABB_SEPARATION_TEST( box.transform, Math::ONES<vec4f> );
+	if( !( overlaps.x && overlaps.y && overlaps.z ) ) return false;
 
-	overlaps = MIRRORED_AABB_SEPARATION_TEST( box.inverse, SIMD_4f_ONES );
-	return overlaps.m128_u32[0] && overlaps.m128_u32[1] && overlaps.m128_u32[2];
+	overlaps = MIRRORED_AABB_SEPARATION_TEST( box.inverse, Math::ONES<vec4f> );
+	return overlaps.x && overlaps.y && overlaps.z;
 }
 
 bool Math::Box::projectedBoxTest( const TransformSpace& box )
 {
 	// Test regular overlap
-	__m128 overlaps = PROJECTED_AABB_SEPARATION_TEST( box.transform, SIMD_4f_NEG, SIMD_4f_ONES );
-	if( !( overlaps.m128_f32[0] && overlaps.m128_f32[1] && overlaps.m128_f32[2] ) ) return false;
+	vec4f overlaps = PROJECTED_AABB_SEPARATION_TEST( box.transform, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
+	if( !( overlaps.x && overlaps.y && overlaps.z ) ) return false;
 
-	overlaps = PROJECTED_AABB_SEPARATION_TEST( box.inverse, SIMD_4f_NEG, SIMD_4f_ONES );
-	return overlaps.m128_u32[0] && overlaps.m128_u32[1] && overlaps.m128_u32[2];
+	overlaps = PROJECTED_AABB_SEPARATION_TEST( box.inverse, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
+	return overlaps.x && overlaps.y && overlaps.z;
 }
 
 bool Math::Sphere::sphereTest( const TransformSpace& sphere )
@@ -627,14 +604,14 @@ const IntersectTest intersectionMatrix[4][4]
 Bounds<vec3f> Math::Box::calculateAABB( const mat4x4& t )
 {
 	Bounds<vec3f> bounds;
-	AABB_BOX_FULL( t, bounds.min.simd, bounds.max.simd );
+	AABB_BOX_FULL( t, bounds.min, bounds.max );
 	return bounds;
 }
 
 Bounds<vec3f> Math::Triangle::calculateAABB( const mat4x4& t )
 {
 	Bounds<vec3f> bounds;
-	AABB_TRIANGLE( t, bounds.min.simd, bounds.max.simd );
+	AABB_TRIANGLE( t, bounds.min, bounds.max );
 	return bounds;
 }
 
@@ -670,7 +647,7 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	TransformSpace unitTriangle;
 	
 	Bounds<vec3f> triangleBounds;
-	AABB_TRIANGLE( unitXform.transform, triangleBounds.min.simd, triangleBounds.max.simd );
+	AABB_TRIANGLE( unitXform.transform, triangleBounds.min, triangleBounds.max );
 
 	vec3i minIdx = Math::clamp( static_cast<vec3i>( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
 	vec3i maxIdx = Math::clamp( static_cast<vec3i>( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec3i>, dimensions );

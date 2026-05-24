@@ -466,10 +466,13 @@ namespace Math
 		vec3f f = Math::normalize( eye - center );
 		vec3f s = Math::normalize( Math::cross( up, f ) );
 		vec3f u = Math::cross( f, s );
+
+		constexpr static __m128 SIMD_4f_ZERO = { 0.0f, 0.0f, 0.0f, 0.0f };
 		mat.simd[0] = _mm_transpose_ps( s.simd, u.simd, f.simd, SIMD_4f_ZERO, swizzle::XXXX );
 		mat.simd[1] = _mm_transpose_ps( s.simd, u.simd, f.simd, SIMD_4f_ZERO, swizzle::YYYY );
 		mat.simd[2] = _mm_transpose_ps( s.simd, u.simd, f.simd, SIMD_4f_ZERO, swizzle::ZZZZ );
-		mat.simd[3] = _mm_mul_ps( _mm_dot3v_ps( s.simd, eye.simd, u.simd, eye.simd, f.simd, eye.simd, SIMD_4f_W ), _mm_xyzw_ps( -1.0f, -1.0f, -1.0f, 1.0f ) );
+		mat.simd[3] = _mm_mul_ps( _mm_dot3v_ps( s.simd, eye.simd, u.simd, eye.simd, f.simd, eye.simd, _mm_xyzw_ps( 0.0f, 0.0f, 0.0f, 1.0f ) ), 
+			_mm_xyzw_ps( -1.0f, -1.0f, -1.0f, 1.0f ) );
 	};
 
 	/**
