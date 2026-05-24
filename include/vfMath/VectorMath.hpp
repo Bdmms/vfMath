@@ -194,9 +194,9 @@ namespace Math
 	 * @return length of the vector
 	*/
 	template<typename T>
-	[[nodiscard]] static T length( const vec2<T>& v ) noexcept
+	[[nodiscard]] constexpr T length( const vec2<T>& v ) noexcept
 	{
-		return sqrt( v.x * v.x + v.y * v.y );
+		return sqrt<T>( v.x * v.x + v.y * v.y );
 	}
 
 	/**
@@ -204,9 +204,9 @@ namespace Math
 	 * @return length of the vector
 	*/
 	template<typename T>
-	[[nodiscard]] static T length( const vec4<T>& v ) noexcept
+	[[nodiscard]] constexpr T length( const vec4<T>& v ) noexcept
 	{
-		return sqrt( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
+		return sqrt<T>( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
 	}
 
 	/**
@@ -215,7 +215,7 @@ namespace Math
 	 * @return normalized vector
 	*/
 	template<size_t N, typename T>
-	[[nodiscard]] static vec<N, T> normalize( const vec<N, T>& v )
+	[[nodiscard]] constexpr vec<N, T> normalize( const vec<N, T>& v )
 	{
 		T vLength = length( v );
 		if( vLength == Math::ZERO<T> ) return Math::ZERO<vec<N, T>>;
@@ -241,9 +241,9 @@ namespace Math
 	 * @return distance
 	*/
 	template<size_t N, typename T>
-	[[nodiscard]] static T distance( const vec<N, T>& a, const vec<N, T>& b )
+	[[nodiscard]] constexpr T distance( const vec<N, T>& a, const vec<N, T>& b )
 	{
-		return sqrt( distance2( a, b ) );
+		return sqrt<T>( distance2( a, b ) );
 	}
 
 	/**
@@ -353,7 +353,7 @@ namespace Math
 	 * @return square root vector
 	*/
 	template<size_t N, typename T>
-	[[nodiscard]] static vec<N, T> sqrt( vec<N, T> v )
+	[[nodiscard]] constexpr vec<N, T> sqrt( vec<N, T> v )
 	{
 		vf::simd::sqrt( v, v );
 		return v;
@@ -535,11 +535,8 @@ namespace Math
 	[[nodiscard]] static vec4f rotate( const vec4f& position, const vec4f& axis, const float angle )
 	{
 		// Based on quaternion implementation, but without using a quaternion
-		vec4f r;
-		__m128 qxyz = _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) );
-		r.simd = _mm_add_ps( position.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ),
-			_mm_cross_ps( qxyz, _mm_add_ps( _mm_cross_ps( qxyz, position.simd ), _mm_mul_ps( position.simd, _mm_set1_ps( cosf( angle * 0.5f ) ) ) ) ) ) );
-		return r;
+		vec4f qxyz = axis * sinf( angle * 0.5f );
+		return position + 2.0f * ( cross( qxyz, cross( qxyz, position ) + position * cosf( angle * 0.5f ) ) );
 	}
 
 	/**

@@ -386,7 +386,7 @@ namespace Math
 	 * @param rotation - normalized rotation matrix
 	 * @return quaternion rotation
 	*/
-	static quat toQuat( const mat4f& rotation )
+	constexpr quat toQuat( const mat4f& rotation )
 	{
 		// TODO: This may flip signs
 		float a = rotation[0,0] - rotation[1,1] - rotation[2,2];
@@ -399,25 +399,25 @@ namespace Math
 
 		if( c > d )
 		{
-			t = sqrtf( c + 1.0f ) * 0.5f;
+			t = sqrt( c + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
 			q = { ( rotation[0,2] + rotation[2,0] ) * fac, ( rotation[2,1] + rotation[1,2] ) * fac, t, ( rotation[1,0] - rotation[0,1] ) * fac };
 		}
 		else if( b > d )
 		{
-			t = sqrtf( b + 1.0f ) * 0.5f;
+			t = sqrt( b + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
 			q = { ( rotation[1,0] + rotation[0,1] ) * fac, t, ( rotation[2,1] + rotation[1,2] ) * fac, ( rotation[0,2] - rotation[2,0] ) * fac };
 		}
 		else if( a > d )
 		{
-			t = sqrtf( a + 1.0f ) * 0.5f;
+			t = sqrt( a + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
 			q = { t, ( rotation[1,0] + rotation[0,1] ) * fac, ( rotation[0,2] + rotation[2,0] ) * fac, ( rotation[2,1] - rotation[1,2] ) * fac };
 		}
 		else
 		{
-			t = sqrtf( d + 1.0f ) * 0.5f;
+			t = sqrt( d + 1.0f ) * 0.5f;
 			fac = 0.25f / t;
 			q = { ( rotation[2,1] - rotation[1,2] ) * fac, ( rotation[0,2] - rotation[2,0] ) * fac, ( rotation[1,0] - rotation[0,1] ) * fac, t };
 		}

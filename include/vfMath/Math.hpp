@@ -58,6 +58,9 @@ namespace Math
 		return radians * 180.0f / Math::PI<float>;
 	}
 
+	/**
+	 * @brief Computes the square root of a value.
+	*/
 	template<typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr T sqrt( T x ) noexcept
 	{
