@@ -12,22 +12,22 @@
  * @param v3 - row or column C
  * @return Cofactor expanded row/column
 */
-[[nodiscard]] static __m128 cofactorExpansion_SSE2(const __m128& v1, const __m128& v2, const __m128& v3)
-{
-	// Mask out the last element
-	constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, 0.0f };
-
-	// Row breakdown and parallel dot product
-	return _mm_dot_ps(
-		_mm_mul_ps(msk, _mm_permute_ps(v1, swizzle::YZW)),
-		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::ZYY), _mm_permute_ps(v3, swizzle::WWZ)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::ZYY), _mm_permute_ps(v2, swizzle::WWZ))),
-		_mm_mul_ps(msk, _mm_permute_ps(v1, swizzle::XZW)),
-		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::ZXX), _mm_permute_ps(v3, swizzle::WWZ)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::ZXX), _mm_permute_ps(v2, swizzle::WWZ))),
-		_mm_mul_ps(msk, _mm_permute_ps(v1, swizzle::XYW)),
-		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::YXX), _mm_permute_ps(v3, swizzle::WWY)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::YXX), _mm_permute_ps(v2, swizzle::WWY))),
-		_mm_mul_ps(msk, v1),
-		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::YXX), _mm_permute_ps(v3, swizzle::ZZY)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::YXX), _mm_permute_ps(v2, swizzle::ZZY))));
-}
+//[[nodiscard]] static __m128 cofactorExpansion_SSE2(const __m128& v1, const __m128& v2, const __m128& v3)
+//{
+//	// Mask out the last element
+//	constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, 0.0f };
+//
+//	// Row breakdown and parallel dot product
+//	return _mm_dot_ps(
+//		_mm_mul_ps(msk, _mm_permute_ps(v1, swizzle::YZW)),
+//		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::ZYY), _mm_permute_ps(v3, swizzle::WWZ)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::ZYY), _mm_permute_ps(v2, swizzle::WWZ))),
+//		_mm_mul_ps(msk, _mm_permute_ps(v1, swizzle::XZW)),
+//		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::ZXX), _mm_permute_ps(v3, swizzle::WWZ)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::ZXX), _mm_permute_ps(v2, swizzle::WWZ))),
+//		_mm_mul_ps(msk, _mm_permute_ps(v1, swizzle::XYW)),
+//		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::YXX), _mm_permute_ps(v3, swizzle::WWY)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::YXX), _mm_permute_ps(v2, swizzle::WWY))),
+//		_mm_mul_ps(msk, v1),
+//		_mm_sub_ps(_mm_mul_ps(_mm_permute_ps(v2, swizzle::YXX), _mm_permute_ps(v3, swizzle::ZZY)), _mm_mul_ps(_mm_permute_ps(v3, swizzle::YXX), _mm_permute_ps(v2, swizzle::ZZY))));
+//}
 
 /**
  * @brief Performs cofactor expansion on rows OR columns.
@@ -37,26 +37,27 @@
  * @param v3 - row or column C
  * @return Cofactor expanded row/column
 */
-[[nodiscard]] static __m256 cofactorExpansion_AVX2(const __m256& v1, const __m256& v2, const __m256& v3)
-{
-	// Mask out the last element
-	constexpr static __m256 msk = { 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f };
-
-	// Row breakdown and parallel dot product
-	return _mm256_dot_ps(
-		_mm256_mul_ps(msk, _mm256_permute_ps(v1, swizzle::YZW)),
-		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::ZYY), _mm256_permute_ps(v3, swizzle::WWZ)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::ZYY), _mm256_permute_ps(v2, swizzle::WWZ))),
-		_mm256_mul_ps(msk, _mm256_permute_ps(v1, swizzle::XZW)),
-		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::ZXX), _mm256_permute_ps(v3, swizzle::WWZ)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::ZXX), _mm256_permute_ps(v2, swizzle::WWZ))),
-		_mm256_mul_ps(msk, _mm256_permute_ps(v1, swizzle::XYW)),
-		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::YXX), _mm256_permute_ps(v3, swizzle::WWY)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::YXX), _mm256_permute_ps(v2, swizzle::WWY))),
-		_mm256_mul_ps(msk, v1),
-		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::YXX), _mm256_permute_ps(v3, swizzle::ZZY)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::YXX), _mm256_permute_ps(v2, swizzle::ZZY))));
-}
+//[[nodiscard]] static __m256 cofactorExpansion_AVX2(const __m256& v1, const __m256& v2, const __m256& v3)
+//{
+//	// Mask out the last element
+//	constexpr static __m256 msk = { 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f };
+//
+//	// Row breakdown and parallel dot product
+//	return _mm256_dot_ps(
+//		_mm256_mul_ps(msk, _mm256_permute_ps(v1, swizzle::YZW)),
+//		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::ZYY), _mm256_permute_ps(v3, swizzle::WWZ)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::ZYY), _mm256_permute_ps(v2, swizzle::WWZ))),
+//		_mm256_mul_ps(msk, _mm256_permute_ps(v1, swizzle::XZW)),
+//		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::ZXX), _mm256_permute_ps(v3, swizzle::WWZ)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::ZXX), _mm256_permute_ps(v2, swizzle::WWZ))),
+//		_mm256_mul_ps(msk, _mm256_permute_ps(v1, swizzle::XYW)),
+//		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::YXX), _mm256_permute_ps(v3, swizzle::WWY)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::YXX), _mm256_permute_ps(v2, swizzle::WWY))),
+//		_mm256_mul_ps(msk, v1),
+//		_mm256_sub_ps(_mm256_mul_ps(_mm256_permute_ps(v2, swizzle::YXX), _mm256_permute_ps(v3, swizzle::ZZY)), _mm256_mul_ps(_mm256_permute_ps(v3, swizzle::YXX), _mm256_permute_ps(v2, swizzle::ZZY))));
+//}
 
 /**
  * @brief 4x4 matrix
 */
+/*
 union mat4x4
 {
 	std::array<float, 16LLU> m;
@@ -200,10 +201,6 @@ union mat4x4
 		return *this;
 	}
 
-	/**
-	 * @brief Calculates the determinant of this matrix
-	 * @return determinant
-	*/
 	[[nodiscard]] float determinant() const
 	{
 		constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, -1.0f };
@@ -214,10 +211,6 @@ union mat4x4
 		return Math::dot( col[0], r );
 	}
 
-	/**
-	 * @brief Creates a transposed matrix
-	 * @return transposed matrix
-	*/
 	[[nodiscard]] mat4x4 transpose() const
 	{
 #if ENABLE_INSTRUCTIONS_AVX512
@@ -243,10 +236,6 @@ union mat4x4
 #endif
 	}
 
-	/**
-	 * @brief Creates an inverse matrix
-	 * @return inverse matrix
-	*/
 	[[nodiscard]] mat4x4 inverse() const
 	{
 #if ENABLE_INSTRUCTIONS_AVX512
@@ -436,10 +425,10 @@ union mat4x4
 		_mm_shuffle_ps( t2, t3, 0xDD ), b.simd );
 	return r;
 
-	/*return {_mm_dot_ps(b.simd, _mm_xyzw_ps(a.m[0], a.m[4], a.m[8], a.m[12]),
-						b.simd, _mm_xyzw_ps(a.m[1], a.m[5], a.m[9], a.m[13]),
-						b.simd, _mm_xyzw_ps(a.m[2], a.m[6], a.m[10], a.m[14]),
-						b.simd, _mm_xyzw_ps(a.m[3], a.m[7], a.m[11], a.m[15])) };*/
+	// return {_mm_dot_ps(b.simd, _mm_xyzw_ps(a.m[0], a.m[4], a.m[8], a.m[12]),
+	// 					b.simd, _mm_xyzw_ps(a.m[1], a.m[5], a.m[9], a.m[13]),
+	// 					b.simd, _mm_xyzw_ps(a.m[2], a.m[6], a.m[10], a.m[14]),
+	// 					b.simd, _mm_xyzw_ps(a.m[3], a.m[7], a.m[11], a.m[15])) };
 #else
 	// TODO
 #endif
@@ -456,11 +445,6 @@ union mat4x4
 #endif
 }
 
-/*
-* [default]		= 38579200 ns (avg. 34019200 ns)
-* [parallel]	= 19865300 ns (avg. 18801620 ns)
-* [unrepeated]	= 15184700 ns (avg. 14801640 ns)
-*/
 [[nodiscard]] static mat4x4 operator*( const mat4x4& a, const mat4x4& b ) noexcept
 {
 #if ENABLE_INSTRUCTIONS_AVX512
@@ -489,5 +473,6 @@ union mat4x4
 }
 
 typedef mat4x4 mat4f;
+*/
 
 #endif

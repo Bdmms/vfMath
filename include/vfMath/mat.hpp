@@ -13,9 +13,13 @@ struct mat : public MatrixStorage<M, N, T>
 	constexpr mat() : Storage{} {}
 
 	// Initializing List
-	template<typename ... Args, typename = std::enable_if_t<( sizeof...( Args ) == M * N || sizeof...( Args ) == N ) && 
-		( ( std::is_constructible_v<T, Args&&> || std::is_constructible_v<VectorStorage<M, T>, Args&&> ) && ... )>>
+	template<typename ... Args, typename = std::enable_if_t<( sizeof...( Args ) == N ) && 
+		( ( std::is_constructible_v<VectorStorage<M, T>, Args&&> ) && ... )>>
 	constexpr mat( Args&& ... args ) : Storage{ std::forward<Args>( args )... } {}
+
+	//template<typename ... Args, typename = std::enable_if_t<( sizeof...( Args ) == M * N ) &&
+	//	( ( std::is_constructible_v<T, Args&&> ) && ... )>>
+	//mat( Args&& ... args ) : Storage{ std::forward<Args>( args )... } {}
 
 	// Copy Constructor
 	constexpr mat( const mat<M, N, T>& copy ) = default;
@@ -26,7 +30,7 @@ struct mat : public MatrixStorage<M, N, T>
 	 */
 	constexpr static mat set1( T value )
 	{
-		mat r;
+		mat r{};
 		vf::simd::set1<M, N, T>( r, value );
 		return r;
 	}
@@ -36,32 +40,35 @@ struct mat : public MatrixStorage<M, N, T>
 	 */
 	constexpr static mat identity()
 	{
-		mat r;
+		mat r{};
 		vf::simd::setIdentity( r );
 		return r;
 	}
 
 	// Container Operations
-	constexpr T* data() { return Storage::elements.data(); }
-	constexpr const T* data() const { return Storage::elements.data(); }
-	constexpr size_t size() { return Storage::elements.size(); }
+	//constexpr T* data() { return Storage::elements.data(); }
+	//constexpr const T* data() const { return Storage::elements.data(); }
+	//constexpr size_t size() { return Storage::elements.size(); }
 
 	// Array Operators
 	constexpr const T& operator[]( size_t r, size_t c ) const { return Storage::cols[c].elements[r]; }
 	constexpr T& operator[]( size_t r, size_t c ) { return Storage::cols[c].elements[r]; }
 
+	inline const T& operator[]( size_t i ) const { return Storage::m[i]; }
+	inline T& operator[]( size_t i ) { return Storage::m[i]; }
+
 	// Arithmetic Operators
 	constexpr mat& operator+=( const mat& rhs ) noexcept { vf::simd::add<M, N, T>( *this, *this, rhs ); return *this; }
 	constexpr mat& operator-=( const mat& rhs ) noexcept { vf::simd::sub<M, N, T>( *this, *this, rhs ); return *this; }
 
-	//constexpr mat& operator+=( T rhs ) noexcept { vf::simd::add<N, T>( *this, *this, rhs ); return *this; }
-	//constexpr mat& operator-=( T rhs ) noexcept { vf::simd::sub<N, T>( *this, *this, rhs ); return *this; }
+	constexpr mat& operator+=( T rhs ) noexcept { vf::simd::add<M, N, T>( *this, *this, rhs ); return *this; }
+	constexpr mat& operator-=( T rhs ) noexcept { vf::simd::sub<M, N, T>( *this, *this, rhs ); return *this; }
 	constexpr mat& operator*=( T rhs ) noexcept { vf::simd::mul<M, N, T>( *this, *this, rhs ); return *this; }
 	constexpr mat& operator/=( T rhs ) noexcept { vf::simd::div<M, N, T>( *this, *this, rhs ); return *this; }
 
 };
 
-template<size_t M, size_t N, size_t N2, typename T>
+template<size_t M, size_t N, typename T>
 [[nodiscard]] constexpr mat<M, N, T> operator+( const mat<M, N, T>& a, const mat<M, N, T>& b ) noexcept
 {
 	mat<M, N, T> result;
@@ -69,8 +76,24 @@ template<size_t M, size_t N, size_t N2, typename T>
 	return result;
 }
 
-template<size_t M, size_t N, size_t N2, typename T>
+template<size_t M, size_t N, typename T>
 [[nodiscard]] constexpr mat<M, N, T> operator-( const mat<M, N, T>& a, const mat<M, N, T>& b ) noexcept
+{
+	mat<M, N, T> result;
+	vf::simd::sub( result, a, b );
+	return result;
+}
+
+template<size_t M, size_t N, typename T>
+[[nodiscard]] constexpr mat<M, N, T> operator+( const mat<M, N, T>& a, T b ) noexcept
+{
+	mat<M, N, T> result;
+	vf::simd::add( result, a, b );
+	return result;
+}
+
+template<size_t M, size_t N, typename T>
+[[nodiscard]] constexpr mat<M, N, T> operator-( const mat<M, N, T>& a, T b ) noexcept
 {
 	mat<M, N, T> result;
 	vf::simd::sub( result, a, b );
@@ -134,12 +157,15 @@ typedef mat2<f32> mat2f32;
 typedef mat2<i32> mat2i32;
 typedef mat2<u32> mat2u32;
 
-//typedef mat4<f32> mat4f;
+typedef mat4<f32> mat4f;
 typedef mat4<i32> mat4i;
 typedef mat4<u32> mat4u;
 
 typedef mat4<f32> mat4f32;
 typedef mat4<i32> mat4i32;
 typedef mat4<u32> mat4u32;
+
+// TOOD: TEMP
+typedef mat4f mat4x4;
 
 #endif

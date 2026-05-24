@@ -69,12 +69,12 @@ namespace Math
 	 * @param bounds - axis-aligned bound range
 	 * @return transform matrix
 	*/
-	static mat4x4 createBoundingTransform( const Bounds<vec3f>& bounds )
+	static mat4f createBoundingTransform( const Bounds<vec3f>& bounds )
 	{
 		vec3f scale = ( bounds.max - bounds.min ) * 0.5f;
 		vec3f translation = scale + bounds.min;
 		translation.w = 1.0f;
-		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
+		return { vec4f{ scale.x, 0.0f, 0.0f }, vec4f{ 0.0f, scale.y, 0.0f }, vec4f{ 0.0f, 0.0f, scale.z }, translation };
 	}
 
 	/*
@@ -82,12 +82,12 @@ namespace Math
 	 * @param bounds - axis-aligned bound range
 	 * @return inverse transform matrix
 	*/
-	static mat4x4 createBoundingInverseTransform( const Bounds<vec3f>& bounds )
+	static mat4f createBoundingInverseTransform( const Bounds<vec3f>& bounds )
 	{
 		vec3f scale = 2.0f / ( bounds.max - bounds.min );
 		vec3f translation = ( bounds.max + bounds.min ) * ( -0.5f * scale );
 		translation.w = 1.0f;
-		return { { scale.x, 0.0f, 0.0f }, { 0.0f, scale.y, 0.0f }, { 0.0f, 0.0f, scale.z }, translation };
+		return { vec4f{ scale.x, 0.0f, 0.0f }, vec4f{ 0.0f, scale.y, 0.0f }, vec4f{ 0.0f, 0.0f, scale.z }, translation };
 	}
 
 	namespace AABB
@@ -318,10 +318,10 @@ struct Collider
 	 * @brief Clears previous transforms, sets the current transform, and re-calculates the AABB.
 	 * @param transform - transform matrix
 	*/
-	void setTransform( const mat4x4& transform )
+	void setTransform( const mat4f& transform )
 	{
 		current.transform = transform;
-		current.inverse = transform.inverse();
+		current.inverse = Math::invert( transform );
 		clearPrevious();
 		aabb = Math::Box::calculateAABB( transform );
 	}
@@ -341,10 +341,10 @@ struct Collider
 	 * @brief Replaces the collider's current transform and re-calculates the AABB.
 	 * @param transform - transform matrix
 	*/
-	void overrideTransform( const mat4x4& transform )
+	void overrideTransform( const mat4f& transform )
 	{
 		current.transform = transform;
-		current.inverse = transform.inverse();
+		current.inverse = Math::invert( transform );
 		aabb = Math::Box::calculateAABB( transform );
 	}
 
@@ -353,11 +353,11 @@ struct Collider
 	 * Previous transform is stored.
 	 * @param transform - transform matrix
 	*/
-	void pushTransform( const mat4x4& transform )
+	void pushTransform( const mat4f& transform )
 	{
 		previous = current;
 		current.transform = transform;
-		current.inverse = transform.inverse();
+		current.inverse = Math::invert( transform );
 		aabb = Math::Box::calculateAABB( transform );
 	}
 
@@ -413,7 +413,7 @@ struct ColliderSpace : public Collider
 	}
 
 	ColliderSpace( const mat4x4& transform ) : 
-		Collider{ { transform, transform.inverse() }, Math::Box::calculateAABB( transform ), ColliderType::Mesh }
+		Collider{ { transform, Math::invert( transform ) }, Math::Box::calculateAABB(transform), ColliderType::Mesh}
 	{
 
 	}
@@ -524,9 +524,9 @@ public:
 
 		// Re-compute unit space
 		vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
-		mat4x4 unitConvert = { { unitScale.x, 0.0f, 0.0f }, { 0.0f, unitScale.y, 0.0f }, { 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
+		mat4x4 unitConvert = { vec4f{ unitScale.x, 0.0f, 0.0f }, vec4f{ 0.0f, unitScale.y, 0.0f }, vec4f{ 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
 		unitSpace.transform = unitConvert;
-		unitSpace.inverse = unitConvert.inverse();
+		unitSpace.inverse = Math::invert( unitConvert );
 
 		units.clear();
 		faces.clear();

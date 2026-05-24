@@ -20,10 +20,6 @@ namespace Math
 	template<size_t M, size_t N, typename T>
 	inline constexpr static mat<M, N, T> IDENTITY<mat<M, N, T>> = mat<M, N, T>::identity();
 
-	template<> inline constexpr static mat4f ZERO<mat4f> = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
-	template<> inline constexpr static mat4f ONES<mat4f> = { 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f };
-	template<> inline constexpr static mat4f IDENTITY<mat4f> = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
-
 	/**
 	 * @brief Calculates the determinant of this matrix
 	 * @return determinant
@@ -99,7 +95,7 @@ namespace Math
 		__m128 adj2 = _mm_mul_ps( m0, _mm_sub_ps( _mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::YXX ), _mm_permute_ps( src.simd[1], swizzle::ZZY ) ),
 			_mm_mul_ps( _mm_permute_ps( src.simd[0], swizzle::ZZY ), _mm_permute_ps( src.simd[1], swizzle::YXX ) ) ) );
 
-		const __m128& srcC = src.col[0].simd;
+		const __m128& srcC = src.cols[0].simd;
 
 		__m128 det = _mm_set1_ps( srcC.m128_f32[0] * adj0.m128_f32[0] + srcC.m128_f32[1] * adj0.m128_f32[1] + srcC.m128_f32[2] * adj0.m128_f32[2] );
 		dst.simd[0] = _mm_div_ps( _mm_transpose_ps( adj0, adj1, adj2, SIMD_4f_ZERO, swizzle::XXX ), det );
@@ -282,9 +278,9 @@ namespace Math
 	static void setTransform( mat4f& matrix, const vec3f translation, const eulerf32& rotation, const vec3f& scale )
 	{
 		setRotation( matrix, rotation );
-		matrix.col[0] *= scale.x;
-		matrix.col[1] *= scale.y;
-		matrix.col[2] *= scale.z;
+		matrix.cols[0] *= scale.x;
+		matrix.cols[1] *= scale.y;
+		matrix.cols[2] *= scale.z;
 		setTranslation( matrix, translation );
 	}
 
@@ -298,9 +294,9 @@ namespace Math
 	constexpr void setTransform( mat4f& matrix, const vec3f translation, const quat& q, const vec3f& scale )
 	{
 		setRotation( matrix, q );
-		matrix.col[0] *= scale.x;
-		matrix.col[1] *= scale.y;
-		matrix.col[2] *= scale.z;
+		matrix.cols[0] *= scale.x;
+		matrix.cols[1] *= scale.y;
+		matrix.cols[2] *= scale.z;
 		setTranslation( matrix, translation );
 	}
 
@@ -391,21 +387,21 @@ namespace Math
 	{
 		vec4f difference = ( bounds.max - bounds.min ) * 0.5f;
 
-		matrix[0] = difference.x;
-		matrix[1] = 0.0f;
-		matrix[2] = 0.0f;
+		matrix[0,0] = difference.x;
+		matrix[1,0] = 0.0f;
+		matrix[2,0] = 0.0f;
 
-		matrix[4] = 0.0f;
-		matrix[5] = difference.y;
-		matrix[6] = 0.0f;
+		matrix[0,1] = 0.0f;
+		matrix[1,1] = difference.y;
+		matrix[2,1] = 0.0f;
 
-		matrix[8] = 0.0f;
-		matrix[9] = 0.0f;
-		matrix[10] = difference.z;
+		matrix[0,2] = 0.0f;
+		matrix[1,2] = 0.0f;
+		matrix[2,2] = difference.z;
 
-		matrix[12] = difference.x + bounds.min.x;
-		matrix[13] = difference.y + bounds.min.y;
-		matrix[14] = difference.z + bounds.min.z;
+		matrix[0,3] = difference.x + bounds.min.x;
+		matrix[1,3] = difference.y + bounds.min.y;
+		matrix[2,3] = difference.z + bounds.min.z;
 	}
 
 	/**
@@ -582,12 +578,12 @@ namespace Math
 		float cos = cosf( angle );
 		vec3f tpose = ( 1.0f - cos ) * axis;
 
-		return {
-			_mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) ),
-			_mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) ),
-			_mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) ),
-			SIMD_4f_W
-		};
+		mat4f r;
+		r.simd[0] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
+		r.simd[1] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
+		r.simd[2] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+		r.simd[3] = SIMD_4f_W;
+		return r;
 	}
 
 	/**
@@ -607,12 +603,12 @@ namespace Math
 		float sin = sqrtf( 1.0f - cos * cos );
 		vec3f tpose = ( 1.0f - cos ) * axis;
 
-		return {
-			_mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) ),
-			_mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) ),
-			_mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) ),
-			SIMD_4f_W
-		};
+		mat4f r;
+		r.simd[0] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.x ), _mm_xyzw_ps( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
+		r.simd[1] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.y ), _mm_xyzw_ps( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
+		r.simd[2] = _mm_fmadd_ps( axis.simd, _mm_set1_ps( tpose.z ), _mm_xyzw_ps( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+		r.simd[3] = SIMD_4f_W;
+		return r;
 	}
 
 	/**
@@ -682,14 +678,15 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static mat4f lerp( const mat4f& a, const mat4f& b, const float t )
 	{
-#if ENABLE_INSTRUCTIONS_AVX512
-		return { _mm512_fmadd_ps( _mm512_sub_ps( b.avx512, a.avx512 ), _mm512_set1_ps( t ), a.avx512 ) };
-#elif ENABLE_INSTRUCTIONS_AVX2
+#if ENABLE_INSTRUCTIONS_AVX2
+
 		__m256 weight = _mm256_set1_ps( t );
-		return {
-			_mm256_fmadd_ps( _mm256_sub_ps( b.avx2[0], a.avx2[0] ), weight, a.avx2[0] ),
-			_mm256_fmadd_ps( _mm256_sub_ps( b.avx2[1], a.avx2[1] ), weight, a.avx2[1] )
-		};
+
+		mat4f r;
+		r.avx2[0] = _mm256_fmadd_ps( _mm256_sub_ps( b.avx2[0], a.avx2[0] ), weight, a.avx2[0] );
+		r.avx2[1] = _mm256_fmadd_ps( _mm256_sub_ps( b.avx2[1], a.avx2[1] ), weight, a.avx2[1] );
+		return r;
+
 #elif ENABLE_INSTRUCTIONS_SSE2
 		__m128 weight = _mm_set1_ps( t );
 		return {
@@ -846,7 +843,11 @@ namespace Math
 		*/
 		constexpr mat4f scale( const vec3f& sc )
 		{
-			return mat4f{ sc.x, 0.0f, 0.0f, 0.0f, 0.0f, sc.y, 0.0f, 0.0f, 0.0f, 0.0f, sc.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+			return mat4f{ 
+				vec4f{ sc.x, 0.0f, 0.0f, 0.0f }, 
+				vec4f{ 0.0f, sc.y, 0.0f, 0.0f }, 
+				vec4f{ 0.0f, 0.0f, sc.z, 0.0f }, 
+				vec4f{ 0.0f, 0.0f, 0.0f, 1.0f } };
 		}
 
 		/**
@@ -929,10 +930,10 @@ namespace Math
 	template<> [[nodiscard]] static mat4f random( const mat4f& min, const mat4f& max )
 	{
 		return {
-			Math::random<vec4f>( min.col[0], max.col[0] ),
-			Math::random<vec4f>( min.col[1], max.col[1] ),
-			Math::random<vec4f>( min.col[2], max.col[2] ),
-			Math::random<vec4f>( min.col[3], max.col[3] )
+			Math::random<vec4f>( min.cols[0], max.cols[0] ),
+			Math::random<vec4f>( min.cols[1], max.cols[1] ),
+			Math::random<vec4f>( min.cols[2], max.cols[2] ),
+			Math::random<vec4f>( min.cols[3], max.cols[3] )
 		};
 	}
 
@@ -976,7 +977,7 @@ namespace Math
 			Math::randomDirection<vec3f>() * Math::random( minScale.x, maxScale.x ),
 			Math::randomDirection<vec3f>() * Math::random( minScale.y, maxScale.y ),
 			Math::randomDirection<vec3f>() * Math::random( minScale.z, maxScale.z ),
-			{ origin.x, origin.y, origin.z, 1.0f }
+			vec4f{ origin.x, origin.y, origin.z, 1.0f }
 		};
 	}
 };

@@ -203,9 +203,6 @@ typedef vec4<i64> vec4i64;
 typedef vec4i vec3i;
 typedef vec4f vec3f;
 
-// TODO: Temporary until mat4x4 is converted
-union mat4x4;
-
 // High-level SSE2 vector instructions
 #if ENABLE_INSTRUCTIONS_SSE2
 

@@ -62,9 +62,9 @@ CollisionFace createFace(const vec4f& p0, const vec4f& p1, const vec4f& p2)
 		xAxis,
 		yAxis,
 		Math::normalize(Math::cross(xAxis, yAxis)),
-		{ p0.x, p0.y, p0.z, 1.0f }
+		vec4f{ p0.x, p0.y, p0.z, 1.0f }
 	};
-	return { transform, transform.inverse() };
+	return { transform, Math::invert( transform ) };
 }
 
 CollisionFace* setQuad(CollisionFace* faces, const vec4f& p0, const vec4f& p1, const vec4f& p2, const vec4f& p3, const bool reverse)
@@ -688,7 +688,7 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 			{
 				unit.transform.origin = static_cast<vec4f>( idx ) + vec4f{ 0.5f, 0.5f, 0.5f, 1.0f };
 				unit.inverse.origin = unit.transform.origin * vec4f{ -2.0f, -2.0f, -2.0f, 1.0f };
-				unit.inverse = unit.transform.inverse();
+				unit.inverse = Math::invert( unit.transform );
 
 				unitTriangle.transform = unit.inverse * unitXform.transform;
 				unitTriangle.inverse = unitXform.inverse * unit.transform;
@@ -806,7 +806,7 @@ void CollisionMesh::setFaces( const std::vector<CollisionFace>& source )
 	for( size_t i = 0; i < source.size(); ++i )
 	{
 		faces[i].transform = current.inverse * source[i].transform;
-		faces[i].inverse = faces[i].transform.inverse();
+		faces[i].inverse = Math::invert( faces[i].transform );
 	}
 }
 

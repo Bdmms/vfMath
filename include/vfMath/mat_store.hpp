@@ -7,7 +7,11 @@
 template<size_t M, size_t N, typename T>
 struct MatrixStorage
 {
-	std::array<vec<M, T>, N> cols;
+	union
+	{
+		std::array<vec<M, T>, N> cols;
+		std::array<f32, 4> m; // TODO: Remove this from common storage
+	};
 };
 
 // 2x2 Matrices

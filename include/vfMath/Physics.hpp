@@ -132,7 +132,7 @@ namespace Physics
 	inline static AxisAngle getAngularVelocity( const AngularState& state, const mat4f& invInertiaTensor )
 	{
 		mat4f rotation = Math::create::rotation( state.orientation );
-		mat4f I_inv = rotation * invInertiaTensor * rotation.transpose();
+		mat4f I_inv = rotation * invInertiaTensor * Math::transpose( rotation );
 
 		return I_inv * state.momentum;
 	}

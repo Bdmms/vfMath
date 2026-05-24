@@ -12,7 +12,7 @@ struct TransformSpace
 	mat4f transform;
 	mat4f inverse;
 
-	TransformSpace( const mat4f& transform ) : transform( transform ), inverse( transform.inverse() ) {}
+	TransformSpace( const mat4f& transform ) : transform( transform ), inverse( Math::invert( transform ) ) {}
 
 	constexpr TransformSpace() : transform( Math::IDENTITY<mat4f> ), inverse( Math::IDENTITY<mat4f> ) {}
 	constexpr TransformSpace( const mat4f& transform, const mat4f& inverse ) : transform( transform ), inverse( inverse ) {}

@@ -3,7 +3,7 @@
 #define VF_CURVES_HPP
 
 #include "VectorMath.hpp"
-#include "mat4x4.hpp"
+#include "mat.hpp"
 #include <vector>
 
 /**
@@ -17,9 +17,9 @@ struct SplineType
 	constexpr SplineType( const mat4f& matrix, float factor ) :
 		basis( matrix )
 	{
-		for( float& value : basis.m )
+		for( vec4f& col : basis.cols )
 		{
-			value *= factor;
+			col *= factor;
 		}
 	}
 
@@ -41,11 +41,11 @@ struct Spline : public std::vector<vec4f>
 {
 	constexpr static uint64_t KNOT_SIZE = 4LLU;
 
-	constexpr static SplineType POLYLINE    = { { 0.0f, 1.0f, 0.0f, 0.0f,    0.0f, -1.0f, 1.0f, 0.0f,  0.0f,  0.0f, 0.0f,  0.0f,    0.0f, 0.0f,  0.0f, 0.0f }, 1.0f };
-	constexpr static SplineType HERMITE     = { { 1.0f, 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f, 0.0f,  -3.0f, -2.0f, 3.0f,  0.0f,    2.0f, 1.0f, -2.0f, 1.0f }, 1.0f };
-	constexpr static SplineType BEZIER      = { { 1.0f, 0.0f, 0.0f, 0.0f,   -3.0f, 3.0f, 0.0f, 0.0f,   3.0f, -6.0f, 3.0f,  0.0f,   -1.0f, 3.0f, -3.0f, 1.0f }, 1.0f };
-	constexpr static SplineType CATMULL_ROM = { { 0.0f, 2.0f, 0.0f, 0.0f,   -1.0f, 0.0f, 1.0f, 0.0f,   2.0f, -5.0f, 4.0f, -1.0f,   -1.0f, 3.0f, -3.0f, 1.0f }, 0.5f };
-	constexpr static SplineType BSPLINE     = { { 1.0f, 4.0f, 1.0f, 0.0f,   -3.0f, 0.0f, 3.0f, 0.0f,   3.0f, -6.0f, 3.0f,  0.0f,   -1.0f, 3.0f, -3.0f, 1.0f }, 1.0f / 6.0f };
+	constexpr static SplineType POLYLINE    = { { vec4f{ 0.0f, 1.0f, 0.0f, 0.0f },   vec4f{  0.0f, -1.0f, 1.0f, 0.0f },  vec4f{  0.0f,  0.0f, 0.0f,  0.0f },   vec4f{  0.0f, 0.0f,  0.0f, 0.0f } }, 1.0f };
+	constexpr static SplineType HERMITE     = { { vec4f{ 1.0f, 0.0f, 0.0f, 0.0f },   vec4f{  0.0f,  1.0f, 0.0f, 0.0f },  vec4f{ -3.0f, -2.0f, 3.0f,  0.0f },   vec4f{  2.0f, 1.0f, -2.0f, 1.0f } }, 1.0f };
+	constexpr static SplineType BEZIER      = { { vec4f{ 1.0f, 0.0f, 0.0f, 0.0f },   vec4f{ -3.0f,  3.0f, 0.0f, 0.0f },  vec4f{  3.0f, -6.0f, 3.0f,  0.0f },   vec4f{ -1.0f, 3.0f, -3.0f, 1.0f } }, 1.0f };
+	constexpr static SplineType CATMULL_ROM = { { vec4f{ 0.0f, 2.0f, 0.0f, 0.0f },   vec4f{ -1.0f,  0.0f, 1.0f, 0.0f },  vec4f{  2.0f, -5.0f, 4.0f, -1.0f },   vec4f{ -1.0f, 3.0f, -3.0f, 1.0f } }, 0.5f };
+	constexpr static SplineType BSPLINE     = { { vec4f{ 1.0f, 4.0f, 1.0f, 0.0f },   vec4f{ -3.0f,  0.0f, 3.0f, 0.0f },  vec4f{  3.0f, -6.0f, 3.0f,  0.0f },   vec4f{ -1.0f, 3.0f, -3.0f, 1.0f } }, 1.0f / 6.0f };
 
 	SplineType type;
 
@@ -220,7 +220,13 @@ struct Spline : public std::vector<vec4f>
 	*/
 	constexpr static SplineType createCardinalBasis( float s )
 	{
-		return { { 0.0f, 1.0f, 0.0f, 0.0f, -s, 0.0f, s, 0.0f, 2.0f * s, s - 3.0f, 3.0f - 2.0f * s, -s, -s, 2.0f - s, s - 2.0f, s }, 1.0f };
+		return { {
+			vec4f{ 0.0f, 1.0f, 0.0f, 0.0f },
+			vec4f{ -s, 0.0f, s, 0.0f },
+			vec4f{ 2.0f * s, s - 3.0f, 3.0f - 2.0f * s, -s },
+			vec4f{ -s, 2.0f - s, s - 2.0f, s } }, 
+			1.0f
+		};
 	}
 };
 

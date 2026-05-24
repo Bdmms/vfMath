@@ -182,6 +182,28 @@ namespace vf::simd
 	}
 
 	template<size_t M, size_t N, typename T>
+	constexpr void add( MatrixStorage<N, M, T>& r, const MatrixStorage<M, N, T>& a, T b )
+	{
+		VectorStorage<M, T> s;
+		set1<M, T>( s, b );
+		for( size_t col = 0LLU; col < N; ++col )
+		{
+			add<M, T>( r.cols[col], a.cols[col], s );
+		}
+	}
+
+	template<size_t M, size_t N, typename T>
+	constexpr void sub( MatrixStorage<N, M, T>& r, const MatrixStorage<M, N, T>& a, T b )
+	{
+		VectorStorage<M, T> s;
+		set1<M, T>( s, b );
+		for( size_t col = 0LLU; col < N; ++col )
+		{
+			sub<M, T>( r.cols[col], a.cols[col], s );
+		}
+	}
+
+	template<size_t M, size_t N, typename T>
 	constexpr void mul( MatrixStorage<N, M, T>& r, const MatrixStorage<M, N, T>& a, T b )
 	{
 		VectorStorage<M, T> s;
@@ -226,6 +248,96 @@ namespace vf::simd
 	typedef MatrixStorage<4, 4, f32> simdMat4f32;
 
 #if ENABLE_INSTRUCTIONS_AVX2
+
+	/**
+	 * @brief Performs cofactor expansion on rows OR columns.
+	 * This effectively calculates the determinant of four 3x3 matrices.
+	 * @param v1 - row or column A
+	 * @param v2 - row or column B
+	 * @param v3 - row or column C
+	 * @return Cofactor expanded row/column
+	*/
+	[[nodiscard]] static __m128 cofactorExpansion_SSE2( const __m128& v1, const __m128& v2, const __m128& v3 )
+	{
+		// Mask out the last element
+		constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, 0.0f };
+
+		// Row breakdown and parallel dot product
+		return _mm_dot_ps(
+			_mm_mul_ps( msk, _mm_permute_ps( v1, swizzle::YZW ) ),
+			_mm_sub_ps( _mm_mul_ps( _mm_permute_ps( v2, swizzle::ZYY ), _mm_permute_ps( v3, swizzle::WWZ ) ), _mm_mul_ps( _mm_permute_ps( v3, swizzle::ZYY ), _mm_permute_ps( v2, swizzle::WWZ ) ) ),
+			_mm_mul_ps( msk, _mm_permute_ps( v1, swizzle::XZW ) ),
+			_mm_sub_ps( _mm_mul_ps( _mm_permute_ps( v2, swizzle::ZXX ), _mm_permute_ps( v3, swizzle::WWZ ) ), _mm_mul_ps( _mm_permute_ps( v3, swizzle::ZXX ), _mm_permute_ps( v2, swizzle::WWZ ) ) ),
+			_mm_mul_ps( msk, _mm_permute_ps( v1, swizzle::XYW ) ),
+			_mm_sub_ps( _mm_mul_ps( _mm_permute_ps( v2, swizzle::YXX ), _mm_permute_ps( v3, swizzle::WWY ) ), _mm_mul_ps( _mm_permute_ps( v3, swizzle::YXX ), _mm_permute_ps( v2, swizzle::WWY ) ) ),
+			_mm_mul_ps( msk, v1 ),
+			_mm_sub_ps( _mm_mul_ps( _mm_permute_ps( v2, swizzle::YXX ), _mm_permute_ps( v3, swizzle::ZZY ) ), _mm_mul_ps( _mm_permute_ps( v3, swizzle::YXX ), _mm_permute_ps( v2, swizzle::ZZY ) ) ) );
+	}
+
+	/**
+	 * @brief Performs cofactor expansion on rows OR columns.
+	 * This effectively calculates the determinant of four 3x3 matrices.
+	 * @param v1 - row or column A
+	 * @param v2 - row or column B
+	 * @param v3 - row or column C
+	 * @return Cofactor expanded row/column
+	*/
+	[[nodiscard]] static __m256 cofactorExpansion_AVX2( const __m256& v1, const __m256& v2, const __m256& v3 )
+	{
+		// Mask out the last element
+		constexpr static __m256 msk = { 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f };
+
+		// Row breakdown and parallel dot product
+		return _mm256_dot_ps(
+			_mm256_mul_ps( msk, _mm256_permute_ps( v1, swizzle::YZW ) ),
+			_mm256_sub_ps( _mm256_mul_ps( _mm256_permute_ps( v2, swizzle::ZYY ), _mm256_permute_ps( v3, swizzle::WWZ ) ), _mm256_mul_ps( _mm256_permute_ps( v3, swizzle::ZYY ), _mm256_permute_ps( v2, swizzle::WWZ ) ) ),
+			_mm256_mul_ps( msk, _mm256_permute_ps( v1, swizzle::XZW ) ),
+			_mm256_sub_ps( _mm256_mul_ps( _mm256_permute_ps( v2, swizzle::ZXX ), _mm256_permute_ps( v3, swizzle::WWZ ) ), _mm256_mul_ps( _mm256_permute_ps( v3, swizzle::ZXX ), _mm256_permute_ps( v2, swizzle::WWZ ) ) ),
+			_mm256_mul_ps( msk, _mm256_permute_ps( v1, swizzle::XYW ) ),
+			_mm256_sub_ps( _mm256_mul_ps( _mm256_permute_ps( v2, swizzle::YXX ), _mm256_permute_ps( v3, swizzle::WWY ) ), _mm256_mul_ps( _mm256_permute_ps( v3, swizzle::YXX ), _mm256_permute_ps( v2, swizzle::WWY ) ) ),
+			_mm256_mul_ps( msk, v1 ),
+			_mm256_sub_ps( _mm256_mul_ps( _mm256_permute_ps( v2, swizzle::YXX ), _mm256_permute_ps( v3, swizzle::ZZY ) ), _mm256_mul_ps( _mm256_permute_ps( v3, swizzle::YXX ), _mm256_permute_ps( v2, swizzle::ZZY ) ) ) );
+	}
+
+	template<>
+	constexpr f32 determinant( const simdMat4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return NAN;
+
+		constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, -1.0f };
+
+		// Dot product between simdumn and its cofactor expansion
+		simd4f32 r;
+		r.simd = _mm_mul_ps( msk, cofactorExpansion_SSE2( a.simd[1], a.simd[2], a.simd[3] ) );
+		return dot( a.cols[0], r );
+	}
+
+	template<>
+	constexpr void invert( simdMat4f32& r, const simdMat4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::invert( r, a );
+
+		constexpr static __m256 msk = { 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f };
+
+		// Calculate the cofactor expansion for every column
+		__m256 adj0_1 = _mm256_mul_ps( msk, cofactorExpansion_AVX2( _mm256_set_m128( a.simd[0], a.simd[1] ), _mm256_set_m128( a.simd[2], a.simd[2] ), _mm256_set_m128( a.simd[3], a.simd[3] ) ) );
+		__m256 adj2_3 = _mm256_mul_ps( msk, cofactorExpansion_AVX2( _mm256_set_m128( a.simd[0], a.simd[0] ), _mm256_set_m128( a.simd[1], a.simd[1] ), _mm256_set_m128( a.simd[2], a.simd[3] ) ) );
+
+		__m256 product = _mm256_mul_ps( a.avx2[0], adj0_1 );
+		__m256 det = _mm256_hadd_ps( product, product );
+		det = _mm256_hadd_ps( det, det );
+
+		adj0_1 = _mm256_div_ps( adj0_1, det );
+		adj2_3 = _mm256_div_ps( adj2_3, det );
+
+		// Transpose the matrix
+		__m256i permutation = _mm256_set_epi32( 7, 3, 5, 1, 6, 2, 4, 0 );
+		__m256 a0 = _mm256_permutevar8x32_ps( adj0_1, permutation );
+		__m256 a1 = _mm256_permutevar8x32_ps( adj2_3, permutation );
+
+		r.avx2[0] = _mm256_shuffle_ps( a0, _mm256_permute_ps( a1, swizzle::ZWXY ), swizzle::XYZW );
+		r.avx2[1] = _mm256_shuffle_ps( _mm256_permute_ps( a0, swizzle::ZWXY ), a1, swizzle::XYZW );
+	}
 
 	template<>
 	constexpr void mul( simdMat4f32& r, const simdMat4f32& a, const simdMat4f32& b )
