@@ -2,7 +2,7 @@
 #ifndef VF_MATRIX_MATH_HPP
 #define VF_MATRIX_MATH_HPP
 
-#include "QuatMath.hpp"
+#include "quat_math.hpp"
 #include "mat.hpp"
 
 /**
@@ -134,7 +134,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	constexpr void setRotation( mat4f& matrix, const quat& q )
+	constexpr void setRotation( mat4f& matrix, const quatf32& q )
 	{
 		matrix[0,0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
 		matrix[1,0] = 2.0f * ( q.x * q.y + q.w * q.z );
@@ -216,7 +216,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	constexpr void setRotationInverse( mat4f& matrix, const quat& q )
+	constexpr void setRotationInverse( mat4f& matrix, const quatf32& q )
 	{
 		matrix[0,0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
 		matrix[0,1] = 2.0f * ( q.x * q.y + q.w * q.z );
@@ -268,7 +268,7 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	constexpr void setTransform( mat4f& matrix, const vec4f translation, const quat& q, const vec4f& scale )
+	constexpr void setTransform( mat4f& matrix, const vec4f translation, const quatf32& q, const vec4f& scale )
 	{
 		setRotation( matrix, q );
 		matrix[0] *= scale.x;
@@ -283,7 +283,7 @@ namespace Math
 	 * @param translation - translation vector
 	 * @param q - quaternion rotation
 	*/
-	constexpr void setTransform( mat4f& matrix, const vec4f translation, const quat& q )
+	constexpr void setTransform( mat4f& matrix, const vec4f translation, const quatf32& q )
 	{
 		setRotation( matrix, q );
 		setTranslation( matrix, translation );
@@ -329,7 +329,7 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	constexpr void setTransformInverse( mat4f& matrix, const vec4f& translation, const quat& q, const vec4f& scale )
+	constexpr void setTransformInverse( mat4f& matrix, const vec4f& translation, const quatf32& q, const vec4f& scale )
 	{
 		setRotationInverse( matrix, q );
 		vec4f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
@@ -347,7 +347,7 @@ namespace Math
 	 * @param translation - translation vector
 	 * @param q - quaternion rotation
 	*/
-	constexpr void setTransformInverse( mat4f& matrix, const vec4f& translation, const quat& q )
+	constexpr void setTransformInverse( mat4f& matrix, const vec4f& translation, const quatf32& q )
 	{
 		setRotationInverse( matrix, q );
 		matrix[0,3] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
@@ -386,14 +386,14 @@ namespace Math
 	 * @param rotation - normalized rotation matrix
 	 * @return quaternion rotation
 	*/
-	constexpr quat toQuat( const mat4f& rotation )
+	constexpr quatf32 toQuat( const mat4f& rotation )
 	{
 		// TODO: This may flip signs
 		float a = rotation[0,0] - rotation[1,1] - rotation[2,2];
 		float b = rotation[1,1] - rotation[0,0] - rotation[2,2];
 		float c = rotation[2,2] - rotation[0,0] - rotation[1,1];
 		float d = rotation[0,0] + rotation[1,1] + rotation[2,2];
-		quat q;
+		quatf32 q;
 		float t;
 		float fac;
 
@@ -446,7 +446,7 @@ namespace Math
 	 * @param rotation - rotation component
 	 * @param scale - scale component
 	*/
-	static void decompose( const mat4f& matrix, vec4f& position, quat& rotation, vec4f& scale )
+	static void decompose( const mat4f& matrix, vec4f& position, quatf32& rotation, vec4f& scale )
 	{
 		vf::simd::length4( scale, matrix.x_axis, matrix.y_axis, matrix.z_axis, Math::ZERO<vec4f> );
 		rotation = toQuat( mat4f{ matrix.x_axis / scale.x, matrix.y_axis / scale.y, matrix.z_axis / scale.z, Math::axis::W<vec4f> } );
@@ -758,7 +758,7 @@ namespace Math
 		 * @param rot - rotation quaternion
 		 * @return rotation matrix
 		*/
-		constexpr mat4f rotation( const quat& q )
+		constexpr mat4f rotation( const quatf32& q )
 		{
 			mat4f m = Math::IDENTITY<mat4f>;
 			setRotation( m, q );
@@ -823,7 +823,7 @@ namespace Math
 		 * @param scale - scale vector
 		 * @return transform matrix
 		*/
-		constexpr mat4f transform( const vec4f translation, const quat& rotation, const vec4f& scale )
+		constexpr mat4f transform( const vec4f translation, const quatf32& rotation, const vec4f& scale )
 		{
 			mat4f m = Math::IDENTITY<mat4f>;
 			setTransform( m, translation, rotation, scale );

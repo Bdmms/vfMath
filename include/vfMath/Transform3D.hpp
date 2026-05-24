@@ -30,10 +30,10 @@ struct TransformSpace
 struct Transform3D
 {
 	vec4f translation;
-	quat  rotation;
+	quatf32 rotation;
 	vec4f scale;
 
-	constexpr Transform3D( const vec4f& translation = Math::ZERO<vec4f>, const quat& rotation = Math::IDENTITY<quat>, const vec4f& scale = Math::ONES<vec4f> ) :
+	constexpr Transform3D( const vec4f& translation = Math::ZERO<vec4f>, const quatf32& rotation = Math::IDENTITY<quatf32>, const vec4f& scale = Math::ONES<vec4f> ) :
 		translation( translation ),
 		rotation( rotation ),
 		scale( scale )
@@ -59,7 +59,7 @@ struct Transform3D
 
 	[[nodiscard]] Transform3D inverse() const
 	{
-		quat invRotation = rotation.inverse();
+		quatf32 invRotation = rotation.inverse();
 		vec4f invScale = 1.0f / scale;
 
 		return { Math::rotate( -translation, invRotation ) * invScale, invRotation, invScale };

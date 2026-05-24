@@ -3,23 +3,23 @@
 #define VF_QUAT_MATH_HPP
 
 #include "euler_math.hpp"
-#include "quaternion.hpp"
+#include "quat.hpp"
 
 /**
  * @brief Utilities for quaternions
 */
 namespace Math
 {
-	template<> inline constexpr static quat ZERO<quat> = { 0.0f, 0.0f, 0.0f, 0.0f };
-	template<> inline constexpr static quat ONES<quat> = { 1.0f, 1.0f, 1.0f, 1.0f };
-	template<> inline constexpr static quat IDENTITY<quat> = { 0.0f, 0.0f, 0.0f, 1.0f };
+	template<> inline constexpr static quatf32 ZERO<quatf32> = { 0.0f, 0.0f, 0.0f, 0.0f };
+	template<> inline constexpr static quatf32 ONES<quatf32> = { 1.0f, 1.0f, 1.0f, 1.0f };
+	template<> inline constexpr static quatf32 IDENTITY<quatf32> = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	/**
 	 * @brief Converts euler angles vector to quaternion
 	 * @param rotation - euler angles
 	 * @return quaternion rotation
 	*/
-	[[nodiscard]] static quat toQuat( const eulerf32& rotation )
+	[[nodiscard]] static quatf32 toQuat( const eulerf32& rotation )
 	{
 		eulerf32 s = sin( rotation * 0.5f );
 		eulerf32 c = cos( rotation * 0.5f );
@@ -37,13 +37,13 @@ namespace Math
 	 * @param rotation - axis angle rotation
 	 * @return quaternion rotation
 	*/
-	static quat toQuat( const AxisAngle<f32>& rotation )
+	static quatf32 toQuat( const AxisAngle<f32>& rotation )
 	{
 		float angle = Math::length( rotation );
-		if( angle <= Math::EPSILON<float> ) return Math::IDENTITY<quat>;
+		if( angle <= Math::EPSILON<float> ) return Math::IDENTITY<quatf32>;
 
 		vec4f axis = rotation / angle;
-		quat q = { _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) ) };
+		quatf32 q = { _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) ) };
 		q.w = cosf( angle * 0.5f );
 		return q;
 	}
@@ -53,7 +53,7 @@ namespace Math
 	 * @param q - quaternion
 	 * @return normalized quaternion
 	*/
-	[[nodiscard]] static quat normalize( const quat& q )
+	[[nodiscard]] static quatf32 normalize( const quatf32& q )
 	{
 		return { _mm_div_ps( q.simd, _mm_set1_ps( q.norm() ) ) };
 	}
@@ -64,9 +64,10 @@ namespace Math
 	 * @param b - second vector
 	 * @return dot product result
 	*/
-	[[nodiscard]] constexpr float dot( const quat& a, const quat& b )
+	template<typename T>
+	[[nodiscard]] constexpr T dot( const quat<T>& a, const quat<T>& b )
 	{
-		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+		return vf::simd::dot( a, b );
 	}
 
 	/**
@@ -75,7 +76,7 @@ namespace Math
 	 * @param q - quaternion
 	 * @return rotated position vector
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& v, const quat& q )
+	[[nodiscard]] static vec4f rotate( const vec4f& v, const quatf32& q )
 	{
 		// v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 		vec4f r;
@@ -88,7 +89,7 @@ namespace Math
 	 * @param q - quaternion
 	 * @return Euler angles vector
 	*/
-	[[nodiscard]] static eulerf32 toEuler( const quat& q )
+	[[nodiscard]] static eulerf32 toEuler( const quatf32& q )
 	{
 		return {
 			atan2f( 2.0f * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
@@ -102,7 +103,7 @@ namespace Math
 	 * @param q - quaternion
 	 * @return Axis angle vector
 	*/
-	[[nodiscard]] static AxisAngle<f32> toAxisAngle( const quat& q )
+	[[nodiscard]] static AxisAngle<f32> toAxisAngle( const quatf32& q )
 	{
 		AxisAngle<f32> axis = { q.x, q.y, q.z, 0.0f };
 		float length = Math::length( axis );
@@ -118,11 +119,11 @@ namespace Math
 	 * @param angle - angle of rotation around axis
 	 * @return quaternion
 	*/
-	template<> [[nodiscard]] static quat rotationAround( const vec4f& axis, const float angle )
+	template<> [[nodiscard]] static quatf32 rotationAround( const vec4f& axis, const float angle )
 	{
 		vec4f r = axis * sinf( angle * 0.5f );
 		r.w = cosf( angle * 0.5f );
-		return reinterpret_cast<quat&>( r );
+		return reinterpret_cast<quatf32&>( r );
 	}
 
 	/**
@@ -131,16 +132,16 @@ namespace Math
 	 * @param to - target vector (normalized)
 	 * @return resulting quaternion
 	*/
-	template<> [[nodiscard]] static quat rotationBetween( const vec4f& from, const vec4f& to )
+	template<> [[nodiscard]] static quatf32 rotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = Math::dot_3D( from, to );
-		if( product > 0.999999f ) return IDENTITY<quat>;
+		if( product > 0.999999f ) return IDENTITY<quatf32>;
 		if( product < -0.999999f ) return { Math::orthogonal( from ).simd };
 
 		__m128 rotation = _mm_cross_ps( from.simd, to.simd );
 		rotation.m128_f32[3] = Math::dot_3D( from, to ) + 1.0f;
 
-		return normalize( reinterpret_cast<quat&>( rotation ) );
+		return normalize( reinterpret_cast<quatf32&>( rotation ) );
 	}
 
 	/**
@@ -151,12 +152,12 @@ namespace Math
 	 * @param toSecondary - target secondary vector
 	 * @return resulting quaternion
 	*/
-	[[nodiscard]] static quat rotationBetween( const vec4f& fromPrimary, const vec4f& fromSecondary, const vec4f& toPrimary, const vec4f& toSecondary )
+	[[nodiscard]] static quatf32 rotationBetween( const vec4f& fromPrimary, const vec4f& fromSecondary, const vec4f& toPrimary, const vec4f& toSecondary )
 	{
 		// If cannot calculate primary direction, return identity
-		if( Math::length2( toPrimary ) < Math::EPSILON<float> ) return Math::IDENTITY<quat>;
+		if( Math::length2( toPrimary ) < Math::EPSILON<float> ) return Math::IDENTITY<quatf32>;
 
-		quat r1 = Math::rotationBetween<quat>( fromPrimary, toPrimary );
+		quatf32 r1 = Math::rotationBetween<quatf32>( fromPrimary, toPrimary );
 
 		vec4f current = Math::rotate( fromSecondary, r1 );
 		vec4f target = Math::cross( toPrimary, Math::cross( toSecondary, toPrimary ) );
@@ -167,7 +168,7 @@ namespace Math
 		target = Math::normalize( target );
 		float angle = acosf( std::clamp( Math::dot_3D( current, target ), -1.0f, 1.0f ) );
 		float sign = Math::sign( Math::dot_3D( Math::cross( current, target ), toPrimary ) );
-		return r1 * Math::rotationAround<quat>( fromPrimary, angle * sign );
+		return r1 * Math::rotationAround<quatf32>( fromPrimary, angle * sign );
 	}
 
 	/**
@@ -176,9 +177,9 @@ namespace Math
 	 * @param b - second quaternion
 	 * @return angle between the quaternions
 	*/
-	[[nodiscard]] static float angleBetween( const quat& a, const quat& b )
+	[[nodiscard]] static float angleBetween( const quatf32& a, const quatf32& b )
 	{
-		quat q = b * a.inverse();
+		quatf32 q = b * a.inverse();
 		return 2.0f * atan2f( sqrtf( q.x * q.x + q.y * q.y + q.z * q.z ), q.w );
 	}
 
@@ -188,9 +189,9 @@ namespace Math
 	 * @param max - maximum quat
 	 * @return random quaternion
 	*/
-	[[nodiscard]] static quat random( const quat& min, const quat& max )
+	[[nodiscard]] static quatf32 random( const quatf32& min, const quatf32& max )
 	{
-		quat q = { ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ) };
+		quatf32 q = { ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ) };
 		return min + q * ( max - min );
 	}
 
@@ -198,9 +199,9 @@ namespace Math
 	 * @brief Generates a random quaternion rotation
 	 * @return random quaternion rotation
 	*/
-	template<> [[nodiscard]] static quat randomRotation<quat>()
+	template<> [[nodiscard]] static quatf32 randomRotation<quatf32>()
 	{
-		return rotationAround<quat>( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
+		return rotationAround<quatf32>( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**
@@ -210,7 +211,7 @@ namespace Math
 	 * @param trackAxis - direction of tracked axis (normalized)
 	 * @return quaternion rotation
 	*/
-	static quat lookTo( const vec4f& initial, const vec4f& target, const vec4f& trackAxis )
+	static quatf32 lookTo( const vec4f& initial, const vec4f& target, const vec4f& trackAxis )
 	{
 		vec4f projectedInitial = initial - Math::dot_3D( initial, trackAxis ) * trackAxis;
 		vec4f projectedTarget = target - Math::dot_3D( target, trackAxis ) * trackAxis;
@@ -219,7 +220,7 @@ namespace Math
 		float magnitudeTarget = sqrtf( Math::dot_3D( projectedTarget, projectedTarget ) );
 
 		// Normalize projected vectors
-		if( magnitudeInitial <= EPSILON<float> || magnitudeTarget <= EPSILON<float> ) return Math::IDENTITY<quat>;
+		if( magnitudeInitial <= EPSILON<float> || magnitudeTarget <= EPSILON<float> ) return Math::IDENTITY<quatf32>;
 		
 		projectedTarget /= magnitudeTarget;
 		projectedInitial /= magnitudeInitial;
@@ -227,10 +228,10 @@ namespace Math
 		vec4f axis = Math::cross( projectedInitial, projectedTarget );
 		float magnitude = sqrtf( Math::dot_3D( axis, axis ) );
 
-		if( magnitude <= EPSILON<float> ) return Math::IDENTITY<quat>;
+		if( magnitude <= EPSILON<float> ) return Math::IDENTITY<quatf32>;
 
 		float angle = acosf( std::clamp( dot_3D( projectedInitial, projectedTarget ), -1.0f, 1.0f ) );
-		return rotationAround<quat>( axis / magnitude, angle );
+		return rotationAround<quatf32>( axis / magnitude, angle );
 	}
 
 	/**
@@ -240,10 +241,10 @@ namespace Math
 	 * @param t - weight between quaternions
 	 * @return weighted quaternion
 	*/
-	static quat slerp( const quat& q0, const quat& q1, const float t )
+	static quatf32 slerp( const quatf32& q0, const quatf32& q1, const float t )
 	{
 		float cost = dot( q0, q1 );
-		quat q2 = cost < 0.0f ? -q1 : q1;
+		quatf32 q2 = cost < 0.0f ? -q1 : q1;
 		cost = fabsf( cost );
 
 		if( cost > 1.0f - EPSILON<float> ) return Math::normalize( ( q1 - q0 ) * t + q0 );

@@ -34,7 +34,7 @@ struct LinearState
 
 struct AngularState
 {
-	quat orientation = Math::IDENTITY<quat>;
+	quatf32 orientation = Math::IDENTITY<quatf32>;
 	AxisAngle<f32> momentum = Math::IDENTITY<AxisAngle<f32>>;
 
 	AngularState operator+=( const AngularState& b )
@@ -156,7 +156,7 @@ namespace Physics
 	*/
 	inline static AngularState getDelta( const AngularState& current, const AngularMotion& motion )
 	{
-		quat dOrientation = { motion.velocity.x, motion.velocity.y, motion.velocity.z, 0.0f };
+		quatf32 dOrientation = { motion.velocity.x, motion.velocity.y, motion.velocity.z, 0.0f };
 		return { 0.5f * ( dOrientation * current.orientation ), motion.netTorque };
 	}
 

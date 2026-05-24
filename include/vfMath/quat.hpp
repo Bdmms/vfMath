@@ -43,10 +43,10 @@ namespace vf::simd
 	}
 }
 
-struct quat : public VectorStorage<4, float>
+template<typename T>
+struct quat : public VectorStorage<4, T>
 {
-	using Storage = VectorStorage<4, float>;
-	using T = float;
+	using Storage = VectorStorage<4, T>;
 
 	// Default Constuctor
 	constexpr quat() : Storage{} {}
@@ -55,7 +55,7 @@ struct quat : public VectorStorage<4, float>
 	constexpr quat( T x, T y, T z, T w ) : Storage{ x, y, z, w } {}
 
 	// TODO: Temp Constructor
-	constexpr quat( const __m128& copy ) : Storage() { simd = copy; }
+	constexpr quat( const __m128& copy ) : Storage() { Storage::simd = copy; }
 
 	// Copy Constructor
 	constexpr quat( const quat& copy ) : Storage( copy ) {}
@@ -103,7 +103,7 @@ struct quat : public VectorStorage<4, float>
 	*/
 	[[nodiscard]] constexpr T norm2() const noexcept
 	{
-		return x * x + y * y + z * z + w * w;
+		return vf::simd::dot( *this, *this );
 	}
 
 	/**
@@ -112,7 +112,7 @@ struct quat : public VectorStorage<4, float>
 	*/
 	[[nodiscard]] T norm() const noexcept
 	{
-		return sqrt( x * x + y * y + z * z + w * w );
+		return sqrt( norm2() );
 	}
 
 	/**
@@ -127,12 +127,12 @@ struct quat : public VectorStorage<4, float>
 	}
 };
 
-#define VF_QUAT quat
+#define VF_QUAT quat<T>
 
-#define VF_QUAT_OPERATOR_HEAD( Op ) [[nodiscard]] constexpr VF_QUAT operator##Op
+#define VF_QUAT_OPERATOR_HEAD( Op ) template<typename T> [[nodiscard]] constexpr VF_QUAT operator##Op
 #define VF_QUAT_OPERATOR_QUAT_QUAT( Op, Func )   VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const VF_QUAT& b )  noexcept { VF_QUAT r; Func( r, a, b ); return r; }
-#define VF_QUAT_OPERATOR_QUAT_SCALAR( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const f32& b ) noexcept { VF_QUAT r; Func( r, a, quat::set1( b ) ); return r; }
-#define VF_QUAT_OPERATOR_SCALAR_QUAT( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const f32& a, const VF_QUAT& b ) noexcept { VF_QUAT r; Func( r, quat::set1( a ), b ); return r; }
+#define VF_QUAT_OPERATOR_QUAT_SCALAR( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const VF_SCALAR& b ) noexcept { VF_QUAT r; Func( r, a, quat<T>::set1( b ) ); return r; }
+#define VF_QUAT_OPERATOR_SCALAR_QUAT( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_QUAT& b ) noexcept { VF_QUAT r; Func( r, quat<T>::set1( a ), b ); return r; }
 
 // Non-Member Arithmetic Operators
 
@@ -148,5 +148,7 @@ VF_QUAT_OPERATOR_QUAT_SCALAR( / , vf::simd::div );
 VF_QUAT_OPERATOR_SCALAR_QUAT( +, vf::simd::add );
 VF_QUAT_OPERATOR_SCALAR_QUAT( -, vf::simd::sub );
 VF_QUAT_OPERATOR_SCALAR_QUAT( *, vf::simd::mul );
+
+typedef quat<f32> quatf32;
 
 #endif
