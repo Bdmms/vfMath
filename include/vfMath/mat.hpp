@@ -120,6 +120,30 @@ template<size_t M, size_t N, typename T>
 	return result;
 }
 
+template<size_t M, size_t N, typename T>
+[[nodiscard]] constexpr mat<M, N, T> operator+( T a, const mat<M, N, T>& b ) noexcept
+{
+	mat<M, N, T> result;
+	vf::simd::add( result, b, a );
+	return result;
+}
+
+template<size_t M, size_t N, typename T>
+[[nodiscard]] constexpr mat<M, N, T> operator-( T a, const mat<M, N, T>& b ) noexcept
+{
+	mat<M, N, T> result;
+	vf::simd::sub( result, b, a );
+	return result;
+}
+
+template<size_t M, size_t N, typename T>
+[[nodiscard]] constexpr mat<M, N, T> operator*( T a, const mat<M, N, T>& b ) noexcept
+{
+	mat<M, N, T> result;
+	vf::simd::mul( result, b, a );
+	return result;
+}
+
 
 template<size_t N0, size_t N1, size_t N2, typename T>
 [[nodiscard]] constexpr mat<N0, N2, T> operator*( const mat<N0, N1, T>& a, const mat<N1, N2, T>& b ) noexcept

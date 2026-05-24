@@ -16,7 +16,6 @@ typedef vec3f AxisAngle;
 */
 namespace Math
 {
-	// TODO: This generalization of constants doesn't work
 	template<size_t N, typename T>
 	inline constexpr static vec<N, T> ZERO<vec<N, T>> = vec<N, T>::set1( Math::ZERO<T> );
 	template<size_t N, typename T>

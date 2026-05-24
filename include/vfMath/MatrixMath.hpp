@@ -3,7 +3,6 @@
 #define VF_MATRIX_MATH_HPP
 
 #include "QuatMath.hpp"
-#include "mat4x4.hpp"
 #include "mat.hpp"
 
 /**

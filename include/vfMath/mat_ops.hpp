@@ -302,6 +302,7 @@ namespace vf::simd
 	template<>
 	constexpr f32 determinant( const simdMat4f32& a )
 	{
+		// TODO: NOT IMPLEMENTED
 		if( std::is_constant_evaluated() ) return NAN;
 
 		constexpr static __m128 msk = { 1.0f, -1.0f, 1.0f, -1.0f };
@@ -313,8 +314,22 @@ namespace vf::simd
 	}
 
 	template<>
+	constexpr void transpose( simdMat4f32& r, const simdMat4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::transpose( r, a );
+
+		__m256i permutation = _mm256_set_epi32( 7, 3, 5, 1, 6, 2, 4, 0 );
+		__m256 a0 = _mm256_permutevar8x32_ps( a.avx2[0], permutation );
+		__m256 a1 = _mm256_permutevar8x32_ps( a.avx2[1], permutation );
+
+		r.avx2[0] = _mm256_shuffle_ps( a0, _mm256_permute_ps( a1, swizzle::ZWXY ), swizzle::XYZW );
+		r.avx2[1] = _mm256_shuffle_ps( _mm256_permute_ps( a0, swizzle::ZWXY ), a1, swizzle::XYZW );
+	}
+
+	template<>
 	constexpr void invert( simdMat4f32& r, const simdMat4f32& a )
 	{
+		// TODO: NOT IMPLEMENTED
 		if( std::is_constant_evaluated() ) return compile_time::invert( r, a );
 
 		constexpr static __m256 msk = { 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f };
@@ -353,32 +368,50 @@ namespace vf::simd
 		r.avx2[1] = _mm256_dot_ps( b.avx2[1], r0, b.avx2[1], r1, b.avx2[1], r2, b.avx2[1], r3 );
 	}
 
-	template<>
-	constexpr void mul( simd4f32& r, const simdMat4f32& a, const simd4f32& b )
-	{
-		if( std::is_constant_evaluated() ) return compile_time::mul( r, a, b );
-
-		__m128 t0 = _mm_shuffle_ps( a.x_axis.simd, a.y_axis.simd, 0x44 );
-		__m128 t2 = _mm_shuffle_ps( a.x_axis.simd, a.y_axis.simd, 0xEE );
-		__m128 t1 = _mm_shuffle_ps( a.z_axis.simd, a.origin.simd, 0x44 );
-		__m128 t3 = _mm_shuffle_ps( a.z_axis.simd, a.origin.simd, 0xEE );
-
-		r.simd = _mm_dot_ps(
-			_mm_shuffle_ps( t0, t1, 0x88 ), b.simd,
-			_mm_shuffle_ps( t0, t1, 0xDD ), b.simd,
-			_mm_shuffle_ps( t2, t3, 0x88 ), b.simd,
-			_mm_shuffle_ps( t2, t3, 0xDD ), b.simd );
-	}
-
-	template<>
-	constexpr void mul( simd4f32& r, const simd4f32& a, const simdMat4f32& b )
-	{
-		if( std::is_constant_evaluated() ) return compile_time::mul( r, a, b );
-	
-		r.simd = _mm_dot_ps( a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3] );
-	}
-
 #elif ENABLE_INSTRUCTIONS_SSE2
+
+	template<>
+	constexpr void transpose( simdMat4f32& r, const simdMat4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::transpose( r, a );
+
+		r.simd[0] = _mm_transpose_ps( simd[0], simd[1], simd[2], simd[3], swizzle::XXXX );
+		r.simd[1] = _mm_transpose_ps( simd[0], simd[1], simd[2], simd[3], swizzle::YYYY );
+		r.simd[2] = _mm_transpose_ps( simd[0], simd[1], simd[2], simd[3], swizzle::ZZZZ );
+		r.simd[3] = _mm_transpose_ps( simd[0], simd[1], simd[2], simd[3], swizzle::WWWW );
+	}
+
+	template<>
+	constexpr void invert( simdMat4f32& r, const simdMat4f32& a )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::invert( r, a );
+
+		constexpr static __m128 odd = { 1.0f, -1.0f, 1.0f, -1.0f };
+		constexpr static __m128 even = { -1.0f, 1.0f, -1.0f, 1.0f };
+
+		// Calculate the cofactor expansion for every column
+		__m128 adj0 = _mm_mul_ps( odd, cofactorExpansion_SSE2( simd[1], simd[2], simd[3] ) );
+		__m128 adj1 = _mm_mul_ps( even, cofactorExpansion_SSE2( simd[0], simd[2], simd[3] ) );
+		__m128 adj2 = _mm_mul_ps( odd, cofactorExpansion_SSE2( simd[0], simd[1], simd[3] ) );
+		__m128 adj3 = _mm_mul_ps( even, cofactorExpansion_SSE2( simd[0], simd[1], simd[2] ) );
+
+		// Calculate the determinant from one of the columns
+		__m128 product = _mm_mul_ps( simd[0], adj0 );
+		__m128 det = _mm_hadd_ps( product, product );
+		det = _mm_hadd_ps( det, det );
+
+		// Divide adjugate matrix by determinant
+		adj0 = _mm_div_ps( adj0, det );
+		adj1 = _mm_div_ps( adj1, det );
+		adj2 = _mm_div_ps( adj2, det );
+		adj3 = _mm_div_ps( adj3, det );
+
+		// Transpose the matrix
+		r.simd[0] = _mm_transpose_ps( adj0, adj1, adj2, adj3, swizzle::YYYY );
+		r.simd[1] = _mm_transpose_ps( adj0, adj1, adj2, adj3, swizzle::ZZZZ );
+		r.simd[2] = _mm_transpose_ps( adj0, adj1, adj2, adj3, swizzle::WWWW );
+		r.simd[3] = _mm_transpose_ps( adj0, adj1, adj2, adj3, swizzle::XXXX );
+	}
 
 	template<size_t N0, size_t N1, size_t N2, typename T>
 	constexpr void mul( simdMat4f32& r, const simdMat4f32& a, const simdMat4f32& b )
@@ -401,6 +434,31 @@ namespace vf::simd
 	// SIMD 128-bit floating-point Operations
 
 #if ENABLE_INSTRUCTIONS_SSE2 || ENABLE_INSTRUCTIONS_AVX2
+
+	template<>
+	constexpr void mul( simd4f32& r, const simdMat4f32& a, const simd4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::mul( r, a, b );
+
+		__m128 t0 = _mm_shuffle_ps( a.x_axis.simd, a.y_axis.simd, 0x44 );
+		__m128 t2 = _mm_shuffle_ps( a.x_axis.simd, a.y_axis.simd, 0xEE );
+		__m128 t1 = _mm_shuffle_ps( a.z_axis.simd, a.origin.simd, 0x44 );
+		__m128 t3 = _mm_shuffle_ps( a.z_axis.simd, a.origin.simd, 0xEE );
+
+		r.simd = _mm_dot_ps(
+			_mm_shuffle_ps( t0, t1, 0x88 ), b.simd,
+			_mm_shuffle_ps( t0, t1, 0xDD ), b.simd,
+			_mm_shuffle_ps( t2, t3, 0x88 ), b.simd,
+			_mm_shuffle_ps( t2, t3, 0xDD ), b.simd );
+	}
+
+	template<>
+	constexpr void mul( simd4f32& r, const simd4f32& a, const simdMat4f32& b )
+	{
+		if( std::is_constant_evaluated() ) return compile_time::mul( r, a, b );
+
+		r.simd = _mm_dot_ps( a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3] );
+	}
 
 	template<>
 	constexpr void mul( simdMat2f32& r, const simdMat2f32& a, const simdMat2f32& b )
