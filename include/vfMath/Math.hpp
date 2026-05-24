@@ -22,6 +22,7 @@ struct Bounds
 */
 namespace Math
 {
+	// TODO: Remove when random is refactored
 	constexpr float RAND_MAX_FLOAT = 32767.0f;
 	constexpr float RAND_CONVERT_HALFPI = HALF_PI<float> / 32767.0f;
 	constexpr float RAND_CONVERT_PI = PI<float> / 32767.0f;
@@ -45,9 +46,10 @@ namespace Math
 	 * @param degrees - angle in degrees
 	 * @return angle in radians
 	*/
-	[[nodiscard]] constexpr float toRadians( const float degrees )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] constexpr T toRadians( const T degrees )
 	{
-		return degrees * Math::PI<float> / 180.0f;
+		return degrees * Math::PI<float> / 180.0f; // TODO: Constant floating-point value
 	}
 
 	/**
@@ -55,9 +57,10 @@ namespace Math
 	 * @param radians - angle in radians
 	 * @return angle in degrees
 	*/
-	[[nodiscard]] constexpr float toDegrees( const float radians )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] constexpr T toDegrees( const T radians )
 	{
-		return radians * 180.0f / Math::PI<float>;
+		return radians * 180.0f / Math::PI<T>; // TODO: Constant floating-point value
 	}
 
 	/**

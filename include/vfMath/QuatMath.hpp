@@ -2,7 +2,7 @@
 #ifndef VF_QUAT_MATH_HPP
 #define VF_QUAT_MATH_HPP
 
-#include "EulerMath.hpp"
+#include "euler_math.hpp"
 #include "quaternion.hpp"
 
 /**

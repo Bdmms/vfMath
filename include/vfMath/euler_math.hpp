@@ -68,7 +68,7 @@ namespace Math
 	 * @param degrees - angle in degrees
 	 * @return angle in radians
 	*/
-	template<typename T>
+	template<typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr euler<T> toRadians( const euler<T>& degrees )
 	{
 		return degrees * ( Math::PI<T> / 180.0f ); // TODO: Constant floating-point value
@@ -79,7 +79,7 @@ namespace Math
 	 * @param radians - angle in radians
 	 * @return angle in degrees
 	*/
-	template<typename T>
+	template<typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr euler<T> toDegrees( const euler<T>& radians )
 	{
 		return radians * ( 180.0f / Math::PI<T> ); // TODO: Constant floating-point value
@@ -127,17 +127,18 @@ namespace Math
 	 * @param rotation - euler angles
 	 * @return rotated position
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& position, const eulerf32& rotation )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec4<T> rotate( const vec4<T>& position, const euler<T>& rotation )
 	{
-		eulerf32 s = sin( rotation );
-		eulerf32 c = cos( rotation );
+		euler<T> s = sin( rotation );
+		euler<T> c = cos( rotation );
 
-		vec4f r;
+		vec4<T> r;
 		vf::simd::dot4( r, 
-			position, vec4f( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, 0.0f ),
-			position, vec4f( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, 0.0f ),
-			position, vec4f( -s.y, c.y * s.x, c.y * c.x, 0.0f ),
-			position, Math::axis::W<vec4f>
+			position, vec4<T>( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, ZERO<T> ),
+			position, vec4<T>( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, ZERO<T> ),
+			position, vec4<T>( -s.y, c.y * s.x, c.y * c.x, ZERO<T> ),
+			position, Math::axis::W<vec4<T>>
 		);
 		return r;
 	}
@@ -148,11 +149,10 @@ namespace Math
 	 * @param max - maximum angles
 	 * @return random euler angles
 	*/
-	[[nodiscard]] static eulerf32 random( const eulerf32& min, const eulerf32& max )
+	template<typename T>
+	[[nodiscard]] static euler<T> random( const euler<T>& min, const euler<T>& max )
 	{
-		eulerf32 r;
-		r.simd = _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), 0 ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd );
-		return r;
+		return { random<T>( min.x, max.x ), random<T>( min.y, max.y ), random<T>( min.z, max.z ) };
 	}
 
 	/**
