@@ -2,14 +2,11 @@
 #ifndef VF_VECTOR_MATH_HPP
 #define VF_VECTOR_MATH_HPP
 
-#include "Math.hpp"
+#include "math.hpp"
 #include "vec.hpp"
 
-typedef vec4f AxisAngle;
-
-// TODO:
-// template<typename V>
-// concept IsVector = std::is_same<V, vec4f>::value || std::is_same<V, vec2f>::value;
+template<typename T>
+using AxisAngle = vec4<T>;
 
 /**
  * @brief Utilities for 4D vectors
@@ -20,6 +17,8 @@ namespace Math
 	inline constexpr static vec<N, T> ZERO<vec<N, T>> = vec<N, T>::set1( Math::ZERO<T> );
 	template<size_t N, typename T>
 	inline constexpr static vec<N, T> ONES<vec<N, T>> = vec<N, T>::set1( Math::ONES<T> );
+	template<size_t N, typename T>
+	inline constexpr static vec<N, T> TWO<vec<N, T>> = vec<N, T>::set1( Math::TWO<T> );
 	template<size_t N, typename T>
 	inline constexpr static vec<N, T> IDENTITY<vec<N, T>> = ZERO<vec<N, T>>;
 	template<size_t N, typename T>
@@ -74,7 +73,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Checks if two overlapping boundaries overlap
+	 * @brief Checks if two overlapping boundaries overlap.
 	 * @param min0 - minimum of first bounds
 	 * @param max0 - maximum of first bounds
 	 * @param min1 - minimum of second bounds
@@ -88,7 +87,8 @@ namespace Math
 	}
 
 	/**
-	 * @brief Tests if two bounds overlap with each other across each axis
+	 * DEPRECATED: Use overlaps() with vec3 instead!
+	 * @brief Tests if two bounds overlap with each other across each axis.
 	 * @param a - first bound range
 	 * @param b - second bound range
 	 * @return Whether the boundaries overlap
@@ -100,7 +100,8 @@ namespace Math
 	}
 
 	/**
-	 * @brief Tests if two bounds overlap with each other across each axis
+	 * DEPRECATED: Use overlaps() with vec3 instead!
+	 * @brief Tests if two bounds overlap with each other across each axis.
 	 * @param a - first bound range
 	 * @param b - second bound range
 	 * @return Whether the boundaries overlap
@@ -112,7 +113,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the N-dimensional dot product of this vector with another vector
+	 * @brief Calculates the N-dimensional dot product of this vector with another vector.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return dot product result
@@ -124,7 +125,8 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the 3D dot product of this vector with another vector
+	 * DEPRECATED: Use dot() with vec3 instead!
+	 * @brief Calculates the 3D dot product of this vector with another vector.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return dot product result
@@ -136,7 +138,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the cross product between two 2D vectors
+	 * @brief Calculates the cross product between two 2D vectors.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return cross product of the two vectors
@@ -153,6 +155,7 @@ namespace Math
 	}
 
 	/**
+	 * TODO: Implement 3D vector cross product to replace this implementation.
 	 * @brief Calculates the cross product between two 3D vectors
 	 * @param a - first vector
 	 * @param b - second vector
@@ -170,7 +173,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the squared length of the vector
+	 * @brief Calculates the squared length of the vector.
 	 * @return squared length of the vector
 	*/
 	template<typename T>
@@ -180,7 +183,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the squared length of the vector
+	 * @brief Calculates the squared length of the vector.
 	 * @return squared length of the vector
 	*/
 	template<typename T>
@@ -190,20 +193,20 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the length of the vector
+	 * @brief Calculates the length of the vector.
 	 * @return length of the vector
 	*/
-	template<typename T>
+	template<typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr T length( const vec2<T>& v ) noexcept
 	{
 		return sqrt<T>( v.x * v.x + v.y * v.y );
 	}
 
 	/**
-	 * @brief Calculates the length of the vector
+	 * @brief Calculates the length of the vector.
 	 * @return length of the vector
 	*/
-	template<typename T>
+	template<typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr T length( const vec4<T>& v ) noexcept
 	{
 		return sqrt<T>( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
@@ -214,7 +217,7 @@ namespace Math
 	 * @param v - vector
 	 * @return normalized vector
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr vec<N, T> normalize( const vec<N, T>& v )
 	{
 		T vLength = length( v );
@@ -223,7 +226,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the squared distance between vectors
+	 * @brief Calculates the squared distance between vectors.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return squared distance
@@ -235,41 +238,43 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the distance between vectors
+	 * @brief Calculates the distance between vectors.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return distance
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr T distance( const vec<N, T>& a, const vec<N, T>& b )
 	{
 		return sqrt<T>( distance2( a, b ) );
 	}
 
 	/**
-	 * @brief Projects one vector onto another
+	 * @brief Projects one vector onto another.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @return projected vector
 	*/
-	template<typename T> [[nodiscard]] constexpr T project( const T& a, const T& b )
+	template<size_t N, typename T> requires std::floating_point<T>
+	[[nodiscard]] constexpr vec<N, T> project( const vec<N, T>& a, const vec<N, T>& b )
 	{
 		return b * ( dot( a, b ) / dot( b, b ) );
 	}
 
 	/**
-	 * @brief Reflects a vector across another
+	 * @brief Reflects a vector across another.
 	 * @param a - ray vector
 	 * @param b - normal vector (normalized)
 	 * @return reflected vector
 	*/
-	template<typename T> [[nodiscard]] constexpr T reflect( const T& a, const T& b )
+	template<size_t N, typename T>
+	[[nodiscard]] constexpr  vec<N, T> reflect( const  vec<N, T>& a, const vec<N, T>& b )
 	{
-		return a - b * dot( a, b ) * 2.0f; // TODO: Constant floating point value
+		return a - b * dot( a, b ) * TWO<T>;
 	}
 
 	/**
-	 * @brief Truncates the vector by a minimum
+	 * @brief Truncates the vector by a minimum.
 	 * @param vector - vector
 	 * @param min - minimum vector
 	 * @return minimum vector
@@ -283,7 +288,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Truncates the vector by a maximum
+	 * @brief Truncates the vector by a maximum.
 	 * @param vector - vector
 	 * @param max - maximum vector
 	 * @return maximum vector
@@ -297,7 +302,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Truncates all elements the vector between minimum and maximum
+	 * @brief Truncates all elements the vector between minimum and maximum.
 	 * @param value - initial vector
 	 * @param min - minimum vector of clamp (optional)
 	 * @param max - maximum vector of clamp (optional)
@@ -312,11 +317,11 @@ namespace Math
 	}
 
 	/**
-	 * @brief Rounds the vector down
+	 * @brief Rounds the vector down.
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	[[nodiscard]] static vec<N, T> floor( vec<N, T> v )
 	{
 		vf::simd::floor( v, v );
@@ -324,11 +329,11 @@ namespace Math
 	}
 
 	/**
-	 * @brief Rounds the vector up
+	 * @brief Rounds the vector up.
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	[[nodiscard]] static vec<N, T> ceil( vec<N, T> v )
 	{
 		vf::simd::ceil( v, v );
@@ -336,11 +341,11 @@ namespace Math
 	}
 	
 	/**
-	 * @brief Rounds the vector to the closest integer
+	 * @brief Rounds the vector to the closest integer.
 	 * @param a - vector
 	 * @return rounded vector
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	[[nodiscard]] static vec<N, T> round( vec<N, T> v )
 	{
 		vf::simd::round( v, v );
@@ -348,11 +353,11 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the square root of a vector
+	 * @brief Calculates the square root of a vector.
 	 * @param v - vector
 	 * @return square root vector
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	[[nodiscard]] constexpr vec<N, T> sqrt( vec<N, T> v )
 	{
 		vf::simd::sqrt( v, v );
@@ -360,7 +365,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the absolute of a vector
+	 * @brief Calculates the absolute of a vector.
 	 * @param a - vector
 	 * @return absolute vector
 	*/
@@ -371,7 +376,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Determines the sign of the vector's components in the form of 1.0 or -1.0
+	 * @brief Determines the sign of the vector's components in the form of 1.0 or -1.0.
 	 * @param vector - vector components
 	 * @return sign of the vector components
 	*/
@@ -382,64 +387,85 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates the sine of the vector
+	 * @brief Calculates the sine of the vector.
 	 * @param a - vector
 	 * @return sin vector
 	*/
-	[[nodiscard]] static vec2f sin( const vec2f v )
+	template<size_t N, typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec<N, T> sin( const vec<N, T>& v )
 	{
-		return { sinf( v.x ), sinf( v.y ) };
+		vec<N, T> r;
+		for( size_t i = 0; i < N; ++i )
+		{
+			r[i] = std::sin( v[i] );
+		}
+		return r;
 	}
 
 	/**
-	 * @brief Calculates the sine of the vector
+	 * @brief Calculates the sine of the vector.
 	 * @param a - vector
 	 * @return sin vector
 	*/
-	[[nodiscard]] static vec4f sin( const vec4f& v )
+	template<>
+	[[nodiscard]] static vec4f32 sin( const vec4f32& v )
 	{
-		vec4f r;
+		vec4f32 r;
 		r.simd = _mm_sin_ps( v.simd );
 		return r;
 	}
 
 	/**
-	 * @brief Calculates the cosine of the vector
+	 * @brief Calculates the cosine of the vector.
 	 * @param a - vector
 	 * @return cos vector
 	*/
-	[[nodiscard]] static vec2f cos( const vec2f v )
+	template<size_t N, typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec<N, T> cos( const vec<N, T>& v )
 	{
-		return { cosf( v.x ), cosf( v.y ) };
+		vec<N, T> r;
+		for( size_t i = 0; i < N; ++i )
+		{
+			r[i] = std::cos( v[i] );
+		}
+		return r;
 	}
 
 	/**
-	 * @brief Calculates the cosine of the vector
+	 * @brief Calculates the cosine of the vector.
 	 * @param a - vector
 	 * @return cos vector
 	*/
-	[[nodiscard]] static vec4f cos( const vec4f& v )
+	template<>
+	[[nodiscard]] static vec4f32 cos( const vec4f32& v )
 	{
-		vec4f r;
+		vec4f32 r;
 		r.simd = _mm_cos_ps( v.simd );
 		return r;
 	}
 
 	/**
-	 * @brief Calculates the tan of the vector
+	 * @brief Calculates the tan of the vector.
 	 * @param a - vector
 	 * @return tan vector
 	*/
-	[[nodiscard]] static vec2f tan( const vec2f v )
+	template<size_t N, typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec<N, T> tan( const vec<N, T>& v )
 	{
-		return { tanf( v.x ), tanf( v.y ) };
+		vec<N, T> r;
+		for( size_t i = 0; i < N; ++i )
+		{
+			r[i] = std::tan( v[i] );
+		}
+		return r;
 	}
 
 	/**
-	 * @brief Calculates the tan of the vector
+	 * @brief Calculates the tan of the vector.
 	 * @param a - vector
 	 * @return tan vector
 	*/
+	template<>
 	[[nodiscard]] static vec4f tan( const vec4f& v )
 	{
 		vec4f r;
@@ -448,22 +474,29 @@ namespace Math
 	}
 
 	/**
-	 * @brief Calculates a vector to a power of another vector
+	 * @brief Calculates a vector to a power of another vector.
 	 * @param a - base vector
 	 * @param b - exponent vector
 	 * @return resulting vector
 	*/
-	[[nodiscard]] static vec2f pow( const vec2f a, const vec2f b )
+	template<size_t N, typename T> requires std::is_fundamental_v<T>
+	[[nodiscard]] static vec<N, T> pow( const vec<N, T>& a, const vec<N, T>& b )
 	{
-		return { powf( a.x, b.x ), powf( a.y, b.y ) };
+		vec<N, T> r;
+		for( size_t i = 0; i < N; ++i )
+		{
+			r[i] = std::pow( a[i], b[i]);
+		}
+		return r;
 	}
 
 	/**
-	 * @brief Calculates a vector to a power of another vector
+	 * @brief Calculates a vector to a power of another vector.
 	 * @param a - base vector
 	 * @param b - exponent vector
 	 * @return resulting vector
 	*/
+	template<>
 	[[nodiscard]] static vec4f pow( const vec4f& a, const vec4f& b )
 	{
 		vec4f r;
@@ -472,7 +505,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates an orthogonal direction vector
+	 * @brief Generates an orthogonal direction vector.
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
 	*/
@@ -483,21 +516,21 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates an arbitrary orthogonal direction vector
+	 * @brief Generates an arbitrary orthogonal direction vector.
 	 * @param vector - non-zero vector (normalized)
 	 * @return direction orthogonal to vector
 	*/
-	template<typename T>
+	template<typename T> requires std::floating_point<T>
 	[[nodiscard]] static vec4<T> orthogonal( const vec4<T>& vector )
 	{
 		// TODO: This is a 3D vector operation, not a 4D vector
-		return fabsf( dot_3D( Math::axis::X<vec4<T>>, vector ) ) > 0.9f ?
+		return std::abs( dot_3D( Math::axis::X<vec4<T>>, vector ) ) > 0.9f ? // TODO: Hard-coded constant!!!
 			Math::normalize( Math::cross( vector, Math::axis::Z<vec4<T>> ) ) :
 			Math::normalize( Math::cross( vector, Math::axis::X<vec4<T>> ) );
 	}
 
 	/**
-	 * @brief Calculates the component of the vector that is orthogonal to the direction
+	 * @brief Calculates the component of the vector that is orthogonal to the direction.
 	 * @param vector - non-zero vector
 	 * @param direction - direction vector (normalized)
 	 * @return vector orthogonal to direction
@@ -510,7 +543,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Linear interpolation between two vectors
+	 * @brief Linear interpolation between two vectors.
 	 * @param a - first vector
 	 * @param b - second vector
 	 * @param t - weight
@@ -526,54 +559,58 @@ namespace Math
 	}
 
 	/**
-	 * @brief Rotates a vector around an axis by an angle
+	 * @brief Rotates a vector around an axis by an angle.
 	 * @param position - position vector
 	 * @param axis - axis direction (normalized)
 	 * @param angle - angle around axis
 	 * @return rotated position vector
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& position, const vec4f& axis, const float angle )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec4<T> rotate( const vec4<T>& position, const vec4<T>& axis, const T angle )
 	{
 		// Based on quaternion implementation, but without using a quaternion
-		vec4f qxyz = axis * sinf( angle * 0.5f );
-		return position + 2.0f * ( cross( qxyz, cross( qxyz, position ) + position * cosf( angle * 0.5f ) ) );
+		vec4<T> qxyz = axis * std::sin( angle * HALF<T> );
+		return position + TWO<T> * ( cross( qxyz, cross( qxyz, position ) + position * std::cos( angle * HALF<T> ) ) );
 	}
 
 	/**
-	 * @brief Rotates a vector around an axis by an angle
+	 * @brief Rotates a vector around an axis by an angle.
 	 * @param position - position vector
 	 * @param rotation - axis angle vector
 	 * @return rotated position
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& position, const AxisAngle& rotation )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec4<T> rotate( const vec4<T>& position, const AxisAngle<T>& rotation )
 	{
-		float angle = Math::length( rotation );
-		if( angle <= Math::EPSILON<float> ) return position;
+		T angle = Math::length( rotation );
+		if( angle <= Math::EPSILON<T> ) return position;
 
-		vec4f axis = rotation / angle;
+		vec4<T> axis = rotation / angle;
 		return rotate( position, axis, angle );
 	}
 
 	/**
-	 * @brief Generates rotation around an axis
+	 * @brief Generates rotation around an axis.
 	 * @tparam T - rotation type
 	 * @param axis - axis (normalized)
 	 * @param angle - radian angle around axis
 	 * @return rotation around axis
 	*/
-	template<typename T> [[nodiscard]] static T rotationAround( const vec4f& axis, const float angle )
+	template<typename T> // TODO: FIX TEMPLATE DEFINITION
+	[[nodiscard]] static T rotationAround( const vec4f& axis, const float angle )
 	{
 		return axis * angle;
 	}
 
 	/**
-	 * @brief Generates rotation between two axes
+	 * @brief Generates rotation between two axes.
 	 * @tparam T - rotation type
 	 * @param from - initial axis (normalized)
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<typename T> [[nodiscard]] static T rotationBetween( const vec4f& from, const vec4f& to )
+	template<typename T> // TODO: FIX TEMPLATE DEFINITION
+	[[nodiscard]] static T rotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = dot_3D( from, to );
 		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -582,48 +619,41 @@ namespace Math
 	}
 
 	/**
-	 * @brief Spherical interpolation between two direction vectors
+	 * @brief Spherical interpolation between two direction vectors.
 	 * @param a - first direction (normalized)
 	 * @param b - second direction (normalized)
 	 * @param t - weight
 	 * @return weighted direction (normalized)
 	*/
-	[[nodiscard]] static vec4f slerp( const vec4f& a, const vec4f& b, const float t )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static vec4<T> slerp( const vec4<T>& a, const vec4<T>& b, const T t )
 	{
-		float product = Math::dot_3D( a, b );
-		if( product > 1.0f - Math::EPSILON<float> ) return a;
+		T product = dot_3D( a, b );
+		if( product > ONES<T> - EPSILON<T> ) return a;
 
-		vec4f normal = product < Math::EPSILON<float> -1.0f ? Math::orthogonal( a ) : Math::normalize( Math::cross( a, b ) );
-		return Math::rotate( a, normal, acosf( product ) * t );
+		vec4<T> normal = product < EPSILON<T> - ONES<T> ? Math::orthogonal( a ) : Math::normalize( Math::cross( a, b ) );
+		return Math::rotate( a, normal, std::acos( product ) * t );
 	}
 
 	/**
-	 * @brief Generates a random 2D vector within the range
+	 * @brief Generates a random vector within the range.
 	 * @param min - minimum vector
 	 * @param max - maximum vector
 	 * @return random vector
 	*/
-	template<> [[nodiscard]] static vec2f random<vec2f>( const vec2f& min, const vec2f& max )
+	template<size_t N, typename T> 
+	[[nodiscard]] static vec<N, T> random( const vec<N, T>& min, const vec<N, T>& max )
 	{
-		return min + vec2f{ ( (float)rand() / RAND_MAX ), ( (float)rand() / RAND_MAX ) } * ( max - min );
-	}
-
-	/**
-	 * @brief Generates a random 4D vector within the range
-	 * @param min - minimum vector
-	 * @param max - maximum vector
-	 * @return random vector
-	*/
-	template<> [[nodiscard]] static vec4f random<vec4f>( const vec4f& min, const vec4f& max )
-	{
-		// TODO: Re-write without intrinsics !!!
-		vec4f r;
-		r.simd = _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), rand() ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd );
+		vec<N, T> r;
+		for( size_t i = 0LLU; i < N; ++i )
+		{
+			r[i] = random<T>( min[i], max[i] );
+		}
 		return r;
 	}
 
 	/**
-	 * @brief Generates a random direction vector
+	 * @brief Generates a random direction vector.
 	 * @tparam T - type of the direction
 	 * @return random direction of specified type
 	*/
@@ -633,7 +663,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates a random 3D rotation
+	 * @brief Generates a random 3D rotation.
 	 * @tparam T - type of the rotation
 	 * @return random rotation of specified type
 	*/
@@ -643,7 +673,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates a random 2D directional vector
+	 * @brief Generates a random 2D directional vector.
 	 * @return random 2D directional vector
 	*/
 	template<> [[nodiscard]] static vec2f randomDirection<vec2f>()
@@ -653,7 +683,7 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates a random 3D directional vector
+	 * @brief Generates a random 3D directional vector.
 	 * @return random 3D directional vector
 	*/
 	template<> [[nodiscard]] static vec4f randomDirection<vec4f>()
@@ -665,56 +695,24 @@ namespace Math
 	}
 
 	/**
-	 * @brief Generates a random axis angle rotation
+	 * @brief Generates a random axis angle rotation.
 	 * @return random axis angle rotation
 	*/
-	template<> [[nodiscard]] static AxisAngle randomRotation<AxisAngle>()
+	template<> [[nodiscard]] static AxisAngle<f32> randomRotation<AxisAngle<f32>>()
 	{
 		return randomDirection<vec4f>() * random<float>( 0.0f, Math::TWO_PI<float> );
 	}
 
 	/**
-	 * @brief Extends the bounds to include the point
+	 * @brief Extends the bounds to include the point.
 	 * @param bounds - vector bounds
 	 * @param point - vector point
 	*/
-	constexpr void extend( Bounds<vec2f>& bounds, const vec2f& point )
+	template<size_t N, typename T>
+	constexpr void extend( Bounds<vec<N, T>>& bounds, const vec<N, T>& point )
 	{
-		bounds.min = Math::min( bounds.min, point );
-		bounds.max = Math::max( bounds.max, point );
-	}
-
-	/**
-	 * @brief Extends the bounds to include the point
-	 * @param bounds - vector bounds
-	 * @param point - vector point
-	*/
-	constexpr void extend( Bounds<vec2i>& bounds, const vec2i& point )
-	{
-		bounds.min = Math::min( bounds.min, point );
-		bounds.max = Math::max( bounds.max, point );
-	}
-
-	/**
-	 * @brief Extends the bounds to include the point
-	 * @param bounds - vector bounds
-	 * @param point - vector point
-	*/
-	constexpr void extend( Bounds<vec4f>& bounds, const vec4f& point )
-	{
-		bounds.min = Math::min( bounds.min, point );
-		bounds.max = Math::max( bounds.max, point );
-	}
-
-	/**
-	 * @brief Extends the bounds to include the point
-	 * @param bounds - vector bounds
-	 * @param point - vector point
-	*/
-	constexpr void extend( Bounds<vec4i>& bounds, const vec4i& point )
-	{
-		bounds.min = Math::min( bounds.min, point );
-		bounds.max = Math::max( bounds.max, point );
+		bounds.min = min( bounds.min, point );
+		bounds.max = max( bounds.max, point );
 	}
 };
 

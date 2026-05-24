@@ -49,7 +49,7 @@ struct Transform3D
 
 	}
 
-	Transform3D( const vec4f& translation, const AxisAngle& rotation, const vec4f& scale = Math::ONES<vec4f> ) :
+	Transform3D( const vec4f& translation, const AxisAngle<f32>& rotation, const vec4f& scale = Math::ONES<vec4f> ) :
 		translation( translation ),
 		rotation( Math::toQuat( rotation ) ),
 		scale( scale )

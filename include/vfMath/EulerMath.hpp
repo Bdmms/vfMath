@@ -2,7 +2,7 @@
 #ifndef VF_EULER_MATH_HPP
 #define VF_EULER_MATH_HPP
 
-#include "VectorMath.hpp"
+#include "vec_math.hpp"
 #include "euler.hpp"
 
 /**
@@ -148,7 +148,7 @@ namespace Math
 	 * @param max - maximum angles
 	 * @return random euler angles
 	*/
-	template<> [[nodiscard]] static eulerf32 random<eulerf32>( const eulerf32& min, const eulerf32& max )
+	[[nodiscard]] static eulerf32 random( const eulerf32& min, const eulerf32& max )
 	{
 		eulerf32 r;
 		r.simd = _mm_fmadd_ps( _mm_div_ps( _mm_cvtepi32_ps( _mm_set_epi32( rand(), rand(), rand(), 0 ) ), _mm_set1_ps( RAND_MAX_FLOAT ) ), _mm_sub_ps( max.simd, min.simd ), min.simd );
@@ -161,7 +161,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static eulerf32 randomRotation<eulerf32>()
 	{
-		return random<eulerf32>( ZERO<eulerf32>, TWO_PI<eulerf32> );
+		return random( ZERO<eulerf32>, TWO_PI<eulerf32> );
 	}
 }
 

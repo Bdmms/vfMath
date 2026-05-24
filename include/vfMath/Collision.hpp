@@ -56,7 +56,7 @@ namespace Math
 	 * @param faces - iterable set of faces
 	*/
 	template <typename IterableFaces>
-	static void extend( Bounds<vec4f>& bounds, const IterableFaces& faces )
+	static void extendFaces( Bounds<vec4f>& bounds, const IterableFaces& faces )
 	{
 		for( const CollisionFace& face : faces )
 		{

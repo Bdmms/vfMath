@@ -1,5 +1,5 @@
 #include "../include/vfMath/Perlin.hpp"
-#include "../include/vfMath/VectorMath.hpp"
+#include "../include/vfMath/vec_math.hpp"
 
 // Random Sequence
 unsigned char PERMUTATIONS[] = { 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,

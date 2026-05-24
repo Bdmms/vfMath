@@ -154,7 +154,7 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - axis-angle rotation
 	*/
-	static void setRotation( mat4f& matrix, const AxisAngle& rotation )
+	static void setRotation( mat4f& matrix, const AxisAngle<f32>& rotation )
 	{
 		float angle = Math::length( rotation );
 		if( angle < Math::EPSILON<float> )
@@ -431,7 +431,7 @@ namespace Math
 	 * @param rotation - rotation matrix
 	 * @return Axis angle vector
 	*/
-	[[nodiscard]] static AxisAngle toAxisAngle( const mat4f& rotation )
+	[[nodiscard]] static AxisAngle<f32> toAxisAngle( const mat4f& rotation )
 	{
 		vec4f diagonal = 0.5f * vec4f{ rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
 		float angle = acosf( diagonal.x + diagonal.y + diagonal.z - 0.5f );
@@ -866,13 +866,13 @@ namespace Math
 	 * @param max - maximum matrix
 	 * @return random matrix
 	*/
-	template<> [[nodiscard]] static mat4f random( const mat4f& min, const mat4f& max )
+	[[nodiscard]] static mat4f random( const mat4f& min, const mat4f& max )
 	{
 		return {
-			Math::random<vec4f>( min.cols[0], max.cols[0] ),
-			Math::random<vec4f>( min.cols[1], max.cols[1] ),
-			Math::random<vec4f>( min.cols[2], max.cols[2] ),
-			Math::random<vec4f>( min.cols[3], max.cols[3] )
+			random( min.cols[0], max.cols[0] ),
+			random( min.cols[1], max.cols[1] ),
+			random( min.cols[2], max.cols[2] ),
+			random( min.cols[3], max.cols[3] )
 		};
 	}
 

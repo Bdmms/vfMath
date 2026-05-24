@@ -35,7 +35,7 @@ struct LinearState
 struct AngularState
 {
 	quat orientation = Math::IDENTITY<quat>;
-	AxisAngle momentum = Math::IDENTITY<AxisAngle>;
+	AxisAngle<f32> momentum = Math::IDENTITY<AxisAngle<f32>>;
 
 	AngularState operator+=( const AngularState& b )
 	{
@@ -129,7 +129,7 @@ namespace Physics
 	 * @param invInertiaTensor - transform to convert rotation to inertial space
 	 * @return angular velocity
 	*/
-	inline static AxisAngle getAngularVelocity( const AngularState& state, const mat4f& invInertiaTensor )
+	inline static AxisAngle<f32> getAngularVelocity( const AngularState& state, const mat4f& invInertiaTensor )
 	{
 		mat4f rotation = Math::create::rotation( state.orientation );
 		mat4f I_inv = rotation * invInertiaTensor * Math::transpose( rotation );

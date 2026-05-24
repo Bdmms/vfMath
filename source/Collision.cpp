@@ -727,7 +727,7 @@ void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vect
 {
 	lattice.resize( dimensions );
 	Bounds<vec4f> aabb = { Math::MAX<vec4f>, Math::MIN<vec4f> };
-	Math::extend( aabb, mesh );
+	Math::extendFaces( aabb, mesh );
 
 	lattice.defaultBounds.transform = Math::createBoundingTransform( aabb );
 	lattice.defaultBounds.inverse = Math::createBoundingInverseTransform( aabb );
@@ -747,7 +747,7 @@ void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vect
 
 	for( const std::vector<CollisionFace>& group : mesh )
 	{
-		Math::extend( aabb, group );
+		Math::extendFaces( aabb, group );
 	}
 
 	lattice.defaultBounds.transform = Math::createBoundingTransform( aabb );
@@ -775,7 +775,7 @@ CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) :
 void CollisionMesh::setFaces( const std::vector<CollisionFace>& source )
 {
 	aabb = { Math::MAX<vec4f>, Math::MIN<vec4f> };
-	Math::extend( aabb, source );
+	Math::extendFaces( aabb, source );
 
 	current.transform = Math::createBoundingTransform( aabb );
 	current.inverse = Math::createBoundingInverseTransform( aabb );

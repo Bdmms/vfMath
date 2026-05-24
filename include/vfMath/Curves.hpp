@@ -2,7 +2,7 @@
 #ifndef VF_CURVES_HPP
 #define VF_CURVES_HPP
 
-#include "VectorMath.hpp"
+#include "vec_math.hpp"
 #include "mat.hpp"
 #include <vector>
 

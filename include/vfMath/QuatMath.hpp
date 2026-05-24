@@ -37,7 +37,7 @@ namespace Math
 	 * @param rotation - axis angle rotation
 	 * @return quaternion rotation
 	*/
-	static quat toQuat( const AxisAngle& rotation )
+	static quat toQuat( const AxisAngle<f32>& rotation )
 	{
 		float angle = Math::length( rotation );
 		if( angle <= Math::EPSILON<float> ) return Math::IDENTITY<quat>;
@@ -102,9 +102,9 @@ namespace Math
 	 * @param q - quaternion
 	 * @return Axis angle vector
 	*/
-	[[nodiscard]] static AxisAngle toAxisAngle( const quat& q )
+	[[nodiscard]] static AxisAngle<f32> toAxisAngle( const quat& q )
 	{
-		AxisAngle axis = { q.x, q.y, q.z, 0.0f };
+		AxisAngle<f32> axis = { q.x, q.y, q.z, 0.0f };
 		float length = Math::length( axis );
 		if( length <= Math::EPSILON<float> ) return Math::ZERO<vec4f>;
 
@@ -188,7 +188,7 @@ namespace Math
 	 * @param max - maximum quat
 	 * @return random quaternion
 	*/
-	template<> [[nodiscard]] static quat random<quat>( const quat& min, const quat& max )
+	[[nodiscard]] static quat random( const quat& min, const quat& max )
 	{
 		quat q = { ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ) };
 		return min + q * ( max - min );

@@ -2,7 +2,7 @@
 #ifndef VF_VECTOR_OPERATIONS_HPP
 #define VF_VECTOR_OPERATIONS_HPP
 
-#include "Math.hpp"
+#include "math.hpp"
 #include "vec_store.hpp"
 #include <cmath>
 
