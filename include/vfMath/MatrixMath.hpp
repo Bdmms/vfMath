@@ -11,13 +11,17 @@
 */
 namespace Math
 {
-	template<> inline constexpr static mat2f ZERO<mat2f> = { Math::ZERO<vec2f>, Math::ZERO<vec2f> };
+	template<size_t M, size_t N, typename T> 
+	inline constexpr static mat<M, N, T> ZERO<mat<M, N, T>> = mat<M, N, T>::set1( Math::ZERO<T> );
+
+	template<size_t M, size_t N, typename T>
+	inline constexpr static mat<M, N, T> ONES<mat<M, N, T>> = mat<M, N, T>::set1( Math::ONES<T> );
+
+	template<size_t M, size_t N, typename T>
+	inline constexpr static mat<M, N, T> IDENTITY<mat<M, N, T>> = mat<M, N, T>::identity();
+
 	template<> inline constexpr static mat4f ZERO<mat4f> = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
-
-	template<> inline constexpr static mat2f ONES<mat2f> = { Math::ONES<vec2f>, Math::ONES<vec2f> };
 	template<> inline constexpr static mat4f ONES<mat4f> = { 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f };
-
-	template<> inline constexpr static mat2f IDENTITY<mat2f> = { Math::axis::X<vec2f>, Math::axis::Y<vec2f> };
 	template<> inline constexpr static mat4f IDENTITY<mat4f> = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
 
 	/**

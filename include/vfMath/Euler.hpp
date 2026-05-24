@@ -20,6 +20,16 @@ struct euler : public VectorStorage<3, T>
 	// Copy Constructor
 	constexpr euler( const euler& copy ) : Storage( copy ) {}
 
+	/**
+	 * Creates an euler vector with the value set across each element.
+	 */
+	constexpr static euler set1( T value )
+	{
+		euler r;
+		vf::simd::set1<3, T>( r, value );
+		return r;
+	}
+
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
 	constexpr const T* data() const { return Storage::elements.data(); }
@@ -44,19 +54,19 @@ struct euler : public VectorStorage<3, T>
 	constexpr euler& operator/=( const euler& rhs ) noexcept { vf::simd::div<3, T>( *this, *this, rhs ); return *this; }
 	constexpr euler& operator%=( const euler& rhs ) noexcept { vf::simd::mod<3, T>( *this, *this, rhs ); return *this; }
 
-	constexpr euler& operator+=( T rhs ) noexcept { vf::simd::add<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
-	constexpr euler& operator-=( T rhs ) noexcept { vf::simd::sub<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
-	constexpr euler& operator*=( T rhs ) noexcept { vf::simd::mul<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
-	constexpr euler& operator/=( T rhs ) noexcept { vf::simd::div<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
-	constexpr euler& operator%=( T rhs ) noexcept { vf::simd::mod<3, T>( *this, *this, vf::simd::set1<3, T>( rhs ) ); return *this; }
+	constexpr euler& operator+=( T rhs ) noexcept { vf::simd::add<3, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr euler& operator-=( T rhs ) noexcept { vf::simd::sub<3, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr euler& operator*=( T rhs ) noexcept { vf::simd::mul<3, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr euler& operator/=( T rhs ) noexcept { vf::simd::div<3, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr euler& operator%=( T rhs ) noexcept { vf::simd::mod<3, T>( *this, *this, set1( rhs ) ); return *this; }
 };
 
 #define VF_EULER euler<T>
 
 #define VF_EULER_OPERATOR_HEAD( Op ) template<typename T> [[nodiscard]] constexpr VF_EULER operator##Op
 #define VF_EULER_OPERATOR_EULER_EULER( Op, Func )  VF_EULER_OPERATOR_HEAD( Op )( const VF_EULER& a, const VF_EULER& b )  noexcept { VF_EULER r; Func<3,T>( r, a, b ); return r; }
-#define VF_EULER_OPERATOR_EULER_SCALAR( Op, Func ) VF_EULER_OPERATOR_HEAD( Op )( const VF_EULER& a, const VF_SCALAR& b ) noexcept { VF_EULER r; Func<3,T>( r, a, vf::simd::set1<3,T>( b ) ); return r; }
-#define VF_EULER_OPERATOR_SCALAR_EULER( Op, Func ) VF_EULER_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_EULER& b ) noexcept { VF_EULER r; Func<3,T>( r, vf::simd::set1<3,T>( a ), b ); return r; }
+#define VF_EULER_OPERATOR_EULER_SCALAR( Op, Func ) VF_EULER_OPERATOR_HEAD( Op )( const VF_EULER& a, const VF_SCALAR& b ) noexcept { VF_EULER r; Func<3,T>( r, a, euler<T>::set1( b ) ); return r; }
+#define VF_EULER_OPERATOR_SCALAR_EULER( Op, Func ) VF_EULER_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_EULER& b ) noexcept { VF_EULER r; Func<3,T>( r, euler<T>::set1( a ), b ); return r; }
 
 // Non-Member Arithmetic Operators
 

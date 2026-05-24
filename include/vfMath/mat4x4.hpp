@@ -445,11 +445,11 @@ union mat4x4
 #endif
 }
 
-[[nodiscard]] constexpr vec4f operator*( const vec4f& a, const mat4x4& b ) noexcept
+[[nodiscard]] static vec4f operator*( const vec4f& a, const mat4x4& b ) noexcept
 {
 #if ENABLE_INSTRUCTIONS_SSE2
 	vec4f r;
-	r.simd = SIMD_4F_DOT4( a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3] );
+	r.simd = _mm_dot_ps( a.simd, b.simd[0], a.simd, b.simd[1], a.simd, b.simd[2], a.simd, b.simd[3] );
 	return r;
 #else
 	// TODO

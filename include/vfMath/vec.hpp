@@ -32,6 +32,16 @@ struct vec : public VectorStorage<N, T>
 	constexpr vec( const vec<N, T>& copy ) = default;
 	constexpr vec& operator=( const vec& copy ) = default;
 
+	/**
+	 * Creates a vector with the value set across each element.
+	 */
+	constexpr static vec set1( T value )
+	{
+		vec r;
+		vf::simd::set1<N, T>( r, value );
+		return r;
+	}
+
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
 	constexpr const T* data() const { return Storage::elements.data(); }
@@ -62,20 +72,20 @@ struct vec : public VectorStorage<N, T>
 	constexpr vec& operator/=( const vec& rhs ) noexcept { vf::simd::div<N, T>( *this, *this, rhs ); return *this; }
 	constexpr vec& operator%=( const vec& rhs ) noexcept { vf::simd::mod<N, T>( *this, *this, rhs ); return *this; }
 
-	constexpr vec& operator+=( T rhs ) noexcept { vf::simd::add<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
-	constexpr vec& operator-=( T rhs ) noexcept { vf::simd::sub<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
-	constexpr vec& operator*=( T rhs ) noexcept { vf::simd::mul<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
-	constexpr vec& operator/=( T rhs ) noexcept { vf::simd::div<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
-	constexpr vec& operator%=( T rhs ) noexcept { vf::simd::mod<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
+	constexpr vec& operator+=( T rhs ) noexcept { vf::simd::add<N, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr vec& operator-=( T rhs ) noexcept { vf::simd::sub<N, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr vec& operator*=( T rhs ) noexcept { vf::simd::mul<N, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr vec& operator/=( T rhs ) noexcept { vf::simd::div<N, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr vec& operator%=( T rhs ) noexcept { vf::simd::mod<N, T>( *this, *this, set1( rhs ) ); return *this; }
 
 	// Logical Operators
 	constexpr vec& operator&=( const vec& rhs ) noexcept { vf::simd::bitwise_and<N, T>( *this, *this, rhs ); return *this; }
 	constexpr vec& operator|=( const vec& rhs ) noexcept { vf::simd::bitwise_or<N, T>(  *this, *this, rhs ); return *this; }
 	constexpr vec& operator^=( const vec& rhs ) noexcept { vf::simd::bitwise_xor<N, T>( *this, *this, rhs ); return *this; }
 
-	constexpr vec& operator&=( T rhs ) noexcept { vf::simd::bitwise_and<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
-	constexpr vec& operator|=( T rhs ) noexcept { vf::simd::bitwise_or<N, T>(  *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
-	constexpr vec& operator^=( T rhs ) noexcept { vf::simd::bitwise_xor<N, T>( *this, *this, vf::simd::set1<N, T>( rhs ) ); return *this; }
+	constexpr vec& operator&=( T rhs ) noexcept { vf::simd::bitwise_and<N, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr vec& operator|=( T rhs ) noexcept { vf::simd::bitwise_or<N, T>(  *this, *this, set1( rhs ) ); return *this; }
+	constexpr vec& operator^=( T rhs ) noexcept { vf::simd::bitwise_xor<N, T>( *this, *this, set1( rhs ) ); return *this; }
 
 	// Conversions
 	template<typename DstType>
@@ -95,8 +105,8 @@ struct vec : public VectorStorage<N, T>
 
 #define VF_VECTOR_OPERATOR_HEAD( Op ) template<size_t N, typename T> [[nodiscard]] constexpr VF_VECTOR operator##Op
 #define VF_VECTOR_OPERATOR_VECTOR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_VECTOR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, a, b ); return r; }
-#define VF_VECTOR_OPERATOR_VECTOR_SCALAR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_SCALAR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, a, vf::simd::set1<N,T>( b ) ); return r; }
-#define VF_VECTOR_OPERATOR_SCALAR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_VECTOR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, vf::simd::set1<N,T>( a ), b ); return r; }
+#define VF_VECTOR_OPERATOR_VECTOR_SCALAR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_VECTOR& a, const VF_SCALAR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, a, vec<N, T>::set1( b ) ); return r; }
+#define VF_VECTOR_OPERATOR_SCALAR_VECTOR( Op, Func ) VF_VECTOR_OPERATOR_HEAD( Op )( const VF_SCALAR& a, const VF_VECTOR& b ) noexcept { VF_VECTOR r; Func<N,T>( r, vec<N, T>::set1( a ), b ); return r; }
 
 // Non-Member Arithmetic Operators
 
@@ -196,70 +206,6 @@ typedef vec4f vec3f;
 // TODO: Temporary until mat4x4 is converted
 union mat4x4;
 
-// TODO: Deprecated
-namespace vf::native
-{
-	constexpr __m128 simd_add_4f( const __m128& a, const __m128& b )
-	{
-		return { 
-			a.m128_f32[0] + b.m128_f32[0], 
-			a.m128_f32[1] + b.m128_f32[1], 
-			a.m128_f32[2] + b.m128_f32[2], 
-			a.m128_f32[3] + b.m128_f32[3]
-		};
-	}
-
-	constexpr __m128 simd_sub_4f( const __m128& a, const __m128& b )
-	{
-		return {
-			a.m128_f32[0] - b.m128_f32[0],
-			a.m128_f32[1] - b.m128_f32[1],
-			a.m128_f32[2] - b.m128_f32[2],
-			a.m128_f32[3] - b.m128_f32[3]
-		};
-	}
-
-	constexpr __m128 simd_mul_4f( const __m128& a, const __m128& b )
-	{
-		return {
-			a.m128_f32[0] * b.m128_f32[0],
-			a.m128_f32[1] * b.m128_f32[1],
-			a.m128_f32[2] * b.m128_f32[2],
-			a.m128_f32[3] * b.m128_f32[3]
-		};
-	}
-
-	constexpr __m128 simd_div_4f( const __m128& a, const __m128& b )
-	{
-		return {
-			a.m128_f32[0] / b.m128_f32[0],
-			a.m128_f32[1] / b.m128_f32[1],
-			a.m128_f32[2] / b.m128_f32[2],
-			a.m128_f32[3] / b.m128_f32[3]
-		};
-	}
-
-	constexpr __m128 simd_hadd_4f( const __m128& a, const __m128& b )
-	{
-		return {
-			a.m128_f32[0] + a.m128_f32[1],
-			a.m128_f32[2] + a.m128_f32[3],
-			b.m128_f32[0] + b.m128_f32[1],
-			b.m128_f32[2] + b.m128_f32[3]
-		};
-	}
-
-	constexpr __m128 simd_permute_4f( const __m128& a, int b )
-	{
-		return {
-			a.m128_f32[(b & 0x03)     ],
-			a.m128_f32[(b & 0x0C) >> 2],
-			a.m128_f32[(b & 0x30) >> 4],
-			a.m128_f32[(b & 0xC0) >> 6]
-		};
-	}
-}
-
 // High-level SSE2 vector instructions
 #if ENABLE_INSTRUCTIONS_SSE2
 
@@ -317,20 +263,5 @@ constexpr __m256i	SIMD_8i_W = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 
 
 #define _mm256_dot3_ps(a,b,c,d,e,f,g,h) _mm256_sum_ps(_mm256_mul_ps(a, b), _mm256_mul_ps(c, d), _mm256_mul_ps(e, f), SIMD_8f_ZERO)
 #endif
-
-// Macros for selecting native function
-#define SIMD_4F_SET( x, y, z, w ) std::is_constant_evaluated() ? __m128{ x, y, z, w } : _mm_xyzw_ps( x, y, z, w )
-#define SIMD_4F_SET1( x ) std::is_constant_evaluated() ? __m128{ x, x, x, x } : _mm_set1_ps( x )
-#define SIMD_4F_ADD( x, y ) std::is_constant_evaluated() ? _mm_add_ps( x, y ) : _mm_add_ps( x, y )
-#define SIMD_4F_SUB( x, y ) std::is_constant_evaluated() ? vf::native::simd_sub_4f( x, y ) : _mm_sub_ps( x, y )
-#define SIMD_4F_MUL( x, y ) std::is_constant_evaluated() ? vf::native::simd_mul_4f( x, y ) : _mm_mul_ps( x, y )
-#define SIMD_4F_DIV( x, y ) std::is_constant_evaluated() ? vf::native::simd_div_4f( x, y ) : _mm_div_ps( x, y )
-#define SIMD_4F_HADD( x, y ) std::is_constant_evaluated() ? vf::native::simd_hadd_4f( x, y ) : _mm_hadd_ps( x, y )
-#define SIMD_4F_SUM4( a, b, c, d ) SIMD_4F_HADD( SIMD_4F_HADD( a, b ), SIMD_4F_HADD( c, d ) )
-#define SIMD_4F_SUM2( a, b ) SIMD_4F_HADD( SIMD_4F_HADD( a, b ), SIMD_4f_ZERO )
-#define SIMD_4F_DOT2( a, b, c, d ) SIMD_4F_SUM2( SIMD_4F_MUL( a, b ), SIMD_4F_MUL( c, d ) )
-#define SIMD_4F_DOT3( a, b, c, d, e, f ) SIMD_4F_SUM4( SIMD_4F_MUL( a, b ), SIMD_4F_MUL( c, d ), SIMD_4F_MUL( e, f ), SIMD_4f_ZERO )
-#define SIMD_4F_DOT4( a, b, c, d, e, f, g, h ) SIMD_4F_SUM4( SIMD_4F_MUL( a, b ), SIMD_4F_MUL( c, d ), SIMD_4F_MUL( e, f ), SIMD_4F_MUL( g, h ) )
-#define SIMD_4F_PERMUTE( a, b ) std::is_constant_evaluated() ? vf::native::simd_permute_4f( a, b ) : _mm_permute_ps( a, b )
 
 #endif

@@ -547,7 +547,7 @@ namespace Math
 	{
 		vec<N, T> r;
 		vf::simd::sub( r, b, a );
-		vf::simd::fmadd( r, r, vf::simd::set1<N, T>( t ), a );
+		vf::simd::fmadd( r, r, vec<N, T>::set1( t ), a );
 		return r;
 	}
 
@@ -639,10 +639,10 @@ namespace Math
 		 * @param d - fourth vector
 		 * @return sum of the 4 vectors stored as a single vector
 		*/
-		[[nodiscard]] constexpr vec4f hsum( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f> )
+		[[nodiscard]] inline static vec4f hsum( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d = ZERO<vec4f> )
 		{
 			vec4f r;
-			r.simd = SIMD_4F_SUM4( a.simd, b.simd, c.simd, d.simd );
+			r.simd = _mm_sum_ps( a.simd, b.simd, c.simd, d.simd );
 			return r;
 		}
 
@@ -652,10 +652,10 @@ namespace Math
 		 * @param b - second vector
 		 * @return sum of the 2 vectors stored as a single vector
 		*/
-		[[nodiscard]] constexpr vec4f hsum( const vec4f& a, const vec4f& b )
+		[[nodiscard]] inline static vec4f hsum( const vec4f& a, const vec4f& b )
 		{
 			vec4f r;
-			r.simd = SIMD_4F_SUM2( a.simd, b.simd );
+			r.simd = _mm_sum2_ps( a.simd, b.simd );
 			return r;
 		}
 
@@ -675,7 +675,7 @@ namespace Math
 			const vec4f& e, const vec4f& f, const vec4f& g, const vec4f& h )
 		{
 			vec4f r;
-			r.simd = SIMD_4F_DOT4( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd );
+			r.simd = _mm_dot_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd );
 			return r;
 		}
 
@@ -692,7 +692,7 @@ namespace Math
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d, const vec4f& e, const vec4f& f )
 		{
 			vec4f r;
-			r.simd = SIMD_4F_DOT3( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd );
+			r.simd = _mm_dot3_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd );
 			return r;
 		}
 
@@ -707,7 +707,7 @@ namespace Math
 		[[nodiscard]] inline static vec4f dot( const vec4f& a, const vec4f& b, const vec4f& c, const vec4f& d )
 		{
 			vec4f r;
-			r.simd = SIMD_4F_DOT2( a.simd, b.simd, c.simd, d.simd );
+			r.simd = _mm_dot2_ps( a.simd, b.simd, c.simd, d.simd );
 			return r;
 		}
 

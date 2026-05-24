@@ -21,6 +21,26 @@ struct mat : public MatrixStorage<M, N, T>
 	constexpr mat( const mat<M, N, T>& copy ) = default;
 	constexpr mat& operator=( const mat& copy ) = default;
 
+	/**
+	 * Creates a matrix with the value set across each element.
+	 */
+	constexpr static mat set1( T value )
+	{
+		mat r;
+		vf::simd::set1<M, N, T>( r, value );
+		return r;
+	}
+
+	/**
+	 * Creates a matrix with the value set across each element.
+	 */
+	constexpr static mat identity()
+	{
+		mat r;
+		vf::simd::setIdentity( r );
+		return r;
+	}
+
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
 	constexpr const T* data() const { return Storage::elements.data(); }
@@ -38,6 +58,7 @@ struct mat : public MatrixStorage<M, N, T>
 	//constexpr mat& operator-=( T rhs ) noexcept { vf::simd::sub<N, T>( *this, *this, rhs ); return *this; }
 	constexpr mat& operator*=( T rhs ) noexcept { vf::simd::mul<M, N, T>( *this, *this, rhs ); return *this; }
 	constexpr mat& operator/=( T rhs ) noexcept { vf::simd::div<M, N, T>( *this, *this, rhs ); return *this; }
+
 };
 
 template<size_t M, size_t N, size_t N2, typename T>
@@ -120,8 +141,5 @@ typedef mat4<u32> mat4u;
 typedef mat4<f32> mat4f32;
 typedef mat4<i32> mat4i32;
 typedef mat4<u32> mat4u32;
-
-// TODO:
-typedef mat2f mat2x2;
 
 #endif

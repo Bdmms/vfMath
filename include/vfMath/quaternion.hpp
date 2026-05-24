@@ -60,6 +60,16 @@ struct quat : public VectorStorage<4, float>
 	// Copy Constructor
 	constexpr quat( const quat& copy ) : Storage( copy ) {}
 
+	/**
+	 * Creates an euler vector with the value set across each element.
+	 */
+	constexpr static quat set1( T value )
+	{
+		quat r;
+		vf::simd::set1<4, T>( r, value );
+		return r;
+	}
+
 	// Container Operations
 	constexpr T* data() { return Storage::elements.data(); }
 	constexpr const T* data() const { return Storage::elements.data(); }
@@ -74,10 +84,10 @@ struct quat : public VectorStorage<4, float>
 	constexpr quat& operator-=( const quat& rhs ) noexcept { vf::simd::sub<4, T>( *this, *this, rhs ); return *this; }
 	constexpr quat& operator*=( const quat& rhs ) noexcept { vf::simd::hamilton_product<T>( *this, *this, rhs ); return *this; }
 
-	constexpr quat& operator+=( T rhs ) noexcept { vf::simd::add<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
-	constexpr quat& operator-=( T rhs ) noexcept { vf::simd::sub<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
-	constexpr quat& operator*=( T rhs ) noexcept { vf::simd::mul<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
-	constexpr quat& operator/=( T rhs ) noexcept { vf::simd::div<4, T>( *this, *this, vf::simd::set1<4, T>( rhs ) ); return *this; }
+	constexpr quat& operator+=( T rhs ) noexcept { vf::simd::add<4, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr quat& operator-=( T rhs ) noexcept { vf::simd::sub<4, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr quat& operator*=( T rhs ) noexcept { vf::simd::mul<4, T>( *this, *this, set1( rhs ) ); return *this; }
+	constexpr quat& operator/=( T rhs ) noexcept { vf::simd::div<4, T>( *this, *this, set1( rhs ) ); return *this; }
 
 	// Unary Operators
 	[[nodiscard]] constexpr quat operator-() const
@@ -121,8 +131,8 @@ struct quat : public VectorStorage<4, float>
 
 #define VF_QUAT_OPERATOR_HEAD( Op ) [[nodiscard]] constexpr VF_QUAT operator##Op
 #define VF_QUAT_OPERATOR_QUAT_QUAT( Op, Func )   VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const VF_QUAT& b )  noexcept { VF_QUAT r; Func( r, a, b ); return r; }
-#define VF_QUAT_OPERATOR_QUAT_SCALAR( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const f32& b ) noexcept { VF_QUAT r; Func( r, a, vf::simd::set1<4,f32>( b ) ); return r; }
-#define VF_QUAT_OPERATOR_SCALAR_QUAT( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const f32& a, const VF_QUAT& b ) noexcept { VF_QUAT r; Func( r, vf::simd::set1<4,f32>( a ), b ); return r; }
+#define VF_QUAT_OPERATOR_QUAT_SCALAR( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const VF_QUAT& a, const f32& b ) noexcept { VF_QUAT r; Func( r, a, quat::set1( b ) ); return r; }
+#define VF_QUAT_OPERATOR_SCALAR_QUAT( Op, Func ) VF_QUAT_OPERATOR_HEAD( Op )( const f32& a, const VF_QUAT& b ) noexcept { VF_QUAT r; Func( r, quat::set1( a ), b ); return r; }
 
 // Non-Member Arithmetic Operators
 

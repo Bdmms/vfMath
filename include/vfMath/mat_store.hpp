@@ -18,12 +18,34 @@ struct MatrixStorage<2, 2, f32>
 	union
 	{
 		std::array<vec2f32, 2> cols;
+		std::array<f32, 4> m;
 		struct
 		{
 			vec2f32 x_axis;
 			vec2f32 y_axis;
 		};
 		__m128 simd;
+	};
+};
+
+// 4x4 Matrices
+
+template<>
+struct MatrixStorage<4, 4, f32>
+{
+	union
+	{
+		std::array<vec4f32, 4> cols;
+		std::array<f32, 16> m;
+		struct
+		{
+			vec4f32 x_axis;
+			vec4f32 y_axis;
+			vec4f32 z_axis;
+			vec4f32 origin;
+		};
+		__m128 simd[4];
+		__m256 avx2[2];
 	};
 };
 

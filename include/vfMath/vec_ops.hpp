@@ -189,9 +189,8 @@ namespace vf::simd
 	// Default Operations
 
 	template<size_t N, typename T>
-	[[nodiscard]] constexpr VectorStorage<N, T> set1( T value )
+	constexpr VectorStorage<N, T>& set1( VectorStorage<N, T>& r, T value )
 	{
-		VectorStorage<N, T> r;
 		return compile_time::set1<N, T>( r, value );
 	}
 
@@ -388,9 +387,8 @@ namespace vf::simd
 	typedef VectorStorage<4, f32> simd4f32;
 
 	template<>
-	constexpr simd4f32 set1( f32 value )
+	constexpr simd4f32& set1( simd4f32& r, f32 value )
 	{
-		simd4f32 r;
 		if( std::is_constant_evaluated() ) return compile_time::set1<4, f32>( r, value );
 		r.simd = _mm_set1_ps( value );
 		return r;
@@ -551,9 +549,8 @@ namespace vf::simd
 	typedef VectorStorage<4, i32> simd4i32;
 
 	template<>
-	constexpr simd4i32 set1( i32 value )
+	constexpr simd4i32& set1( simd4i32& r, i32 value )
 	{
-		simd4i32 r;
 		if( std::is_constant_evaluated() ) return compile_time::set1<4, i32>( r, value );
 		r.simd = _mm_set1_epi32( value );
 		return r;
