@@ -5,7 +5,7 @@
 #include "Math.hpp"
 #include "vec.hpp"
 
-typedef vec3f AxisAngle;
+typedef vec4f AxisAngle;
 
 // TODO:
 // template<typename V>
@@ -532,7 +532,7 @@ namespace Math
 	 * @param angle - angle around axis
 	 * @return rotated position vector
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& position, const vec3f& axis, const float angle )
+	[[nodiscard]] static vec4f rotate( const vec4f& position, const vec4f& axis, const float angle )
 	{
 		// Based on quaternion implementation, but without using a quaternion
 		vec4f r;
@@ -548,12 +548,12 @@ namespace Math
 	 * @param rotation - axis angle vector
 	 * @return rotated position
 	*/
-	[[nodiscard]] static vec3f rotate( const vec3f& position, const AxisAngle& rotation )
+	[[nodiscard]] static vec4f rotate( const vec4f& position, const AxisAngle& rotation )
 	{
 		float angle = Math::length( rotation );
 		if( angle <= Math::EPSILON<float> ) return position;
 
-		vec3f axis = rotation / angle;
+		vec4f axis = rotation / angle;
 		return rotate( position, axis, angle );
 	}
 
@@ -564,7 +564,7 @@ namespace Math
 	 * @param angle - radian angle around axis
 	 * @return rotation around axis
 	*/
-	template<typename T> [[nodiscard]] static T rotationAround( const vec3f& axis, const float angle )
+	template<typename T> [[nodiscard]] static T rotationAround( const vec4f& axis, const float angle )
 	{
 		return axis * angle;
 	}
@@ -576,7 +576,7 @@ namespace Math
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<typename T> [[nodiscard]] static T rotationBetween( const vec3f& from, const vec3f& to )
+	template<typename T> [[nodiscard]] static T rotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = dot_3D( from, to );
 		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -591,12 +591,12 @@ namespace Math
 	 * @param t - weight
 	 * @return weighted direction (normalized)
 	*/
-	[[nodiscard]] static vec3f slerp( const vec3f& a, const vec3f& b, const float t )
+	[[nodiscard]] static vec4f slerp( const vec4f& a, const vec4f& b, const float t )
 	{
 		float product = Math::dot_3D( a, b );
 		if( product > 1.0f - Math::EPSILON<float> ) return a;
 
-		vec3f normal = product < Math::EPSILON<float> -1.0f ? Math::orthogonal( a ) : Math::normalize( Math::cross( a, b ) );
+		vec4f normal = product < Math::EPSILON<float> -1.0f ? Math::orthogonal( a ) : Math::normalize( Math::cross( a, b ) );
 		return Math::rotate( a, normal, acosf( product ) * t );
 	}
 
@@ -649,7 +649,7 @@ namespace Math
 			const vec4f& e, const vec4f& f, const vec4f& g, const vec4f& h )
 		{
 			vec4f r;
-			r.simd = _mm_dot_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd );
+			vf::simd::dot4( r, a, b, c, d, e, f, g, h );
 			return r;
 		}
 
@@ -787,7 +787,7 @@ namespace Math
 	 * @brief Generates a random 3D directional vector
 	 * @return random 3D directional vector
 	*/
-	template<> [[nodiscard]] static vec3f randomDirection<vec3f>()
+	template<> [[nodiscard]] static vec4f randomDirection<vec4f>()
 	{
 		float alpha = rand() * RAND_CONVERT_TAU;
 		float beta = rand() * RAND_CONVERT_PI - RAND_CONVERT_HALFPI;
@@ -801,7 +801,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static AxisAngle randomRotation<AxisAngle>()
 	{
-		return randomDirection<vec3f>() * random<float>( 0.0f, Math::TWO_PI<float> );
+		return randomDirection<vec4f>() * random<float>( 0.0f, Math::TWO_PI<float> );
 	}
 
 	/**

@@ -33,7 +33,7 @@ static vec4f clampTriangleUV( const vec4f& uv )
  * @param vector - 3D vector
  * @return component index
 */
-constexpr uint8_t maxIndex( const vec3f& vector )
+constexpr uint8_t maxIndex( const vec4f& vector )
 {
 	if( vector.x >= vector.y )	return vector.z >= vector.x ? 2u : 0u;
 	else						return vector.z >= vector.y ? 2u : 1u;
@@ -44,7 +44,7 @@ constexpr uint8_t maxIndex( const vec3f& vector )
  * @param vector - 3D vector
  * @return component index
 */
-constexpr uint8_t minIndex( const vec3f& vector )
+constexpr uint8_t minIndex( const vec4f& vector )
 {
 	if( vector.x <= vector.y )	return vector.z <= vector.x ? 2u : 0u;
 	else						return vector.z <= vector.y ? 2u : 1u;
@@ -56,8 +56,8 @@ constexpr uint8_t minIndex( const vec3f& vector )
 
 CollisionFace createFace(const vec4f& p0, const vec4f& p1, const vec4f& p2)
 {
-	vec3f xAxis = p1 - p0;
-	vec3f yAxis = p2 - p0;
+	vec4f xAxis = p1 - p0;
+	vec4f yAxis = p2 - p0;
 	mat4x4 transform{
 		xAxis,
 		yAxis,
@@ -347,7 +347,7 @@ constexpr vec4f PROJECTED_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& min
 	return Math::overlaps( min, max, minBounds, maxBounds );
 }
 
-bool Math::AABB::rayTest( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
+bool Math::AABB::rayTest( const vec4f& min, const vec4f& max, const vec4f& point, const vec4f& ray )
 {
 	vec4f intersect0 = ( min - point ) / ray;
 	vec4f intersect1 = ( max - point ) / ray;
@@ -360,7 +360,7 @@ bool Math::AABB::rayTest( const vec3f& min, const vec3f& max, const vec4f& point
 	return minBounds <= maxBounds;
 }
 
-Bounds<float> Math::AABB::rayBounds( const vec3f& min, const vec3f& max, const vec4f& point, const vec3f& ray )
+Bounds<float> Math::AABB::rayBounds( const vec4f& min, const vec4f& max, const vec4f& point, const vec4f& ray )
 {
 	vec4f intersect0 = ( min - point ) / ray;
 	vec4f intersect1 = ( max - point ) / ray;
@@ -375,7 +375,7 @@ Bounds<float> Math::AABB::rayBounds( const vec3f& min, const vec3f& max, const v
 	};
 }
 
-float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector )
+float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec4f& rayVector )
 {
 	// Calculate the line-plane intersection
 	vec4f displaced = triangle.origin - rayOrigin;
@@ -398,7 +398,7 @@ bool Math::Box::pointTest( const vec4f& point )
 	return isInside.x && isInside.y && isInside.z;
 }
 
-bool Math::Box::rayTest( const vec4f& origin, const vec3f& ray )
+bool Math::Box::rayTest( const vec4f& origin, const vec4f& ray )
 {
 	return Math::AABB::rayTest( Math::NEGATIVE<vec4f>, Math::ONES<vec4f>, origin, ray );
 }
@@ -445,7 +445,7 @@ bool Math::Box::projectedBoxTest( const TransformSpace& box )
 
 bool Math::Sphere::sphereTest( const TransformSpace& sphere )
 {
-	vec3f displacement = sphere.transform.origin;
+	vec4f displacement = sphere.transform.origin;
 	displacement.w = 0.0f;
 
 	float distance = Math::length( displacement );
@@ -459,24 +459,24 @@ bool Math::Sphere::sphereTest( const TransformSpace& sphere )
 
 bool Math::Sphere::boxTest( const TransformSpace& box )
 {
-	vec3f closestPoint = Math::clamp( box.inverse.origin, Math::NEGATIVE<vec3f>, Math::ONES<vec3f> );
+	vec4f closestPoint = Math::clamp( box.inverse.origin, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
 	vec4f displacement = box.transform * closestPoint;
 	float distance2 = displacement.x * displacement.x + displacement.y * displacement.y + displacement.z * displacement.z;
 	return distance2 <= 1.0f;
 }
 
-bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, const TransformSpace& face )
+bool sphereFaceCollision( vec4f& displacement, const TransformSpace& sphere, const TransformSpace& face )
 {
-	vec3f uvs = face.inverse * sphere.transform.origin;
+	vec4f uvs = face.inverse * sphere.transform.origin;
 	if( uvs.x + uvs.y > 1.0f || uvs.x < 0.0f || uvs.y < 0.0f ) return false;
 
 	vec4f bounded = Math::max( uvs, Math::ZERO<vec4f> );
 	vec4f clamped = bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
 	mat4x4 relFace = sphere.inverse * face.transform;
 
-	vec3f compNormal = relFace.origin + relFace.x_axis * uvs.x + relFace.y_axis * uvs.y;
-	vec3f compCombined = relFace.origin + relFace.x_axis * clamped.x + relFace.y_axis * clamped.y;
-	vec3f compSurface = compCombined - compNormal;
+	vec4f compNormal = relFace.origin + relFace.x_axis * uvs.x + relFace.y_axis * uvs.y;
+	vec4f compCombined = relFace.origin + relFace.x_axis * clamped.x + relFace.y_axis * clamped.y;
+	vec4f compSurface = compCombined - compNormal;
 	float surfaceDistance2 = Math::dot_3D( compSurface, compSurface );
 	float normalDistance2 = Math::dot_3D( compNormal, compNormal );
 	
@@ -488,24 +488,24 @@ bool sphereFaceCollision( vec3f& displacement, const TransformSpace& sphere, con
 	return Math::dot_3D( compCombined, compCombined ) <= 1.0f;
 }
 
-bool Math::Box::sphereCollision( vec3f& displacement, const TransformSpace& sphere )
+bool Math::Box::sphereCollision( vec4f& displacement, const TransformSpace& sphere )
 {
 	const mat4x4& boxSpace = sphere.inverse;
 	const vec4f& origin = sphere.transform.origin;
 
-	vec3f clamped = Math::clamp( origin, Math::NEGATIVE<vec3f>, Math::ONES<vec3f> );
-	vec3f quadrant = Math::sign( origin );
+	vec4f clamped = Math::clamp( origin, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
+	vec4f quadrant = Math::sign( origin );
 
-	vec3f rx = boxSpace.x_axis * clamped.x;
-	vec3f ry = boxSpace.y_axis * clamped.y;
-	vec3f rz = boxSpace.z_axis * clamped.z;
+	vec4f rx = boxSpace.x_axis * clamped.x;
+	vec4f ry = boxSpace.y_axis * clamped.y;
+	vec4f rz = boxSpace.z_axis * clamped.z;
 
-	vec3f vectorBoxSpace[3] = {
+	vec4f vectorBoxSpace[3] = {
 		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.x_axis * quadrant.x ) + ry + rz,
 		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.y_axis * quadrant.y ) + rz + rx,
 		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.z_axis * quadrant.z ) + rx + ry
 	};
-	vec3f lengthBoxSpace = Math::parallel::length( vectorBoxSpace[0], vectorBoxSpace[1], vectorBoxSpace[2] );
+	vec4f lengthBoxSpace = Math::parallel::length( vectorBoxSpace[0], vectorBoxSpace[1], vectorBoxSpace[2] );
 
 	uint8_t idx = minIndex( lengthBoxSpace );
 	displacement = sphere.transform * vectorBoxSpace[idx];
@@ -515,12 +515,12 @@ bool Math::Box::sphereCollision( vec3f& displacement, const TransformSpace& sphe
 	return distance2 <= radius2;
 }
 
-bool Math::Sphere::boxCollision( vec3f& displacement, const TransformSpace& box )
+bool Math::Sphere::boxCollision( vec4f& displacement, const TransformSpace& box )
 {
 	const mat4x4& sphereSpace = box.inverse;
 
-	vec3f boxPoint = Math::clamp( sphereSpace.origin, { -1.0f, -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f } );
-	vec3f spherePoint = box.transform * boxPoint;
+	vec4f boxPoint = Math::clamp( sphereSpace.origin, { -1.0f, -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f } );
+	vec4f spherePoint = box.transform * boxPoint;
 	float distance2 = Math::dot_3D( spherePoint, spherePoint );
 	
 	if( distance2 > Math::EPSILON<float> )
@@ -531,21 +531,21 @@ bool Math::Sphere::boxCollision( vec3f& displacement, const TransformSpace& box 
 	else
 	{
 		// Arbitrarily displace along the x-axis
-		displacement = Math::axis::X<vec3f>;
+		displacement = Math::axis::X<vec4f>;
 	}
 
 	return distance2 <= 1.0f;
 }
 
-bool Math::Sphere::sphereCollision( vec3f& displacement, const TransformSpace& sphere )
+bool Math::Sphere::sphereCollision( vec4f& displacement, const TransformSpace& sphere )
 {
-	vec3f vector = sphere.transform.origin;
+	vec4f vector = sphere.transform.origin;
 	vector.w = 0.0f;
 
 	float distance = Math::length( vector );
 	if( distance <= Math::EPSILON<float> )
 	{
-		displacement = Math::axis::X<vec3f>;
+		displacement = Math::axis::X<vec4f>;
 		return true;
 	}
 
@@ -601,16 +601,16 @@ const IntersectTest intersectionMatrix[4][4]
 // --- General Collision ---
 // -------------------------
 
-Bounds<vec3f> Math::Box::calculateAABB( const mat4x4& t )
+Bounds<vec4f> Math::Box::calculateAABB( const mat4x4& t )
 {
-	Bounds<vec3f> bounds;
+	Bounds<vec4f> bounds;
 	AABB_BOX_FULL( t, bounds.min, bounds.max );
 	return bounds;
 }
 
-Bounds<vec3f> Math::Triangle::calculateAABB( const mat4x4& t )
+Bounds<vec4f> Math::Triangle::calculateAABB( const mat4x4& t )
 {
-	Bounds<vec3f> bounds;
+	Bounds<vec4f> bounds;
 	AABB_TRIANGLE( t, bounds.min, bounds.max );
 	return bounds;
 }
@@ -643,19 +643,19 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	const vec4i& dimensions = lattice.getDimensions();
 	const TransformSpace relative = { lattice.defaultBounds.inverse * triangle.transform, triangle.inverse * lattice.defaultBounds.transform };
 	const TransformSpace unitXform = { lattice.unitSpace.inverse * relative.transform, relative.inverse * lattice.unitSpace.transform };
-	TransformSpace unit = { Math::create::scale( vec3f{ 0.5f, 0.5f, 0.5f } ), Math::create::scale( vec3f{ 2.0f, 2.0f, 2.0f } ) };
+	TransformSpace unit = { Math::create::scale( vec4f{ 0.5f, 0.5f, 0.5f } ), Math::create::scale( vec4f{ 2.0f, 2.0f, 2.0f } ) };
 	TransformSpace unitTriangle;
 	
-	Bounds<vec3f> triangleBounds;
+	Bounds<vec4f> triangleBounds;
 	AABB_TRIANGLE( unitXform.transform, triangleBounds.min, triangleBounds.max );
 
-	vec3i minIdx = Math::clamp( static_cast<vec3i>( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec3i>, dimensions - Math::ONES<vec3i> );
-	vec3i maxIdx = Math::clamp( static_cast<vec3i>( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec3i>, dimensions );
+	vec4i minIdx = Math::clamp( static_cast<vec4i>( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec4i>, dimensions - Math::ONES<vec4i> );
+	vec4i maxIdx = Math::clamp( static_cast<vec4i>( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec4i>, dimensions );
 	minIdx.w = 0;
 	maxIdx.w = 0;
 
 	// Populate the units with any intersecting face 
-	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
+	for( vec4i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
 	{
 		size_t iz = idx.z * dimensions.y;
 		for( idx.y = minIdx.y; idx.y < maxIdx.y; ++idx.y )
@@ -678,17 +678,17 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 #ifdef VF_DEBUG_TRIANGLE_LATTICE
 				else
 				{
-					vec3f v0 = unitXform.transform.origin;
-					vec3f v1 = unitXform.transform.origin + unitXform.transform.x_axis;
-					vec3f v2 = unitXform.transform.origin + unitXform.transform.y_axis;
+					vec4f v0 = unitXform.transform.origin;
+					vec4f v1 = unitXform.transform.origin + unitXform.transform.x_axis;
+					vec4f v2 = unitXform.transform.origin + unitXform.transform.y_axis;
 
-					vec3i p0 = vec3i( Math::floor( v0 ) );
-					vec3i p1 = vec3i( Math::floor( v1 ) );
-					vec3i p2 = vec3i( Math::floor( v2 ) );
+					vec4i p0 = vec4i( Math::floor( v0 ) );
+					vec4i p1 = vec4i( Math::floor( v1 ) );
+					vec4i p2 = vec4i( Math::floor( v2 ) );
 
-					vec3i a = idx ^ p0;
-					vec3i b = idx ^ p1;
-					vec3i c = idx ^ p2;
+					vec4i a = idx ^ p0;
+					vec4i b = idx ^ p1;
+					vec4i c = idx ^ p2;
 					bool expected = !( a.x | a.y | a.z ) || !( b.x | b.y | b.z ) || !( c.x | c.y | c.z );
 
 					if( expected )
@@ -721,10 +721,10 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	}
 }
 
-void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions )
+void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vector<CollisionFace>& mesh, const vec4i& dimensions )
 {
 	lattice.resize( dimensions );
-	Bounds<vec3f> aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+	Bounds<vec4f> aabb = { Math::MAX<vec4f>, Math::MIN<vec4f> };
 	Math::extend( aabb, mesh );
 
 	lattice.defaultBounds.transform = Math::createBoundingTransform( aabb );
@@ -738,10 +738,10 @@ void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vect
 	packTriangles( lattice, unitFaces );
 }
 
-void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions )
+void Collision::convertToLattice( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec4i& dimensions )
 {
 	lattice.resize( dimensions );
-	Bounds<vec3f> aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+	Bounds<vec4f> aabb = { Math::MAX<vec4f>, Math::MIN<vec4f> };
 
 	for( const std::vector<CollisionFace>& group : mesh )
 	{
@@ -772,7 +772,7 @@ CollisionMesh::CollisionMesh( const std::vector<CollisionFace>& source ) :
 
 void CollisionMesh::setFaces( const std::vector<CollisionFace>& source )
 {
-	aabb = { Math::MAX<vec3f>, Math::MIN<vec3f> };
+	aabb = { Math::MAX<vec4f>, Math::MIN<vec4f> };
 	Math::extend( aabb, source );
 
 	current.transform = Math::createBoundingTransform( aabb );
@@ -791,7 +791,7 @@ void CollisionMesh::collision( TransformSpace& sphere ) const
 {
 	TransformSpace relative = { current.inverse * sphere.transform, sphere.inverse * current.transform };
 	vec4f startOrigin = relative.transform.origin;
-	vec3f displacement;
+	vec4f displacement;
 
 	for( const CollisionFace& face : faces )
 	{
@@ -806,7 +806,7 @@ void CollisionMesh::collision( TransformSpace& sphere ) const
 
 void collision_CollisionLatticeUnit_sphere( TransformSpace& relativeSphere, const CollisionFace* ptr, const CollisionFace* end )
 {
-	vec3f displacement;
+	vec4f displacement;
 	while( ptr < end )
 	{
 		// If sphere intersects face, translate sphere by face displacement
@@ -821,7 +821,7 @@ void collision_CollisionLatticeUnit_sphere( TransformSpace& relativeSphere, cons
 void CollisionLattice::collision( TransformSpace& sphere ) const
 {
 	const TransformSpace& unitSpace = data.getUnitSpace();
-	const vec3i& dimensions = data.getDimensions();
+	const vec4i& dimensions = data.getDimensions();
 	const CollisionLatticeData::Unit* units = data.getUnits();
 	const CollisionFace* faces = data.getFaces();
 
@@ -831,12 +831,12 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 	vec4f startOrigin = unitXform.transform.origin;
 
 	// Compute the bounds of the sphere in unit space
-	Bounds<vec3f> aabb = Math::Box::calculateAABB( unitXform.transform );
-	vec3i minIdx = Math::clamp( static_cast<vec3i>( Math::floor( aabb.min ) ), Math::ZERO<vec3i>, dimensions );
-	vec3i maxIdx = Math::clamp( static_cast<vec3i>( Math::ceil(  aabb.max ) ), Math::ZERO<vec3i>, dimensions );
+	Bounds<vec4f> aabb = Math::Box::calculateAABB( unitXform.transform );
+	vec4i minIdx = Math::clamp( static_cast<vec4i>( Math::floor( aabb.min ) ), Math::ZERO<vec4i>, dimensions );
+	vec4i maxIdx = Math::clamp( static_cast<vec4i>( Math::ceil(  aabb.max ) ), Math::ZERO<vec4i>, dimensions );
 
 	// Iterate over the units the sphere overlaps with
-	for( vec3i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
+	for( vec4i idx = minIdx; idx.z < maxIdx.z; ++idx.z )
 	{
 		size_t iz = idx.z * dimensions.y;
 		for( idx.y = minIdx.y; idx.y < maxIdx.y; ++idx.y )
@@ -860,13 +860,13 @@ bool CollisionMesh::rayCast( RaySensor& ray ) const
 {
 	// Convert finite ray into mesh space
 	vec4f origin = current.inverse * ray.origin;
-	vec3f line = current.inverse * ( ray.direction * ray.distance );
+	vec4f line = current.inverse * ( ray.direction * ray.distance );
 
 	if( !Math::Box::rayTest( origin, line ) ) return false;
 
 	// We need to make sure the distance/normal is calculated relative to the mesh space
 	float relDistance = 1.0f;
-	vec3f relNormal;
+	vec4f relNormal;
 	bool hit = false;
 
 	for( const CollisionFace& face : faces )
@@ -897,7 +897,7 @@ bool CollisionMesh::rayCast( RaySensor& ray ) const
 	return false;
 }
 
-bool raycast_CollisionLatticeUnit_sphere( const vec4f& point, const vec3f& ray, float& distance, vec3f& normal, const CollisionFace* ptr, const CollisionFace* end )
+bool raycast_CollisionLatticeUnit_sphere( const vec4f& point, const vec4f& ray, float& distance, vec4f& normal, const CollisionFace* ptr, const CollisionFace* end )
 {
 	bool hit = false;
 
@@ -925,16 +925,16 @@ bool raycast_CollisionLatticeUnit_sphere( const vec4f& point, const vec3f& ray, 
 bool CollisionLattice::rayCast( RaySensor& ray ) const
 {
 	const TransformSpace& unitSpace = data.getUnitSpace();
-	const vec3i& dimensions = data.getDimensions();
+	const vec4i& dimensions = data.getDimensions();
 	const CollisionLatticeData::Unit* units = data.getUnits();
 	const CollisionFace* faces = data.getFaces();
 
 	// Convert finite ray into unit space
 	vec4f origin = unitSpace.inverse * ( current.inverse * ray.origin );
-	vec3f line = unitSpace.inverse * ( current.inverse * ( ray.direction * ray.distance ) );
+	vec4f line = unitSpace.inverse * ( current.inverse * ( ray.direction * ray.distance ) );
 
 	// Clip the ray within along the boundaries of the lattice, exit if the ray is outside the bounds
-	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec3f>, static_cast<vec3f>( dimensions ), origin, line );
+	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec4f>, static_cast<vec4f>( dimensions ), origin, line );
 	if( rayClip.min > rayClip.max ) return false;
 
 	// Epsilon fixes a rounding issue when retrieving the unit index
@@ -942,13 +942,13 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	float maxDistance = rayClip.max - Math::EPSILON<float>;
 
 	// Define relative parameters for use when casting rays within the units
-	vec3f relNormal;
+	vec4f relNormal;
 	float relDistance = rayClip.max;
 
 	// This stores whether the line is moving in the direction of -1 or 1 across each axis
-	vec3i idxSign = static_cast<vec3i>( Math::sign( line ) );
-	vec3i idxUnit = ( idxSign + Math::ONES<vec3i> ) / 2;
-	vec3i idx = static_cast<vec3i>( Math::floor( origin + line * traveled ) );
+	vec4i idxSign = static_cast<vec4i>( Math::sign( line ) );
+	vec4i idxUnit = ( idxSign + Math::ONES<vec4i> ) / 2;
+	vec4i idx = static_cast<vec4i>( Math::floor( origin + line * traveled ) );
 
 	// Check that the starting idx is within bounds (Fail-safe)
 	bool xInBounds = idx.x >= 0 && idx.x < dimensions.x;
@@ -960,7 +960,7 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	}
 
 #ifdef VF_RAYCAST_DEBUG
-	vec3i end = vec3i( Math::floor( origin + line * maxDistance ) );
+	vec4i end = vec4i( Math::floor( origin + line * maxDistance ) );
 	std::cout << "Bounds:\n";
 	std::cout << idx.x << ", " << idx.y << ", " << idx.z << "\n";
 	std::cout << end.x << ", " << end.y << ", " << end.z << "\n";
@@ -973,7 +973,7 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	{
 #ifdef VF_RAYCAST_SAFE
 		// Check that the current idx is within bounds
-		vec3i inBounds = ( idx >= Math::ZERO<vec3i> ) & ( idx < dimensions );
+		vec4i inBounds = ( idx >= Math::ZERO<vec4i> ) & ( idx < dimensions );
 
 		if( inBounds.x && inBounds.y && inBounds.z )
 		{
@@ -1007,8 +1007,8 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 #endif
 
 		// Find the closest unit to increment to
-		vec3f point = origin + line * traveled;
-		vec3f difference = ( static_cast<vec3f>( idx + idxUnit ) - point ) / line;
+		vec4f point = origin + line * traveled;
+		vec4f difference = ( static_cast<vec4f>( idx + idxUnit ) - point ) / line;
 
 #ifdef VF_RAYCAST_DEBUG
 		std::cout << "distance = " << traveled << "\n";

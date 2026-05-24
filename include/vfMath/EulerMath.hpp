@@ -36,9 +36,9 @@ namespace Math
 	 * @return euelr angles
 	*/
 	template<> 
-	[[nodiscard]] static eulerf32 rotationAround( const vec3f& axis, const float angle )
+	[[nodiscard]] static eulerf32 rotationAround( const vec4f& axis, const float angle )
 	{
-		vec3f q = axis * sinf( angle * 0.5f );
+		vec4f q = axis * sinf( angle * 0.5f );
 		q.w = cosf( angle * 0.5f );
 
 		return {
@@ -55,7 +55,7 @@ namespace Math
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<> [[nodiscard]] static eulerf32 rotationBetween( const vec3f& from, const vec3f& to )
+	template<> [[nodiscard]] static eulerf32 rotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = dot_3D( from, to );
 		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f };
@@ -127,17 +127,18 @@ namespace Math
 	 * @param rotation - euler angles
 	 * @return rotated position
 	*/
-	[[nodiscard]] static vec3f rotate( const vec3f& position, const eulerf32& rotation )
+	[[nodiscard]] static vec4f rotate( const vec4f& position, const eulerf32& rotation )
 	{
 		eulerf32 s = sin( rotation );
 		eulerf32 c = cos( rotation );
 
 		vec4f r;
-		r.simd = _mm_dot_ps(
-				position.simd, _mm_xyzw_ps( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, 0.0f ),
-				position.simd, _mm_xyzw_ps( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, 0.0f ),
-				position.simd, _mm_xyzw_ps( -s.y, c.y * s.x, c.y * c.x, 0.0f ),
-				position.simd, _mm_xyzw_ps( 0.0f, 0.0f, 0.0f, 1.0f ) );
+		vf::simd::dot4( r, 
+			position, vec4f( c.z * c.y, c.z * s.y * s.x - s.z * c.x, c.z * s.y * c.x + s.z * s.x, 0.0f ),
+			position, vec4f( s.z * c.y, s.z * s.y * s.x + c.z * c.x, s.z * s.y * c.x - c.z * s.x, 0.0f ),
+			position, vec4f( -s.y, c.y * s.x, c.y * c.x, 0.0f ),
+			position, Math::axis::W<vec4f>
+		);
 		return r;
 	}
 

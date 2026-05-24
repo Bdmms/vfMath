@@ -29,11 +29,11 @@ struct TransformSpace
 */
 struct Transform3D
 {
-	vec3f translation;
+	vec4f translation;
 	quat  rotation;
-	vec3f scale;
+	vec4f scale;
 
-	constexpr Transform3D( const vec3f& translation = Math::ZERO<vec4f>, const quat& rotation = Math::IDENTITY<quat>, const vec3f& scale = Math::ONES<vec3f> ) :
+	constexpr Transform3D( const vec4f& translation = Math::ZERO<vec4f>, const quat& rotation = Math::IDENTITY<quat>, const vec4f& scale = Math::ONES<vec4f> ) :
 		translation( translation ),
 		rotation( rotation ),
 		scale( scale )
@@ -41,7 +41,7 @@ struct Transform3D
 
 	}
 
-	Transform3D( const vec3f& translation, const eulerf32& rotation, const vec3f& scale = Math::ONES<vec3f> ) :
+	Transform3D( const vec4f& translation, const eulerf32& rotation, const vec4f& scale = Math::ONES<vec4f> ) :
 		translation( translation ),
 		rotation( Math::toQuat( rotation ) ),
 		scale( scale )
@@ -49,7 +49,7 @@ struct Transform3D
 
 	}
 
-	Transform3D( const vec3f& translation, const AxisAngle& rotation, const vec3f& scale = Math::ONES<vec3f> ) :
+	Transform3D( const vec4f& translation, const AxisAngle& rotation, const vec4f& scale = Math::ONES<vec4f> ) :
 		translation( translation ),
 		rotation( Math::toQuat( rotation ) ),
 		scale( scale )
@@ -60,7 +60,7 @@ struct Transform3D
 	[[nodiscard]] Transform3D inverse() const
 	{
 		quat invRotation = rotation.inverse();
-		vec3f invScale = 1.0f / scale;
+		vec4f invScale = 1.0f / scale;
 
 		return { Math::rotate( -translation, invRotation ) * invScale, invRotation, invScale };
 	}
@@ -91,7 +91,7 @@ namespace Math
 	 * @param space - transform space
 	 * @param translation - translation vector
 	*/
-	static void translate( TransformSpace& space, const vec3f& translation )
+	static void translate( TransformSpace& space, const vec4f& translation )
 	{
 		space.transform.origin += translation;
 		space.inverse.origin -= space.inverse * translation;

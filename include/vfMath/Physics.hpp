@@ -7,7 +7,7 @@
 struct LinearState
 {
 	vec4f position = Math::axis::W<vec4f>;
-	vec3f momentum = Math::ZERO<vec3f>;
+	vec4f momentum = Math::ZERO<vec4f>;
 
 	LinearState operator+=( const LinearState& b )
 	{
@@ -90,14 +90,14 @@ struct MotionState
 
 struct LinearMotion
 {
-	vec3f velocity;
-	vec3f netForce;
+	vec4f velocity;
+	vec4f netForce;
 };
 
 struct AngularMotion
 {
-	vec3f velocity;
-	vec3f netTorque;
+	vec4f velocity;
+	vec4f netTorque;
 };
 
 struct Motion
@@ -118,7 +118,7 @@ namespace Physics
 	 * @param mass - mass associated with state
 	 * @return linear velocity
 	*/
-	inline static vec3f getLinearVelocity( const LinearState& state, float mass )
+	inline static vec4f getLinearVelocity( const LinearState& state, float mass )
 	{
 		return state.momentum / mass;
 	}

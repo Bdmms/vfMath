@@ -25,7 +25,7 @@ namespace Perlin
 	 * @param point - 3D position
 	 * @return scalar noise value
 	*/
-	float perlin3D( const vec3f& point );
+	float perlin3D( const vec4f& point );
 }
 
 #endif

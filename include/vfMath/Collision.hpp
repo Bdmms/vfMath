@@ -36,7 +36,7 @@ namespace Math
 	 * @param bounds - bounds range
 	 * @param face - triangle transform
 	*/
-	static void extend( Bounds<vec3f>& bounds, const CollisionFace& face )
+	static void extend( Bounds<vec4f>& bounds, const CollisionFace& face )
 	{
 		const vec4f& p0 = face.transform.origin;
 		const vec4f p1 = p0 + face.transform.x_axis;
@@ -56,7 +56,7 @@ namespace Math
 	 * @param faces - iterable set of faces
 	*/
 	template <typename IterableFaces>
-	static void extend( Bounds<vec3f>& bounds, const IterableFaces& faces )
+	static void extend( Bounds<vec4f>& bounds, const IterableFaces& faces )
 	{
 		for( const CollisionFace& face : faces )
 		{
@@ -69,10 +69,10 @@ namespace Math
 	 * @param bounds - axis-aligned bound range
 	 * @return transform matrix
 	*/
-	static mat4f createBoundingTransform( const Bounds<vec3f>& bounds )
+	static mat4f createBoundingTransform( const Bounds<vec4f>& bounds )
 	{
-		vec3f scale = ( bounds.max - bounds.min ) * 0.5f;
-		vec3f translation = scale + bounds.min;
+		vec4f scale = ( bounds.max - bounds.min ) * 0.5f;
+		vec4f translation = scale + bounds.min;
 		translation.w = 1.0f;
 		return { vec4f{ scale.x, 0.0f, 0.0f }, vec4f{ 0.0f, scale.y, 0.0f }, vec4f{ 0.0f, 0.0f, scale.z }, translation };
 	}
@@ -82,10 +82,10 @@ namespace Math
 	 * @param bounds - axis-aligned bound range
 	 * @return inverse transform matrix
 	*/
-	static mat4f createBoundingInverseTransform( const Bounds<vec3f>& bounds )
+	static mat4f createBoundingInverseTransform( const Bounds<vec4f>& bounds )
 	{
-		vec3f scale = 2.0f / ( bounds.max - bounds.min );
-		vec3f translation = ( bounds.max + bounds.min ) * ( -0.5f * scale );
+		vec4f scale = 2.0f / ( bounds.max - bounds.min );
+		vec4f translation = ( bounds.max + bounds.min ) * ( -0.5f * scale );
 		translation.w = 1.0f;
 		return { vec4f{ scale.x, 0.0f, 0.0f }, vec4f{ 0.0f, scale.y, 0.0f }, vec4f{ 0.0f, 0.0f, scale.z }, translation };
 	}
@@ -99,7 +99,7 @@ namespace Math
 		 * @param rayVector - displacement vector to the end of the ray
 		 * @return Whether the ray intersects the unit cube
 		*/
-		bool rayTest( const vec3f& min, const vec3f& max, const vec4f& rayOrigin, const vec3f& rayVector );
+		bool rayTest( const vec4f& min, const vec4f& max, const vec4f& rayOrigin, const vec4f& rayVector );
 
 		/**
 		 * @brief Calculates the entry and exit distances where the ray intersects with the axis-aligned bounding box.
@@ -108,7 +108,7 @@ namespace Math
 		 * @param rayVector - displacement vector to the end of the ray
 		 * @return minimum and maximum values along the ray vector
 		*/
-		Bounds<float> rayBounds( const vec3f& min, const vec3f& max, const vec4f& rayOrigin, const vec3f& rayVector );
+		Bounds<float> rayBounds( const vec4f& min, const vec4f& max, const vec4f& rayOrigin, const vec4f& rayVector );
 	}
 
 	namespace Box
@@ -118,7 +118,7 @@ namespace Math
 		 * @param transform - transform of the box in the axis aligned space
 		 * @return bounding vector pair that represents the AABB
 		*/
-		Bounds<vec3f> calculateAABB( const mat4f& transform );
+		Bounds<vec4f> calculateAABB( const mat4f& transform );
 
 		/**
 		 * @brief Tests if the unit cube contains the point.
@@ -133,7 +133,7 @@ namespace Math
 		 * @param rayVector - displacement vector to the end of the ray
 		 * @return Whether the ray intersects the unit cube
 		*/
-		bool rayTest( const vec4f& rayOrigin, const vec3f& rayVector );
+		bool rayTest( const vec4f& rayOrigin, const vec4f& rayVector );
 
 		/**
 		 * @brief Tests if the triangle intersects with the unit cube.
@@ -163,7 +163,7 @@ namespace Math
 		 * @param sphere - transform space of sphere
 		 * @return Whether the sphere intersects the unit cube
 		*/
-		bool sphereCollision( vec3f& displacement, const TransformSpace& sphere );
+		bool sphereCollision( vec4f& displacement, const TransformSpace& sphere );
 	}
 
 	namespace Sphere
@@ -188,7 +188,7 @@ namespace Math
 		 * @param sphere - transform space of box
 		 * @return Whether the box intersects the unit sphere
 		*/
-		bool boxCollision( vec3f& displacement, const TransformSpace& box );
+		bool boxCollision( vec4f& displacement, const TransformSpace& box );
 
 		/**
 		 * @brief Calculates the displacement of an arbitrary sphere intersecting with the unit sphere.
@@ -196,7 +196,7 @@ namespace Math
 		 * @param sphere - transform space of sphere
 		 * @return Whether the sphere intersects the unit sphere
 		*/
-		bool sphereCollision( vec3f& displacement, const TransformSpace& sphere );
+		bool sphereCollision( vec4f& displacement, const TransformSpace& sphere );
 	}
 
 	namespace Triangle
@@ -206,7 +206,7 @@ namespace Math
 		 * @param transform - transform of the triangle in the axis aligned space
 		 * @return bounding vector pair that represents the AABB
 		*/
-		Bounds<vec3f> calculateAABB( const mat4f& transform );
+		Bounds<vec4f> calculateAABB( const mat4f& transform );
 
 		/**
 		 * @brief Calculates the intersecting distance of the ray against the triangle.
@@ -215,7 +215,7 @@ namespace Math
 		 * @param rayVector - displacement vector to the end of the ray
 		 * @return Whether the triangle intersects the unit cube
 		*/
-		float rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec3f& rayVector );
+		float rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec4f& rayVector );
 	}
 
 	static vec2f intersection2D( vec2f originA, vec2f lineA, vec2f originB, vec2f lineB )
@@ -235,10 +235,10 @@ namespace Math
 
 	static vec2f intersection3D( const vec4f& originA, const vec4f& lineA, const vec4f& originB, const vec4f& lineB )
 	{
-		vec3f normal = normalize( cross( lineA, lineB ) );
-		vec3f tangent = normalize( lineA );
-		vec3f bitangent = cross( normal, tangent );
-		vec3f displacement = originB - originA;
+		vec4f normal = normalize( cross( lineA, lineB ) );
+		vec4f tangent = normalize( lineA );
+		vec4f bitangent = cross( normal, tangent );
+		vec4f displacement = originB - originA;
 
 		vec4f p = Math::parallel::dot( displacement, tangent, displacement, bitangent, lineB, tangent, lineB, bitangent );
 		if( p.w <= Math::EPSILON<float> ) return { 0.0f, 0.0f };
@@ -253,8 +253,8 @@ namespace Math
 struct RaySensor
 {
 	vec4f origin;
-	vec3f direction;
-	vec3f normal;
+	vec4f direction;
+	vec4f normal;
 	const TransformSpace* space;
 	float distance;
 	bool hit;
@@ -284,20 +284,20 @@ struct Collider
 
 	TransformSpace current;
 	TransformSpace previous;
-	Bounds<vec3f> aabb;
+	Bounds<vec4f> aabb;
 	ColliderType type;
 	uint32_t flags;
 
 	constexpr Collider( ColliderType type = ColliderType::AABB ) :
 		current( Math::IDENTITY<TransformSpace> ),
-		aabb{ Math::MAX<vec3f>, Math::MIN<vec3f> },
+		aabb{ Math::MAX<vec4f>, Math::MIN<vec4f> },
 		type( type ),
 		flags( ENABLED )
 	{
 
 	}
 
-	constexpr Collider( const TransformSpace& bounds, const Bounds<vec3f> aabb, ColliderType type ) :
+	constexpr Collider( const TransformSpace& bounds, const Bounds<vec4f> aabb, ColliderType type ) :
 		current( bounds ),
 		aabb( aabb ),
 		type( type ),
@@ -407,7 +407,7 @@ struct CollisionBinding
 struct ColliderSpace : public Collider
 {
 	constexpr ColliderSpace() :
-		Collider{ { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, { Math::MAX<vec3f>, Math::MIN<vec3f> }, ColliderType::Mesh }
+		Collider{ { Math::IDENTITY<mat4f>, Math::IDENTITY<mat4f> }, { Math::MAX<vec4f>, Math::MIN<vec4f> }, ColliderType::Mesh }
 	{
 
 	}
@@ -418,7 +418,7 @@ struct ColliderSpace : public Collider
 
 	}
 
-	ColliderSpace( const Bounds<vec3f>& aabb ) :
+	ColliderSpace( const Bounds<vec4f>& aabb ) :
 		Collider{ { Math::createBoundingTransform( aabb ), Math::createBoundingInverseTransform( aabb ) }, aabb, ColliderType::Mesh }
 	{
 
@@ -468,7 +468,7 @@ struct CollisionLatticeData
 
 private:
 	TransformSpace unitSpace;
-	vec3i dimensions;
+	vec4i dimensions;
 	std::vector<CollisionFace> faces;
 	std::vector<Unit> units;
 
@@ -517,13 +517,13 @@ public:
 	/**
 	 * @brief Clears all existing data and resizes the lattice to alter the division of the bounding box.
 	*/
-	void resize( const vec3i newDimensions, size_t initialFaceCount = 0LLU )
+	void resize( const vec4i newDimensions, size_t initialFaceCount = 0LLU )
 	{
 		dimensions = newDimensions;
 		size_t unitCount = static_cast<size_t>( dimensions.x ) * static_cast<size_t>( dimensions.y ) * static_cast<size_t>( dimensions.z );
 
 		// Re-compute unit space
-		vec3f unitScale = 2.0f / static_cast<vec3f>( dimensions );
+		vec4f unitScale = 2.0f / static_cast<vec4f>( dimensions );
 		mat4x4 unitConvert = { vec4f{ unitScale.x, 0.0f, 0.0f }, vec4f{ 0.0f, unitScale.y, 0.0f }, vec4f{ 0.0f, 0.0f, unitScale.z }, vec4f{ -1.0f, -1.0f, -1.0f, 1.0f } };
 		unitSpace.transform = unitConvert;
 		unitSpace.inverse = Math::invert( unitConvert );
@@ -540,7 +540,7 @@ public:
 	constexpr void clear()
 	{
 		unitSpace = Math::IDENTITY<TransformSpace>;
-		dimensions = Math::ZERO<vec3i>;
+		dimensions = Math::ZERO<vec4i>;
 		units.clear();
 		faces.clear();
 	}
@@ -559,7 +559,7 @@ public:
 	/**
 	 * @return number of units the box is split across each relative axis
 	*/
-	const vec3i getDimensions() const
+	const vec4i getDimensions() const
 	{
 		return dimensions;
 	}
@@ -641,8 +641,8 @@ namespace Collision
 
 	std::vector<CollisionFace> createCubeMesh();
 
-	void convertToLattice( CollisionLatticeData& lattice, const std::vector<CollisionFace>& mesh, const vec3i& dimensions );
-	void convertToLattice( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec3i& dimensions );
+	void convertToLattice( CollisionLatticeData& lattice, const std::vector<CollisionFace>& mesh, const vec4i& dimensions );
+	void convertToLattice( CollisionLatticeData& lattice, const std::vector<std::vector<CollisionFace>>& mesh, const vec4i& dimensions );
 }
 
 #endif

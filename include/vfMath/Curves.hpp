@@ -252,7 +252,7 @@ struct PathSpline
 		orientation.type = type;
 	}
 
-	constexpr void addPoint( const vec4f& point, const vec3f& normal )
+	constexpr void addPoint( const vec4f& point, const vec4f& normal )
 	{
 		position.emplace_back( point );
 		orientation.emplace_back( normal );

@@ -42,7 +42,7 @@ namespace Math
 		float angle = Math::length( rotation );
 		if( angle <= Math::EPSILON<float> ) return Math::IDENTITY<quat>;
 
-		vec3f axis = rotation / angle;
+		vec4f axis = rotation / angle;
 		quat q = { _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) ) };
 		q.w = cosf( angle * 0.5f );
 		return q;
@@ -106,7 +106,7 @@ namespace Math
 	{
 		AxisAngle axis = { q.x, q.y, q.z, 0.0f };
 		float length = Math::length( axis );
-		if( length <= Math::EPSILON<float> ) return Math::ZERO<vec3f>;
+		if( length <= Math::EPSILON<float> ) return Math::ZERO<vec4f>;
 
 		float angle = 2.0f * atan2f( length, q.w );
 		return axis * ( angle / length );
@@ -118,9 +118,9 @@ namespace Math
 	 * @param angle - angle of rotation around axis
 	 * @return quaternion
 	*/
-	template<> [[nodiscard]] static quat rotationAround( const vec3f& axis, const float angle )
+	template<> [[nodiscard]] static quat rotationAround( const vec4f& axis, const float angle )
 	{
-		vec3f r = axis * sinf( angle * 0.5f );
+		vec4f r = axis * sinf( angle * 0.5f );
 		r.w = cosf( angle * 0.5f );
 		return reinterpret_cast<quat&>( r );
 	}
@@ -131,7 +131,7 @@ namespace Math
 	 * @param to - target vector (normalized)
 	 * @return resulting quaternion
 	*/
-	template<> [[nodiscard]] static quat rotationBetween( const vec3f& from, const vec3f& to )
+	template<> [[nodiscard]] static quat rotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = Math::dot_3D( from, to );
 		if( product > 0.999999f ) return IDENTITY<quat>;
@@ -151,15 +151,15 @@ namespace Math
 	 * @param toSecondary - target secondary vector
 	 * @return resulting quaternion
 	*/
-	[[nodiscard]] static quat rotationBetween( const vec3f& fromPrimary, const vec3f& fromSecondary, const vec3f& toPrimary, const vec3f& toSecondary )
+	[[nodiscard]] static quat rotationBetween( const vec4f& fromPrimary, const vec4f& fromSecondary, const vec4f& toPrimary, const vec4f& toSecondary )
 	{
 		// If cannot calculate primary direction, return identity
 		if( Math::length2( toPrimary ) < Math::EPSILON<float> ) return Math::IDENTITY<quat>;
 
 		quat r1 = Math::rotationBetween<quat>( fromPrimary, toPrimary );
 
-		vec3f current = Math::rotate( fromSecondary, r1 );
-		vec3f target = Math::cross( toPrimary, Math::cross( toSecondary, toPrimary ) );
+		vec4f current = Math::rotate( fromSecondary, r1 );
+		vec4f target = Math::cross( toPrimary, Math::cross( toSecondary, toPrimary ) );
 
 		// If cannot calculate roll around axis, return arbitrary rotation
 		if( Math::length2( target ) < Math::EPSILON<float> ) return r1;
@@ -200,7 +200,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static quat randomRotation<quat>()
 	{
-		return rotationAround<quat>( randomDirection<vec3f>(), rand() * RAND_CONVERT_TAU );
+		return rotationAround<quat>( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**
@@ -210,10 +210,10 @@ namespace Math
 	 * @param trackAxis - direction of tracked axis (normalized)
 	 * @return quaternion rotation
 	*/
-	static quat lookTo( const vec3f& initial, const vec3f& target, const vec3f& trackAxis )
+	static quat lookTo( const vec4f& initial, const vec4f& target, const vec4f& trackAxis )
 	{
-		vec3f projectedInitial = initial - Math::dot_3D( initial, trackAxis ) * trackAxis;
-		vec3f projectedTarget = target - Math::dot_3D( target, trackAxis ) * trackAxis;
+		vec4f projectedInitial = initial - Math::dot_3D( initial, trackAxis ) * trackAxis;
+		vec4f projectedTarget = target - Math::dot_3D( target, trackAxis ) * trackAxis;
 
 		float magnitudeInitial = sqrtf( Math::dot_3D( projectedInitial, projectedInitial ) );
 		float magnitudeTarget = sqrtf( Math::dot_3D( projectedTarget, projectedTarget ) );
@@ -224,7 +224,7 @@ namespace Math
 		projectedTarget /= magnitudeTarget;
 		projectedInitial /= magnitudeInitial;
 
-		vec3f axis = Math::cross( projectedInitial, projectedTarget );
+		vec4f axis = Math::cross( projectedInitial, projectedTarget );
 		float magnitude = sqrtf( Math::dot_3D( axis, axis ) );
 
 		if( magnitude <= EPSILON<float> ) return Math::IDENTITY<quat>;
@@ -249,7 +249,7 @@ namespace Math
 		if( cost > 1.0f - EPSILON<float> ) return Math::normalize( ( q1 - q0 ) * t + q0 );
 
 		float angle = acosf( cost );
-		vec3f sin = Math::sin( vec3f{ ( 1.0f - t ) * angle, t * angle, angle } );
+		vec4f sin = Math::sin( vec4f{ ( 1.0f - t ) * angle, t * angle, angle } );
 		return ( q0 * sin.x + q2 * sin.y ) / sin.z;
 	}
 }

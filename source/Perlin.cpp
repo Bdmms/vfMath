@@ -58,7 +58,7 @@ float grad2D( vec2i iPoint, vec2f weight )
     return Math::dot( direction, weight );
 }
 
-float grad3D( const vec3i& iPoint, const vec3f& weight )
+float grad3D( const vec4i& iPoint, const vec4f& weight )
 {
     uint8_t a = PERMUTATIONS[iPoint.x & 0xFFu];
     uint8_t b = PERMUTATIONS[iPoint.y & 0xFFu];
@@ -68,7 +68,7 @@ float grad3D( const vec3i& iPoint, const vec3f& weight )
     uint32_t ry = ( ( a & 0xF0 ) >> 4 ) | ( b & 0xF0 ) | ( ( c & 0xF0 ) << 4 ); // 12-bits
     float angleA = Math::TWO_PI<float> * static_cast<float>( rx ) / PERLIN_FACTOR_3D;
     float angleB = ( Math::PI<float> * static_cast<float>( ry ) - Math::HALF_PI<float> ) / PERLIN_FACTOR_3D;
-    vec3f direction = { cosf( angleA ) * cosf( angleB ), sinf( angleA ) * cosf( angleB ), sinf( angleB ) };
+    vec4f direction = { cosf( angleA ) * cosf( angleB ), sinf( angleA ) * cosf( angleB ), sinf( angleB ) };
     
     return Math::dot_3D( direction, weight );
 }
@@ -98,20 +98,20 @@ float Perlin::perlin2D( const vec2f point )
     return Math::lerp( result.x, result.y, weight.y );
 }
 
-float Perlin::perlin3D( const vec3f& point )
+float Perlin::perlin3D( const vec4f& point )
 {
-    vec3i ip = static_cast<vec3i>( point );
-    vec3f weight = point - Math::floor( point );
+    vec4i ip = static_cast<vec4i>( point );
+    vec4f weight = point - Math::floor( point );
 
     // Calculate the noise at each of the 4 corners of the region
     vec4f fz0 = { grad3D( ip                   , weight ),
-                  grad3D( ip + vec3i{ 1, 0, 0 }, weight ),
-                  grad3D( ip + vec3i{ 0, 1, 0 }, weight ),
-                  grad3D( ip + vec3i{ 1, 1, 0 }, weight ) };
-    vec4f fz1 = { grad3D( ip + vec3i{ 0, 0, 1 }, weight ),
-                  grad3D( ip + vec3i{ 1, 0, 1 }, weight ),
-                  grad3D( ip + vec3i{ 0, 1, 1 }, weight ),
-                  grad3D( ip + vec3i{ 1, 1, 1 }, weight ) };
+                  grad3D( ip + vec4i{ 1, 0, 0 }, weight ),
+                  grad3D( ip + vec4i{ 0, 1, 0 }, weight ),
+                  grad3D( ip + vec4i{ 1, 1, 0 }, weight ) };
+    vec4f fz1 = { grad3D( ip + vec4i{ 0, 0, 1 }, weight ),
+                  grad3D( ip + vec4i{ 1, 0, 1 }, weight ),
+                  grad3D( ip + vec4i{ 0, 1, 1 }, weight ),
+                  grad3D( ip + vec4i{ 1, 1, 1 }, weight ) };
 
     vec4f fz = Math::lerp( fz0, fz1, weight.z );
     vec2f fz_front{ fz.x, fz.y };

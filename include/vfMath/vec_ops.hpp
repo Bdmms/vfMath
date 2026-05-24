@@ -11,6 +11,37 @@ extern "C" int __isa_available;
 #define ENABLE_INSTRUCTIONS_AVX2	__isa_available >= __ISA_AVAILABLE_AVX2
 #define ENABLE_INSTRUCTIONS_AVX512	false
 
+// High-level SSE2 vector instructions
+#if ENABLE_INSTRUCTIONS_SSE2
+
+#define _mm_xyzw_epi32(x,y,z,w) _mm_set_epi32(w,z,y,x)
+
+#define _mm_xyzw_ps(x,y,z,w) _mm_set_ps(w,z,y,x)
+#define _mm_sum_ps(a,b,c,d) _mm_hadd_ps(_mm_hadd_ps(a,b), _mm_hadd_ps(c,d))
+#define _mm_dot_ps(a,b,c,d,e,f,g,h) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), _mm_mul_ps(g, h))
+#define _mm_mag_ps(a,b,c,d) _mm_sqrt_ps(_mm_dot_ps(a,a,b,b,c,c,d,d))
+#define _mm_cross_ps(a,b) _mm_fmsub_ps(_mm_permute_ps(a, swizzle::YZXW), _mm_permute_ps(b, swizzle::ZXYW), _mm_mul_ps(_mm_permute_ps(a, swizzle::ZXYW), _mm_permute_ps(b, swizzle::YZXW)))
+#define _mm_transpose_ps(a,b,c,d,msk) _mm_shuffle_ps(_mm_shuffle_ps(a, b, msk), _mm_shuffle_ps(c, d, msk), swizzle::XZXZ)
+#define _mm_clamp_ps(a,min,max) _mm_max_ps(_mm_min_ps(a, max), min)
+
+#define _mm_sum2_ps(a,b) _mm_hadd_ps(_mm_hadd_ps(a,b), _mm_set1_ps(0.0f))
+#define _mm_dot2_ps(a,b,c,d) _mm_sum2_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d))
+#define _mm_mag2_ps(a,b) _mm_sqrt_ps(_mm_dot2_ps(a,a,b,b))
+
+#define _mm_dot3_ps(a,b,c,d,e,f) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), _mm_set1_ps(0.0f))
+#define _mm_dot3v_ps(a,b,c,d,e,f,v) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), v)
+#define _mm_mag3_ps(a,b,c) _mm_sqrt_ps(_mm_dot3_ps(a,a,b,b,c,c))
+#define _mm_mag3v_ps(a,b,c,v) _mm_sqrt_ps(_mm_dot3v_ps(a,a,b,b,c,c,v))
+#endif
+
+// High-level AVX2 vector instructions
+#if ENABLE_INSTRUCTIONS_AVX2
+
+#define _mm256_sum_ps(a,b,c,d) _mm256_hadd_ps(_mm256_hadd_ps(a,b), _mm256_hadd_ps(c,d))
+#define _mm256_dot_ps(a,b,c,d,e,f,g,h) _mm256_sum_ps(_mm256_mul_ps(a, b), _mm256_mul_ps(c, d), _mm256_mul_ps(e, f), _mm256_mul_ps(g, h))
+
+#endif
+
 // Macros to help eliminate duplicate code
 #define VF_VEC_N_LOOP( N, X ) for( size_t i = 0LLU; i < N; ++i ) X
 #define VF_VEC_N_UNARY_OPERATION( N, r, a, Op ) VF_VEC_N_LOOP( N, r[i] = Op a[i] )
@@ -80,8 +111,8 @@ namespace vf::simd
 		template<size_t N, typename T>
 		constexpr void fmadd( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b, const VectorStorage<N, T>& c )
 		{
-			mul( r, a, b );
-			add( r, r, c );
+			vf::simd::compile_time::mul<N, T>( r, a, b );
+			vf::simd::compile_time::add<N, T>( r, r, c );
 		}
 
 		template<size_t N, typename T>
@@ -187,10 +218,23 @@ namespace vf::simd
 			}
 			return r;
 		}
+
+		template<typename T>
+		constexpr void dot4( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, const VectorStorage<4, T>& b, const VectorStorage<4, T>& c, const VectorStorage<4, T>& d,
+			const VectorStorage<4, T>& e, const VectorStorage<4, T>& f, const VectorStorage<4, T>& g, const VectorStorage<4, T>& h )
+		{
+			r.elements[0] = dot( a, b );
+			r.elements[1] = dot( c, d );
+			r.elements[2] = dot( e, f );
+			r.elements[3] = dot( g, h );
+		}
 	}
 
 	template<size_t N, typename T>
-	using BinaryVecOp = void (*)( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b );
+	using BinaryVecOp = void ( * )( VectorStorage<N, T>& r, const VectorStorage<N, T>& a, const VectorStorage<N, T>& b );
+
+	typedef VectorStorage<4, f32> simd4f32;
+	typedef VectorStorage<4, i32> simd4i32;
 
 	// Default Operations
 
@@ -366,11 +410,9 @@ namespace vf::simd
 	}
 
 	template<typename T>
-	constexpr VectorStorage<4, T> permute( const VectorStorage<4, T>& a, int b )
+	constexpr void permute( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, int b )
 	{
-		VectorStorage<4, T> r;
 		compile_time::permute( r, a, b );
-		return r;
 	}
 
 	template<size_t N, typename T>
@@ -393,10 +435,28 @@ namespace vf::simd
 		return true;
 	}
 
+	/**
+	 * @brief Calculates 4 dot products simultaneously, returned as a vector
+	 * @param a - first vector of first pair
+	 * @param b - second vector of first pair
+	 * @param c - first vector of second pair
+	 * @param d - second vector of second pair
+	 * @param e - first vector of third pair
+	 * @param f - second vector of third pair
+	 * @param g - first vector of fourth pair
+	 * @param h - second vector of fourth pair
+	 * @return 4 dot products stored as a single vector
+	*/
+	template<typename T>
+	constexpr void dot4( VectorStorage<4, T>& r, const VectorStorage<4, T>& a, const VectorStorage<4, T>& b, const VectorStorage<4, T>& c, const VectorStorage<4, T>& d,
+		const VectorStorage<4, T>& e, const VectorStorage<4, T>& f, const VectorStorage<4, T>& g, const VectorStorage<4, T>& h )
+	{
+		compile_time::dot4( r, a, b, c, d, e, f, g, h );
+	}
+
 	// SIMD 128-bit floating-point Operations
 
 #if ENABLE_INSTRUCTIONS_SSE2
-	typedef VectorStorage<4, f32> simd4f32;
 
 	template<>
 	constexpr simd4f32& set1( simd4f32& r, f32 value )
@@ -552,20 +612,26 @@ namespace vf::simd
 		r.simd = _mm_sqrt_ps( a.simd );
 	}
 
-	template<typename T>
-	constexpr simd4f32 permute( const simd4f32& a, int b )
+	//template<>
+	//constexpr void permute( simd4f32& r, const simd4f32& a, int b )
+	//{
+	//	if( std::is_constant_evaluated() ) return compile_time::permute( r, a, b );
+	//	r.simd = _mm_permute_ps( a.simd, b );
+	//}
+
+	template<>
+	constexpr void dot4( simd4f32& r, const simd4f32& a, const simd4f32& b, const simd4f32& c, const simd4f32& d,
+		const simd4f32& e, const simd4f32& f, const simd4f32& g, const simd4f32& h )
 	{
-		simd4f32 r;
-		if( std::is_constant_evaluated() ) return compile_time::permute( r, a, b );
-		r.simd = _mm_permute_ps( a.simd, b );
-		return r;
+		if( std::is_constant_evaluated() ) return compile_time::dot4( r, a, b, c, d, e, f, g, h );
+		r.simd = _mm_dot_ps( a.simd, b.simd, c.simd, d.simd, e.simd, f.simd, g.simd, h.simd );
 	}
+
 #endif
 
 	// SIMD 128-bit Integer Operations
 
 #if ENABLE_INSTRUCTIONS_SSE2
-	typedef VectorStorage<4, i32> simd4i32;
 
 	template<>
 	constexpr simd4i32& set1( simd4i32& r, i32 value )
