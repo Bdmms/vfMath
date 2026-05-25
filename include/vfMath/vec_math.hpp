@@ -596,8 +596,8 @@ namespace Math
 	 * @param angle - radian angle around axis
 	 * @return rotation around axis
 	*/
-	template<typename T> // TODO: FIX TEMPLATE DEFINITION
-	[[nodiscard]] static T rotationAround( const vec4f& axis, const float angle )
+	template<typename T>
+	[[nodiscard]] static AxisAngle<T> axisRotationAround( const vec4<T>& axis, const T angle )
 	{
 		return axis * angle;
 	}
@@ -609,13 +609,13 @@ namespace Math
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<typename T> // TODO: FIX TEMPLATE DEFINITION
-	[[nodiscard]] static T rotationBetween( const vec4f& from, const vec4f& to )
+	template<typename T>
+	[[nodiscard]] static AxisAngle<T> axisRotationBetween( const vec4<T>& from, const vec4<T>& to )
 	{
 		float product = dot_3D( from, to );
-		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f, 0.0f };
-		if( product < -0.999999f ) return orthogonal( from ) * Math::PI<float>;
-		return normalize( cross( from, to ) ) * acosf( product );
+		if( product > ONES<T> - EPSILON<T> ) return Math::ZERO<vec4<T>>;
+		if( product < NEGATIVE<T> + EPSILON<T> ) return orthogonal( from ) * Math::PI<T>;
+		return normalize( cross( from, to ) ) * std::acos( product );
 	}
 
 	/**
@@ -657,7 +657,8 @@ namespace Math
 	 * @tparam T - type of the direction
 	 * @return random direction of specified type
 	*/
-	template <typename T> static T randomDirection()
+	template <typename T> // TODO: Fix template definition
+	static T randomDirection()
 	{
 		return rand() / RAND_MAX_FLOAT;
 	}
@@ -667,7 +668,8 @@ namespace Math
 	 * @tparam T - type of the rotation
 	 * @return random rotation of specified type
 	*/
-	template <typename T> static T randomRotation()
+	template <typename T> // TODO: Fix template definition
+	static T randomRotation()
 	{
 		return rand() / RAND_MAX_FLOAT;
 	}

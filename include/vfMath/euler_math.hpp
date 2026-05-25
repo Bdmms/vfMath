@@ -35,16 +35,16 @@ namespace Math
 	 * @param angle - radian angle around axis
 	 * @return euelr angles
 	*/
-	template<> 
-	[[nodiscard]] static eulerf32 rotationAround( const vec4f& axis, const float angle )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static euler<T> eulerRotationAround( const vec4<T>& axis, T angle )
 	{
-		vec4f q = axis * sinf( angle * 0.5f );
-		q.w = cosf( angle * 0.5f );
+		vec4<T> q = axis * std::sin( angle * HALF<T> );
+		q.w = std::cos( angle * HALF<T> );
 
 		return {
-			atan2f( 2.0f * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
-			asinf( std::clamp( -2.0f * ( q.x * q.z - q.w * q.y ), -1.0f, 1.0f ) ),
-			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z )
+			std::atan2( TWO<T> * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
+			std::asin( std::clamp( TWO<T> * ( q.w * q.y - q.x * q.z ), NEGATIVE<T>, ONES<T> ) ),
+			std::atan2( TWO<T> * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z )
 		};
 	}
 
@@ -55,12 +55,13 @@ namespace Math
 	 * @param to - final axis (normalized)
 	 * @return rotation between axes
 	*/
-	template<> [[nodiscard]] static eulerf32 rotationBetween( const vec4f& from, const vec4f& to )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static eulerf32 eulerRotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = dot_3D( from, to );
-		if( product > 0.999999f ) return { 0.0f, 0.0f, 0.0f };
-		if( product < -0.999999f ) return rotationAround<eulerf32>( orthogonal( from ), Math::PI<float> );
-		return rotationAround<eulerf32>( normalize( cross( from, to ) ), acosf( product ) );
+		if( product > ONES<T> - EPSILON<T> ) return Math::ZERO<euler<T>>;
+		if( product < NEGATIVE<T> + EPSILON<T> ) return eulerRotationAround( orthogonal( from ), Math::PI<T> );
+		return eulerRotationAround( normalize( cross( from, to ) ), std::acos( product ) );
 	}
 
 	/**

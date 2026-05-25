@@ -58,7 +58,7 @@ struct quat : public VectorStorage<4, T>
 	constexpr quat( const __m128& copy ) : Storage() { Storage::simd = copy; }
 
 	// Copy Constructor
-	constexpr quat( const quat& copy ) : Storage( copy ) {}
+	constexpr quat( const VectorStorage<4, T>& copy ) : Storage( copy ) {}
 
 	/**
 	 * Creates an euler vector with the value set across each element.
@@ -96,35 +96,6 @@ struct quat : public VectorStorage<4, T>
 		vf::simd::negate<4, T>( r, *this );
 		return r;
 	}
-
-	/**
-	 * @brief Calculates the squared norm of the quaternion
-	 * @return squared norm of the quaternion
-	*/
-	[[nodiscard]] constexpr T norm2() const noexcept
-	{
-		return vf::simd::dot( *this, *this );
-	}
-
-	/**
-	 * @brief Calculates the norm of the quaternion
-	 * @return norm of the quaternion
-	*/
-	[[nodiscard]] T norm() const noexcept
-	{
-		return sqrt( norm2() );
-	}
-
-	/**
-	 * @brief Calculates the inverse of the quaternion
-	 * @return inverse of the quaternion
-	*/
-	[[nodiscard]] constexpr quat inverse() const noexcept
-	{
-		quat r{ -1.0f, -1.0f, -1.0f, 1.0f };
-		vf::simd::mul( r, r, *this );
-		return r;
-	}
 };
 
 #define VF_QUAT quat<T>
@@ -150,5 +121,8 @@ VF_QUAT_OPERATOR_SCALAR_QUAT( -, vf::simd::sub );
 VF_QUAT_OPERATOR_SCALAR_QUAT( *, vf::simd::mul );
 
 typedef quat<f32> quatf32;
+typedef quat<f64> quatf64;
+
+typedef quatf32 quatf;
 
 #endif

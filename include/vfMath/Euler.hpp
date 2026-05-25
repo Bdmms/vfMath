@@ -88,8 +88,8 @@ VF_EULER_OPERATOR_SCALAR_EULER( *, vf::simd::mul );
 VF_EULER_OPERATOR_SCALAR_EULER( /, vf::simd::div );
 VF_EULER_OPERATOR_SCALAR_EULER( %, vf::simd::mod );
 
-typedef euler<float> eulerf32;
-typedef euler<double> eulerf64;
+typedef euler<f32> eulerf32;
+typedef euler<f64> eulerf64;
 
 typedef eulerf32 eulerf;
 

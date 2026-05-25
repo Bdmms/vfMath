@@ -59,7 +59,7 @@ struct Transform3D
 
 	[[nodiscard]] Transform3D inverse() const
 	{
-		quatf32 invRotation = rotation.inverse();
+		quatf32 invRotation = Math::invert( rotation );
 		vec4f invScale = 1.0f / scale;
 
 		return { Math::rotate( -translation, invRotation ) * invScale, invRotation, invScale };

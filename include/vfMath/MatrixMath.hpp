@@ -553,7 +553,7 @@ namespace Math
 	 * @param angle - angle of the rotation [rad]
 	 * @return rotation matrix
 	*/
-	template<> [[nodiscard]] static mat4f rotationAround( const vec4f& axis, const float angle )
+	[[nodiscard]] static mat4f matrixRotationAround( const vec4f& axis, const float angle )
 	{
 		float sin = sinf( angle );
 		float cos = cosf( angle );
@@ -573,11 +573,11 @@ namespace Math
 	 * @param to - final vector (normalized)
 	 * @return rotation matrix
 	*/
-	template<> [[nodiscard]] static mat4f rotationBetween( const vec4f& from, const vec4f& to )
+	[[nodiscard]] static mat4f matrixRotationBetween( const vec4f& from, const vec4f& to )
 	{
 		float product = dot_3D( from, to );
 		if( product > 0.999999f ) return Math::IDENTITY<mat4f>;
-		if( product < -0.999999f ) return rotationAround<mat4f>( orthogonal( from ), PI<float> );
+		if( product < -0.999999f ) return matrixRotationAround( orthogonal( from ), PI<float> );
 
 		vec4f axis = Math::normalize( Math::cross( from, to ) );
 		float cos = Math::dot( from, to );
@@ -882,7 +882,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static mat4f randomRotation()
 	{
-		return rotationAround<mat4f>( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
+		return matrixRotationAround( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**

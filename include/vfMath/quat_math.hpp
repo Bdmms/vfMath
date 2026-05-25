@@ -10,19 +10,52 @@
 */
 namespace Math
 {
-	template<> inline constexpr static quatf32 ZERO<quatf32> = { 0.0f, 0.0f, 0.0f, 0.0f };
-	template<> inline constexpr static quatf32 ONES<quatf32> = { 1.0f, 1.0f, 1.0f, 1.0f };
-	template<> inline constexpr static quatf32 IDENTITY<quatf32> = { 0.0f, 0.0f, 0.0f, 1.0f };
+	template<typename T> inline constexpr static quat<T> ZERO<quat<T>> = quat<T>::set1( Math::ZERO<T> );
+	template<typename T> inline constexpr static quat<T> ONES<quat<T>> = quat<T>::set1( Math::ONES<T> );
+	template<typename T> inline constexpr static quat<T> IDENTITY<quat<T>> = { Math::ZERO<T>, Math::ZERO<T>, Math::ZERO<T>, Math::ONES<T> };
+
+	/**
+	 * @brief Calculates the squared norm of the quaternion
+	 * @return squared norm of the quaternion
+	*/
+	template<typename T>
+	[[nodiscard]] constexpr T norm2( const quat<T>& q )
+	{
+		return vf::simd::dot( q, q );
+	}
+
+	/**
+	 * @brief Calculates the norm of the quaternion
+	 * @return norm of the quaternion
+	*/
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] constexpr T norm( const quat<T>& q )
+	{
+		return sqrt( norm2( q ) );
+	}
+
+	/**
+	 * @brief Calculates the inverse of the quaternion
+	 * @return inverse of the quaternion
+	*/
+	template<typename T>
+	[[nodiscard]] constexpr quat<T> invert( const quat<T>& q )
+	{
+		quat r{ -1.0f, -1.0f, -1.0f, 1.0f };
+		vf::simd::mul( r, r, q );
+		return r;
+	}
 
 	/**
 	 * @brief Converts euler angles vector to quaternion
 	 * @param rotation - euler angles
 	 * @return quaternion rotation
 	*/
-	[[nodiscard]] static quatf32 toQuat( const eulerf32& rotation )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static quat<T> toQuat( const euler<T>& rotation )
 	{
-		eulerf32 s = sin( rotation * 0.5f );
-		eulerf32 c = cos( rotation * 0.5f );
+		euler<T> s = sin( rotation * 0.5f );
+		euler<T> c = cos( rotation * 0.5f );
 
 		return {
 			s.x * c.y * c.z - c.x * s.y * s.z,
@@ -37,14 +70,15 @@ namespace Math
 	 * @param rotation - axis angle rotation
 	 * @return quaternion rotation
 	*/
-	static quatf32 toQuat( const AxisAngle<f32>& rotation )
+	template<typename T> requires std::floating_point<T>
+	static quat<T> toQuat( const AxisAngle<T>& rotation )
 	{
-		float angle = Math::length( rotation );
-		if( angle <= Math::EPSILON<float> ) return Math::IDENTITY<quatf32>;
+		T angle = Math::length( rotation );
+		if( angle <= Math::EPSILON<T> ) return Math::IDENTITY<quat<T>>;
 
-		vec4f axis = rotation / angle;
-		quatf32 q = { _mm_mul_ps( axis.simd, _mm_set1_ps( sinf( angle * 0.5f ) ) ) };
-		q.w = cosf( angle * 0.5f );
+		quat<T> q;
+		vf::simd::mul( q, rotation / angle, quat<T>::set1( std::sin( angle * 0.5f ) ) );
+		q.w = std::cos( angle * HALF<T> );
 		return q;
 	}
 
@@ -53,9 +87,10 @@ namespace Math
 	 * @param q - quaternion
 	 * @return normalized quaternion
 	*/
-	[[nodiscard]] static quatf32 normalize( const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static quat<T> normalize( const quat<T>& q )
 	{
-		return { _mm_div_ps( q.simd, _mm_set1_ps( q.norm() ) ) };
+		return q / norm( q );
 	}
 	
 	/**
@@ -76,12 +111,12 @@ namespace Math
 	 * @param q - quaternion
 	 * @return rotated position vector
 	*/
-	[[nodiscard]] static vec4f rotate( const vec4f& v, const quatf32& q )
+	template<typename T>
+	[[nodiscard]] static vec4<T> rotate( const vec4<T>& v, const quat<T>& q )
 	{
-		// v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
-		vec4f r;
-		r.simd = _mm_add_ps( v.simd, _mm_mul_ps( _mm_set1_ps( 2.0f ), _mm_cross_ps( q.simd, _mm_add_ps( _mm_cross_ps( q.simd, v.simd ), _mm_mul_ps( v.simd, _mm_set1_ps( q.w ) ) ) ) ) );
-		return r;
+		// TODO: Remove reinterpret_cast and make constexpr
+		const vec4<T>& qxyz = reinterpret_cast<const vec4<T>&>( q );
+		return v + TWO<T> * cross( qxyz, cross( qxyz, v ) + q.w * v );
 	}
 
 	/**
@@ -89,12 +124,13 @@ namespace Math
 	 * @param q - quaternion
 	 * @return Euler angles vector
 	*/
-	[[nodiscard]] static eulerf32 toEuler( const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static euler<T> toEuler( const quat<T>& q )
 	{
 		return {
-			atan2f( 2.0f * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
-			asinf( std::clamp( -2.0f * ( q.x * q.z - q.w * q.y ), -1.0f, 1.0f ) ),
-			atan2f( 2.0f * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z )
+			std::atan2( TWO<T> * ( q.w * q.x + q.y * q.z ), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z ),
+			std::asin( clamp( TWO<T> * ( q.w * q.y - q.x * q.z ), NEGATIVE<T>, ONES<T> ) ),
+			std::atan2( TWO<T> * ( q.x * q.y + q.w * q.z ), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z )
 		};
 	}
 
@@ -103,13 +139,14 @@ namespace Math
 	 * @param q - quaternion
 	 * @return Axis angle vector
 	*/
-	[[nodiscard]] static AxisAngle<f32> toAxisAngle( const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static AxisAngle<T> toAxisAngle( const quat<T>& q )
 	{
-		AxisAngle<f32> axis = { q.x, q.y, q.z, 0.0f };
-		float length = Math::length( axis );
-		if( length <= Math::EPSILON<float> ) return Math::ZERO<vec4f>;
+		AxisAngle<T> axis = { q.x, q.y, q.z, ZERO<T> };
+		T length = Math::length( axis );
+		if( length <= Math::EPSILON<T> ) return Math::ZERO<AxisAngle<T>>;
 
-		float angle = 2.0f * atan2f( length, q.w );
+		T angle = TWO<T> * std::atan2( length, q.w );
 		return axis * ( angle / length );
 	}
 
@@ -119,11 +156,13 @@ namespace Math
 	 * @param angle - angle of rotation around axis
 	 * @return quaternion
 	*/
-	template<> [[nodiscard]] static quatf32 rotationAround( const vec4f& axis, const float angle )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static quat<T> quatRotationAround( const vec4<T>& axis, const T angle )
 	{
-		vec4f r = axis * sinf( angle * 0.5f );
-		r.w = cosf( angle * 0.5f );
-		return reinterpret_cast<quatf32&>( r );
+		quat<T> r = quat<T>::set1( std::sin( angle * HALF<T> ) );
+		vf::simd::mul( r, r, axis );
+		r.w = std::cos( angle * HALF<T> );
+		return r;
 	}
 
 	/**
@@ -132,16 +171,16 @@ namespace Math
 	 * @param to - target vector (normalized)
 	 * @return resulting quaternion
 	*/
-	template<> [[nodiscard]] static quatf32 rotationBetween( const vec4f& from, const vec4f& to )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] constexpr quat<T> quatRotationBetween( const vec4<T>& from, const vec4<T>& to )
 	{
-		float product = Math::dot_3D( from, to );
-		if( product > 0.999999f ) return IDENTITY<quatf32>;
-		if( product < -0.999999f ) return { Math::orthogonal( from ).simd };
+		T product = dot_3D( from, to );
+		if( product > ONES<T> - EPSILON<T> ) return IDENTITY<quat<T>>;
+		if( product < NEGATIVE<T> +EPSILON<T> ) return orthogonal( from );
 
-		__m128 rotation = _mm_cross_ps( from.simd, to.simd );
-		rotation.m128_f32[3] = Math::dot_3D( from, to ) + 1.0f;
-
-		return normalize( reinterpret_cast<quatf32&>( rotation ) );
+		vec4<T> rotation = cross( from, to );
+		rotation.w = dot_3D( from, to ) + ONES<T>;
+		return rotation / length( rotation );
 	}
 
 	/**
@@ -152,23 +191,24 @@ namespace Math
 	 * @param toSecondary - target secondary vector
 	 * @return resulting quaternion
 	*/
-	[[nodiscard]] static quatf32 rotationBetween( const vec4f& fromPrimary, const vec4f& fromSecondary, const vec4f& toPrimary, const vec4f& toSecondary )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static quat<T> quatRotationBetween( const vec4<T>& fromPrimary, const vec4<T>& fromSecondary, const vec4<T>& toPrimary, const vec4<T>& toSecondary )
 	{
 		// If cannot calculate primary direction, return identity
-		if( Math::length2( toPrimary ) < Math::EPSILON<float> ) return Math::IDENTITY<quatf32>;
+		if( length2( toPrimary ) < EPSILON<T> ) return IDENTITY<quat<T>>;
 
-		quatf32 r1 = Math::rotationBetween<quatf32>( fromPrimary, toPrimary );
+		quat<T> r1 = quatRotationBetween( fromPrimary, toPrimary );
 
-		vec4f current = Math::rotate( fromSecondary, r1 );
-		vec4f target = Math::cross( toPrimary, Math::cross( toSecondary, toPrimary ) );
+		vec4<T> current = rotate( fromSecondary, r1 );
+		vec4<T> target = cross( toPrimary, cross( toSecondary, toPrimary ) );
 
 		// If cannot calculate roll around axis, return arbitrary rotation
-		if( Math::length2( target ) < Math::EPSILON<float> ) return r1;
+		if( length2( target ) < EPSILON<T> ) return r1;
 
-		target = Math::normalize( target );
-		float angle = acosf( std::clamp( Math::dot_3D( current, target ), -1.0f, 1.0f ) );
-		float sign = Math::sign( Math::dot_3D( Math::cross( current, target ), toPrimary ) );
-		return r1 * Math::rotationAround<quatf32>( fromPrimary, angle * sign );
+		target = normalize( target );
+		T angle = std::acos( clamp( dot_3D( current, target ), NEGATIVE<T>, ONES<T> ) );
+		T angleSign = sign( dot_3D( cross( current, target ), toPrimary ) );
+		return r1 * quatRotationAround( fromPrimary, angle * angleSign );
 	}
 
 	/**
@@ -177,10 +217,11 @@ namespace Math
 	 * @param b - second quaternion
 	 * @return angle between the quaternions
 	*/
-	[[nodiscard]] static float angleBetween( const quatf32& a, const quatf32& b )
+	template<typename T> requires std::floating_point<T>
+	[[nodiscard]] static T angleBetween( const quat<T>& a, const quat<T>& b )
 	{
-		quatf32 q = b * a.inverse();
-		return 2.0f * atan2f( sqrtf( q.x * q.x + q.y * q.y + q.z * q.z ), q.w );
+		quat<T> q = b * invert( a );
+		return TWO<T> * std::atan2( std::sqrt( q.x * q.x + q.y * q.y + q.z * q.z ), q.w );
 	}
 
 	/**
@@ -189,10 +230,10 @@ namespace Math
 	 * @param max - maximum quat
 	 * @return random quaternion
 	*/
-	[[nodiscard]] static quatf32 random( const quatf32& min, const quatf32& max )
+	template<typename T>
+	[[nodiscard]] static quat<T> random( const quat<T>& min, const quat<T>& max )
 	{
-		quatf32 q = { ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ), ( rand() / RAND_MAX_FLOAT ) };
-		return min + q * ( max - min );
+		return { random<T>( min.x, max.x ), random<T>( min.y, max.y ), random<T>( min.z, max.z ), random<T>( min.w, max.w ) };
 	}
 
 	/**
@@ -201,7 +242,7 @@ namespace Math
 	*/
 	template<> [[nodiscard]] static quatf32 randomRotation<quatf32>()
 	{
-		return rotationAround<quatf32>( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
+		return quatRotationAround( randomDirection<vec4f>(), rand() * RAND_CONVERT_TAU );
 	}
 
 	/**
@@ -211,27 +252,28 @@ namespace Math
 	 * @param trackAxis - direction of tracked axis (normalized)
 	 * @return quaternion rotation
 	*/
-	static quatf32 lookTo( const vec4f& initial, const vec4f& target, const vec4f& trackAxis )
+	template<typename T> requires std::floating_point<T>
+	static quat<T> lookTo( const vec4<T>& initial, const vec4<T>& target, const vec4<T>& trackAxis )
 	{
-		vec4f projectedInitial = initial - Math::dot_3D( initial, trackAxis ) * trackAxis;
-		vec4f projectedTarget = target - Math::dot_3D( target, trackAxis ) * trackAxis;
+		vec4<T> projectedInitial = initial - dot_3D( initial, trackAxis ) * trackAxis;
+		vec4<T> projectedTarget = target - dot_3D( target, trackAxis ) * trackAxis;
 
-		float magnitudeInitial = sqrtf( Math::dot_3D( projectedInitial, projectedInitial ) );
-		float magnitudeTarget = sqrtf( Math::dot_3D( projectedTarget, projectedTarget ) );
+		T magnitudeInitial = sqrt( dot_3D( projectedInitial, projectedInitial ) );
+		T magnitudeTarget = sqrt( dot_3D( projectedTarget, projectedTarget ) );
 
 		// Normalize projected vectors
-		if( magnitudeInitial <= EPSILON<float> || magnitudeTarget <= EPSILON<float> ) return Math::IDENTITY<quatf32>;
+		if( magnitudeInitial <= EPSILON<T> || magnitudeTarget <= EPSILON<T> ) return IDENTITY<quat<T>>;
 		
 		projectedTarget /= magnitudeTarget;
 		projectedInitial /= magnitudeInitial;
 
-		vec4f axis = Math::cross( projectedInitial, projectedTarget );
-		float magnitude = sqrtf( Math::dot_3D( axis, axis ) );
+		vec4<T> axis = cross( projectedInitial, projectedTarget );
+		T magnitude = sqrt( dot_3D( axis, axis ) );
 
-		if( magnitude <= EPSILON<float> ) return Math::IDENTITY<quatf32>;
+		if( magnitude <= EPSILON<T> ) return IDENTITY<quat<T>>;
 
-		float angle = acosf( std::clamp( dot_3D( projectedInitial, projectedTarget ), -1.0f, 1.0f ) );
-		return rotationAround<quatf32>( axis / magnitude, angle );
+		T angle = std::acos( clamp( dot_3D( projectedInitial, projectedTarget ), NEGATIVE<T>, ONES<T> ) );
+		return quatRotationAround( axis / magnitude, angle );
 	}
 
 	/**
@@ -241,17 +283,18 @@ namespace Math
 	 * @param t - weight between quaternions
 	 * @return weighted quaternion
 	*/
-	static quatf32 slerp( const quatf32& q0, const quatf32& q1, const float t )
+	template<typename T> requires std::floating_point<T>
+	static quat<T> slerp( const quat<T>& q0, const quat<T>& q1, const T t )
 	{
-		float cost = dot( q0, q1 );
-		quatf32 q2 = cost < 0.0f ? -q1 : q1;
-		cost = fabsf( cost );
+		T cost = dot( q0, q1 );
+		quat<T> q2 = cost < ZERO<T> ? -q1 : q1;
+		cost = std::fabs( cost );
 
-		if( cost > 1.0f - EPSILON<float> ) return Math::normalize( ( q1 - q0 ) * t + q0 );
+		if( cost > ONES<T> - EPSILON<T> ) return normalize( ( q1 - q0 ) * t + q0 );
 
-		float angle = acosf( cost );
-		vec4f sin = Math::sin( vec4f{ ( 1.0f - t ) * angle, t * angle, angle } );
-		return ( q0 * sin.x + q2 * sin.y ) / sin.z;
+		float angle = std::acos( cost );
+		vec4<T> s = sin( vec4<T>{ ( ONES<T> - t ) * angle, t * angle, angle } );
+		return ( q0 * s.x + q2 * s.y ) / s.z;
 	}
 }
 
