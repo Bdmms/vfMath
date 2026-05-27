@@ -1,31 +1,130 @@
 #pragma once
-#ifndef VF_PERLIN_HPP
-#define VF_PERLIN_HPP
+#ifndef VF_MATH_PERLIN_HPP
+#define VF_MATH_PERLIN_HPP
 
-#include "vec.hpp"
+#include "vec_math.hpp"
 
-namespace Perlin
+namespace vf::math::noise
 {
+	// Random Sequence
+	constexpr unsigned char PERMUTATIONS[] = 
+	{ 
+			151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,
+			103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0,
+			26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56,
+			87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166,
+			77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55,
+			46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132,
+			187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109,
+			198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126,
+			255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183,
+			170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43,
+			172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112,
+			104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162,
+			241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106,
+			157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205,
+			93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180 
+	};
+
+	constexpr float PERLIN_FACTOR_1D = 256.0f;        // 8-bits
+	constexpr float PERLIN_FACTOR_2D = 65536.0f;      // 16-bits
+	constexpr float PERLIN_FACTOR_3D = 16777216.0f;   // 24-bits
+	constexpr float PERLIN_FACTOR_4D = 4294967296.0f; // 32-bits
+
+	constexpr float grad1D( uint32_t iValue, float weight )
+	{
+		uint8_t a = PERMUTATIONS[iValue & 0xFFU];
+		float value = static_cast<float>( a ) / PERLIN_FACTOR_1D;
+		return value * weight;
+	}
+
+	static float grad2D( vec2i iPoint, vec2f weight )
+	{
+		uint8_t a = PERMUTATIONS[iPoint.x & 0xFFU];
+		uint8_t b = PERMUTATIONS[iPoint.y & 0xFFU];
+
+		float angle = Math::TWO_PI<float> * static_cast<float>( a | ( b << 8 ) ) / PERLIN_FACTOR_2D;
+		vec2f direction = vec2f{ cosf( angle ), sinf( angle ) };
+
+		return Math::dot( direction, weight );
+	}
+
+	static float grad3D( const vec4i& iPoint, const vec4f& weight )
+	{
+		uint8_t a = PERMUTATIONS[iPoint.x & 0xFFu];
+		uint8_t b = PERMUTATIONS[iPoint.y & 0xFFu];
+		uint8_t c = PERMUTATIONS[iPoint.z & 0xFFu];
+
+		uint32_t rx = ( a & 0x0F ) | ( ( b & 0x0F ) << 4 ) | ( ( c & 0x0F ) << 8 ); // 12-bits
+		uint32_t ry = ( ( a & 0xF0 ) >> 4 ) | ( b & 0xF0 ) | ( ( c & 0xF0 ) << 4 ); // 12-bits
+		float angleA = Math::TWO_PI<float> * static_cast<float>( rx ) / PERLIN_FACTOR_3D;
+		float angleB = ( Math::PI<float> * static_cast<float>( ry ) - Math::HALF_PI<float> ) / PERLIN_FACTOR_3D;
+		vec4f direction = { cosf( angleA ) * cosf( angleB ), sinf( angleA ) * cosf( angleB ), sinf( angleB ) };
+
+		return Math::dot_3D( direction, weight );
+	}
+
 	/**
 	 * @brief Generates a deterministic random value between 0.0 and 1.0 at the specified point.
 	 * @param value - 1D position
 	 * @return scalar noise value
 	*/
-	float perlin1D( float value );
+	constexpr float perlin1D( float value )
+	{
+		uint32_t ix = static_cast<uint32_t>( value );
+		float weight = value - ix;
+
+		float n0 = grad1D( ix, weight );
+		float n1 = grad1D( ix + 1u, weight );
+
+		return Math::lerp( n0, n1, weight );
+	}
 
 	/**
 	 * @brief Generates a deterministic random value between 0.0 and 1.0 at the specified point.
 	 * @param point - 2D position
 	 * @return scalar noise value
 	*/
-	float perlin2D( vec2f point );
+	static float perlin2D( vec2f point )
+	{
+		vec2i ip = static_cast<vec2i>( point );
+		vec2f weight = point - Math::floor( point );
+
+		// Calculate the noise at each of the 4 corners of the region
+		vec2f n0 = { grad2D( ip,                 weight ), grad2D( ip + vec2i{ 0, 1 }, weight ) };
+		vec2f n1 = { grad2D( ip + vec2i{ 1, 0 }, weight ), grad2D( ip + vec2i{ 1, 1 }, weight ) };
+
+		// Interpolate the result between the 4 corners
+		vec2f result = Math::lerp( n0, n1, weight.x );
+		return Math::lerp( result.x, result.y, weight.y );
+	}
 
 	/**
 	 * @brief Generates a deterministic random value between 0.0 and 1.0 at the specified point.
 	 * @param point - 3D position
 	 * @return scalar noise value
 	*/
-	float perlin3D( const vec4f& point );
+	static float perlin3D( const vec4f& point )
+	{
+		vec4i ip = static_cast<vec4i>( point );
+		vec4f weight = point - Math::floor( point );
+
+		// Calculate the noise at each of the 4 corners of the region
+		vec4f fz0 = { grad3D( ip                   , weight ),
+					  grad3D( ip + vec4i{ 1, 0, 0 }, weight ),
+					  grad3D( ip + vec4i{ 0, 1, 0 }, weight ),
+					  grad3D( ip + vec4i{ 1, 1, 0 }, weight ) };
+		vec4f fz1 = { grad3D( ip + vec4i{ 0, 0, 1 }, weight ),
+					  grad3D( ip + vec4i{ 1, 0, 1 }, weight ),
+					  grad3D( ip + vec4i{ 0, 1, 1 }, weight ),
+					  grad3D( ip + vec4i{ 1, 1, 1 }, weight ) };
+
+		vec4f fz = Math::lerp( fz0, fz1, weight.z );
+		vec2f fz_front{ fz.x, fz.y };
+		vec2f fz_back{ fz.z, fz.w };
+		vec2f fy = Math::lerp( fz_front, fz_back, weight.y );
+		return Math::lerp( fy.x, fy.y, weight.x );
+	}
 }
 
 #endif

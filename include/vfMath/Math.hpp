@@ -186,7 +186,7 @@ namespace Math
 	 * @return weighted value
 	*/
 	template<typename T> 
-	[[nodiscard]] static T lerp( const T& a, const T& b, const float t )
+	[[nodiscard]] constexpr T lerp( const T& a, const T& b, const float t )
 	{
 		return ( b - a ) * t + a;
 	}
