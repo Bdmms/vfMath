@@ -31,14 +31,6 @@ extern "C" int __isa_available;
 #define _mm_dot_epi32( a, b, c, d, e, f, g, h ) _mm_sum_epi32( _mm_mul_epi32( a, b ), _mm_mul_epi32( c, d ), _mm_mul_epi32( e, f ), _mm_mul_epi32( g, h ) )
 #define _mm_dot_epu32( a, b, c, d, e, f, g, h ) _mm_sum_epi32( _mm_mul_epu32( a, b ), _mm_mul_epu32( c, d ), _mm_mul_epu32( e, f ), _mm_mul_epu32( g, h ) )
 
-#define _mm_mag_ps( a, b, c, d ) _mm_sqrt_ps( _mm_dot_ps( a, a, b, b, c, c, d, d ) )
-
-// TODO: DEPRECATED
-#define _mm_cross_ps(a,b) _mm_fmsub_ps(_mm_permute_ps(a, swizzle::YZXW), _mm_permute_ps(b, swizzle::ZXYW), _mm_mul_ps(_mm_permute_ps(a, swizzle::ZXYW), _mm_permute_ps(b, swizzle::YZXW)))
-#define _mm_transpose_ps(a,b,c,d,msk) _mm_shuffle_ps(_mm_shuffle_ps(a, b, msk), _mm_shuffle_ps(c, d, msk), swizzle::XZXZ)
-#define _mm_dot3_ps(a,b,c,d,e,f) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), _mm_set1_ps(0.0f))
-#define _mm_dot3v_ps(a,b,c,d,e,f,v) _mm_sum_ps(_mm_mul_ps(a, b), _mm_mul_ps(c, d), _mm_mul_ps(e, f), v)
-
 #endif
 
 // High-level AVX2 vector instructions
@@ -489,7 +481,7 @@ namespace vf::simd
 	constexpr void length4( simd4f32& r, const simd4f32& a, const simd4f32& b, const simd4f32& c, const simd4f32& d )
 	{
 		if( std::is_constant_evaluated() ) return compile_time::length4( r, a, b, c, d );
-		r.simd = _mm_mag_ps( a.simd, b.simd, c.simd, d.simd );
+		r.simd = _mm_sqrt_ps( _mm_dot_ps( a.simd, a.simd, b.simd, b.simd, c.simd, c.simd, d.simd, d.simd ) );
 	}
 
 #endif
