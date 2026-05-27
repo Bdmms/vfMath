@@ -2,7 +2,7 @@
 #ifndef VF_TRANSFORM_2D_HPP
 #define VF_TRANSFORM_2D_HPP
 
-#include "MatrixMath.hpp"
+#include "matrix_math.hpp"
 
 struct Transform2D
 {

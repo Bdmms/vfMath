@@ -2,7 +2,7 @@
 #ifndef VF_TRANSFORM_3D_HPP
 #define VF_TRANSFORM_3D_HPP
 
-#include "MatrixMath.hpp"
+#include "matrix_math.hpp"
 
 /**
  * @brief Pair of transform matrices that define transformations into and out of a space.

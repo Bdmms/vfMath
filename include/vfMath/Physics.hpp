@@ -2,7 +2,7 @@
 #ifndef VF_PHYSICS_HPP
 #define VF_PHYSICS_HPP
 
-#include "MatrixMath.hpp"
+#include "matrix_math.hpp"
 
 struct LinearState
 {

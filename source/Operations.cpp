@@ -1,5 +1,5 @@
 #include "../include/vfMath/Operations.hpp"
-#include "../include/vfMath/MatrixMath.hpp"
+#include "../include/vfMath/matrix_math.hpp"
 
 float Math::execute( ScalarOperation op, float source, const float operand )
 {

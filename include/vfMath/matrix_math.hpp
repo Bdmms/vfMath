@@ -3,7 +3,7 @@
 #define VF_MATRIX_MATH_HPP
 
 #include "quat_math.hpp"
-#include "mat.hpp"
+#include "matrix.hpp"
 
 /**
  * @brief Utilities for matrices
@@ -45,7 +45,7 @@ namespace Math
 	 * @brief Creates an inverse matrix
 	 * @return inverse matrix
 	*/
-	template<size_t N, typename T>
+	template<size_t N, typename T> requires std::floating_point<T>
 	constexpr mat<N, N, T> invert( const mat<N, N, T>& matrix )
 	{
 		mat<N, N, T> result;
@@ -85,7 +85,8 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param translation - translation vector
 	*/
-	constexpr void setTranslation( mat4f& matrix, const vec4f& translation )
+	template<typename T>
+	constexpr void setTranslation( mat4<T>& matrix, const vec4<T>& translation )
 	{
 		matrix[0,3] = translation.x;
 		matrix[1,3] = translation.y;
@@ -97,10 +98,11 @@ namespace Math
 	 * @param matrix - 2D transform matrix
 	 * @param rotation - rotation angle [rad]
 	*/
-	static void setRotation( mat2f& matrix, float rotation )
+	template<typename T> requires std::floating_point<T>
+	static void setRotation( mat2<T>& matrix, T rotation )
 	{
-		float s = sinf( rotation );
-		float c = cosf( rotation );
+		T s = std::sin( rotation );
+		T c = std::cos( rotation );
 		matrix[0,0] = c;
 		matrix[1,0] = s;
 		matrix[0,1] = -s;
@@ -112,10 +114,11 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - euler rotation vector [rad]
 	*/
-	static void setRotation( mat4f& matrix, const eulerf32& rotation )
+	template<typename T> requires std::floating_point<T>
+	static void setRotation( mat4<T>& matrix, const euler<T>& rotation )
 	{
-		eulerf32 s = Math::sin( rotation );
-		eulerf32 c = Math::cos( rotation );
+		euler<T> s = sin( rotation );
+		euler<T> c = cos( rotation );
 		matrix[0,0] = c.z * c.y;
 		matrix[1,0] = s.z * c.y;
 		matrix[2,0] = -s.y;
@@ -134,19 +137,20 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	constexpr void setRotation( mat4f& matrix, const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	constexpr void setRotation( mat4<T>& matrix, const quat<T>& q )
 	{
-		matrix[0,0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
-		matrix[1,0] = 2.0f * ( q.x * q.y + q.w * q.z );
-		matrix[2,0] = 2.0f * ( q.x * q.z - q.w * q.y );
+		matrix[0,0] = ONES<T> - TWO<T> * ( q.y * q.y + q.z * q.z );
+		matrix[1,0] = TWO<T> * ( q.x * q.y + q.w * q.z );
+		matrix[2,0] = TWO<T> * ( q.x * q.z - q.w * q.y );
 
-		matrix[0,1] = 2.0f * ( q.x * q.y - q.w * q.z );
-		matrix[1,1] = 1.0f - 2.0f * ( q.x * q.x + q.z * q.z );
-		matrix[2,1] = 2.0f * ( q.y * q.z + q.w * q.x );
+		matrix[0,1] = TWO<T> * ( q.x * q.y - q.w * q.z );
+		matrix[1,1] = ONES<T> - TWO<T> * ( q.x * q.x + q.z * q.z );
+		matrix[2,1] = TWO<T> * ( q.y * q.z + q.w * q.x );
 
-		matrix[0,2] = 2.0f * ( q.x * q.z + q.w * q.y );
-		matrix[1,2] = 2.0f * ( q.y * q.z - q.w * q.x );
-		matrix[2,2] = 1.0f - 2.0f * ( q.x * q.x + q.y * q.y );
+		matrix[0,2] = TWO<T> * ( q.x * q.z + q.w * q.y );
+		matrix[1,2] = TWO<T> * ( q.y * q.z - q.w * q.x );
+		matrix[2,2] = ONES<T> - TWO<T> * ( q.x * q.x + q.y * q.y );
 	}
 
 	/**
@@ -154,23 +158,24 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - axis-angle rotation
 	*/
-	static void setRotation( mat4f& matrix, const AxisAngle<f32>& rotation )
+	template<typename T> requires std::floating_point<T>
+	static void setRotation( mat4<T>& matrix, const AxisAngle<T>& rotation )
 	{
-		float angle = Math::length( rotation );
-		if( angle < Math::EPSILON<float> )
+		T angle = length( rotation );
+		if( angle < EPSILON<T> )
 		{
-			copy_mat3f( matrix, Math::IDENTITY<mat4f> );
+			copy_mat3f( matrix, Math::IDENTITY<mat4<T>> );
 		}
 		else
 		{
-			vec4f axis = rotation / angle;
-			float sin = sinf( angle );
-			float cos = cosf( angle );
-			vec4f tpose = ( 1.0f - cos ) * axis;
+			vec4<T> axis = rotation / angle;
+			T sin = std::sin( angle );
+			T cos = std::cos( angle );
+			vec4<T> tpose = ( ONES<T> - cos ) * axis;
 
-			vf::simd::fmadd( matrix.cols[0], axis, vec4f32::set1( tpose.x ), vec4f( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
-			vf::simd::fmadd( matrix.cols[1], axis, vec4f32::set1( tpose.y ), vec4f( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
-			vf::simd::fmadd( matrix.cols[2], axis, vec4f32::set1( tpose.z ), vec4f( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
+			vf::simd::fmadd( matrix.cols[0], axis, vec4<T>::set1( tpose.x ), vec4<T>( cos, sin * axis.z, -sin * axis.y, ZERO<T> ) );
+			vf::simd::fmadd( matrix.cols[1], axis, vec4<T>::set1( tpose.y ), vec4<T>( -sin * axis.z, cos, sin * axis.x, ZERO<T> ) );
+			vf::simd::fmadd( matrix.cols[2], axis, vec4<T>::set1( tpose.z ), vec4<T>( sin * axis.y, -sin * axis.x, cos, ZERO<T> ) );
 		}
 	}
 
@@ -179,10 +184,11 @@ namespace Math
 	 * @param matrix - 2D transform matrix
 	 * @param rotation - rotation angle [rad]
 	*/
-	static void setRotationInverse( mat2f& matrix, float rotation )
+	template<typename T> requires std::floating_point<T>
+	static void setRotationInverse( mat2<T>& matrix, T rotation )
 	{
-		float s = sinf( rotation );
-		float c = cosf( rotation );
+		T s = std::sin( rotation );
+		T c = std::cos( rotation );
 		matrix[0, 0] = c;
 		matrix[1, 0] = -s;
 		matrix[0, 1] = s;
@@ -194,10 +200,11 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - euler rotation vector [rad]
 	*/
-	static void setRotationInverse( mat4f& matrix, const eulerf32& rotation )
+	template<typename T> requires std::floating_point<T>
+	static void setRotationInverse( mat4<T>& matrix, const euler<T>& rotation )
 	{
-		eulerf32 s = Math::sin( rotation );
-		eulerf32 c = Math::cos( rotation );
+		euler<T> s = sin( rotation );
+		euler<T> c = cos( rotation );
 		matrix[0,0] = c.z * c.y;
 		matrix[0,1] = s.z * c.y;
 		matrix[0,2] = -s.y;
@@ -216,19 +223,20 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param rotation - quaternion vector
 	*/
-	constexpr void setRotationInverse( mat4f& matrix, const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	constexpr void setRotationInverse( mat4<T>& matrix, const quat<T>& q )
 	{
-		matrix[0,0] = 1.0f - 2.0f * ( q.y * q.y + q.z * q.z );
-		matrix[0,1] = 2.0f * ( q.x * q.y + q.w * q.z );
-		matrix[0,2] = 2.0f * ( q.x * q.z - q.w * q.y );
+		matrix[0,0] = ONES<T> - TWO<T> * ( q.y * q.y + q.z * q.z );
+		matrix[0,1] = TWO<T> * ( q.x * q.y + q.w * q.z );
+		matrix[0,2] = TWO<T> * ( q.x * q.z - q.w * q.y );
 
-		matrix[1,0] = 2.0f * ( q.x * q.y - q.w * q.z );
-		matrix[1,1] = 1.0f - 2.0f * ( q.x * q.x + q.z * q.z );
-		matrix[1,2] = 2.0f * ( q.y * q.z + q.w * q.x );
+		matrix[1,0] = TWO<T> * ( q.x * q.y - q.w * q.z );
+		matrix[1,1] = ONES<T> - TWO<T> * ( q.x * q.x + q.z * q.z );
+		matrix[1,2] = TWO<T> * ( q.y * q.z + q.w * q.x );
 
-		matrix[2,0] = 2.0f * ( q.x * q.z + q.w * q.y );
-		matrix[2,1] = 2.0f * ( q.y * q.z - q.w * q.x );
-		matrix[2,2] = 1.0f - 2.0f * ( q.x * q.x + q.y * q.y );
+		matrix[2,0] = TWO<T> * ( q.x * q.z + q.w * q.y );
+		matrix[2,1] = TWO<T> * ( q.y * q.z - q.w * q.x );
+		matrix[2,2] = ONES<T> - TWO<T> * ( q.x * q.x + q.y * q.y );
 	}
 
 	/*
@@ -236,13 +244,12 @@ namespace Math
 	 * @param rotation - rotation angle [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat2f& matrix, const float rotation, const vec2f scale )
+	template<typename T> requires std::floating_point<T>
+	static void setTransform( mat2<T>& matrix, T rotation, const vec2<T>& scale )
 	{
 		setRotation( matrix, rotation );
-		matrix[0,0] *= scale.x;
-		matrix[1,0] *= scale.x;
-		matrix[0,1] *= scale.y;
-		matrix[1,1] *= scale.y;
+		matrix[0] *= scale.x;
+		matrix[1] *= scale.y;
 	}
 
 	/**
@@ -252,7 +259,8 @@ namespace Math
 	 * @param rotation - euler rotation vector [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransform( mat4f& matrix, const vec4f translation, const eulerf32& rotation, const vec4f& scale )
+	template<typename T> requires std::floating_point<T>
+	static void setTransform( mat4<T>& matrix, const vec4<T>& translation, const euler<T>& rotation, const vec4<T>& scale )
 	{
 		setRotation( matrix, rotation );
 		matrix[0] *= scale.x;
@@ -268,7 +276,8 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	constexpr void setTransform( mat4f& matrix, const vec4f translation, const quatf32& q, const vec4f& scale )
+	template<typename T> requires std::floating_point<T>
+	constexpr void setTransform( mat4<T>& matrix, const vec4<T>& translation, const quat<T>& q, const vec4<T>& scale )
 	{
 		setRotation( matrix, q );
 		matrix[0] *= scale.x;
@@ -283,7 +292,8 @@ namespace Math
 	 * @param translation - translation vector
 	 * @param q - quaternion rotation
 	*/
-	constexpr void setTransform( mat4f& matrix, const vec4f translation, const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	constexpr void setTransform( mat4f& matrix, const vec4<T>& translation, const quat<T>& q )
 	{
 		setRotation( matrix, q );
 		setTranslation( matrix, translation );
@@ -294,7 +304,8 @@ namespace Math
 	 * @param rotation - rotation angle [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransformInverse( mat2f& matrix, const float rotation, const vec2f scale )
+	template<typename T> requires std::floating_point<T>
+	static void setTransformInverse( mat2f& matrix, T rotation, const vec2<T>& scale )
 	{
 		setRotationInverse( matrix, rotation );
 		matrix[0, 0] /= scale.x;
@@ -310,10 +321,11 @@ namespace Math
 	 * @param rotation - euler rotation vector [rad]
 	 * @param scale - scaling vector
 	*/
-	static void setTransformInverse( mat4f& matrix, const vec4f translation, const eulerf32& rotation, const vec4f& scale )
+	template<typename T> requires std::floating_point<T>
+	static void setTransformInverse( mat4<T>& matrix, const vec4<T>& translation, const euler<T>& rotation, const vec4<T>& scale )
 	{
 		setRotationInverse( matrix, rotation );
-		vec4f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
+		vec4<T> copiedScale = { scale.x, scale.y, scale.z, ONES<T> };
 		matrix.x_axis /= copiedScale;
 		matrix.y_axis /= copiedScale;
 		matrix.z_axis /= copiedScale;
@@ -329,10 +341,11 @@ namespace Math
 	 * @param q - quaternion rotation
 	 * @param scale - scaling vector
 	*/
-	constexpr void setTransformInverse( mat4f& matrix, const vec4f& translation, const quatf32& q, const vec4f& scale )
+	template<typename T> requires std::floating_point<T>
+	constexpr void setTransformInverse( mat4<T>& matrix, const vec4<T>& translation, const quat<T>& q, const vec4<T>& scale )
 	{
 		setRotationInverse( matrix, q );
-		vec4f copiedScale = { scale.x, scale.y, scale.z, 1.0f };
+		vec4<T> copiedScale = { scale.x, scale.y, scale.z, ONES<T> };
 		matrix.x_axis /= copiedScale;
 		matrix.y_axis /= copiedScale;
 		matrix.z_axis /= copiedScale;
@@ -347,7 +360,8 @@ namespace Math
 	 * @param translation - translation vector
 	 * @param q - quaternion rotation
 	*/
-	constexpr void setTransformInverse( mat4f& matrix, const vec4f& translation, const quatf32& q )
+	template<typename T> requires std::floating_point<T>
+	constexpr void setTransformInverse( mat4<T>& matrix, const vec4<T>& translation, const quat<T>& q )
 	{
 		setRotationInverse( matrix, q );
 		matrix[0,3] = -( matrix.x_axis.x * translation.x + matrix.y_axis.x * translation.y + matrix.z_axis.x * translation.z );
@@ -360,20 +374,21 @@ namespace Math
 	 * @param matrix - transform matrix
 	 * @param bounds - vector bounds
 	*/
-	constexpr void setTransform( mat4f& matrix, Bounds<vec4f> bounds )
+	template<typename T>
+	constexpr void setTransform( mat4<T>& matrix, Bounds<vec4<T>> bounds )
 	{
-		vec4f difference = ( bounds.max - bounds.min ) * 0.5f;
+		vec4<T> difference = ( bounds.max - bounds.min ) * HALF<T>;
 
 		matrix[0,0] = difference.x;
-		matrix[1,0] = 0.0f;
-		matrix[2,0] = 0.0f;
+		matrix[1,0] = ZERO<T>;
+		matrix[2,0] = ZERO<T>;
 
-		matrix[0,1] = 0.0f;
+		matrix[0,1] = ZERO<T>;
 		matrix[1,1] = difference.y;
-		matrix[2,1] = 0.0f;
+		matrix[2,1] = ZERO<T>;
 
-		matrix[0,2] = 0.0f;
-		matrix[1,2] = 0.0f;
+		matrix[0,2] = ZERO<T>;
+		matrix[1,2] = ZERO<T>;
 		matrix[2,2] = difference.z;
 
 		matrix[0,3] = difference.x + bounds.min.x;
@@ -386,39 +401,39 @@ namespace Math
 	 * @param rotation - normalized rotation matrix
 	 * @return quaternion rotation
 	*/
-	constexpr quatf32 toQuat( const mat4f& rotation )
+	template<typename T>
+	constexpr quat<T> toQuat( const mat4<T>& rotation )
 	{
 		// TODO: This may flip signs
-		float a = rotation[0,0] - rotation[1,1] - rotation[2,2];
-		float b = rotation[1,1] - rotation[0,0] - rotation[2,2];
-		float c = rotation[2,2] - rotation[0,0] - rotation[1,1];
-		float d = rotation[0,0] + rotation[1,1] + rotation[2,2];
-		quatf32 q;
-		float t;
-		float fac;
+		T a = rotation[0,0] - rotation[1,1] - rotation[2,2];
+		T b = rotation[1,1] - rotation[0,0] - rotation[2,2];
+		T c = rotation[2,2] - rotation[0,0] - rotation[1,1];
+		T d = rotation[0,0] + rotation[1,1] + rotation[2,2];
+		quat<T> q;
+		T t, fac;
 
 		if( c > d )
 		{
-			t = sqrt( c + 1.0f ) * 0.5f;
-			fac = 0.25f / t;
+			t = sqrt( c + ONES<T> ) * HALF<T>;
+			fac = ( HALF<T> * HALF<T> ) / t;
 			q = { ( rotation[0,2] + rotation[2,0] ) * fac, ( rotation[2,1] + rotation[1,2] ) * fac, t, ( rotation[1,0] - rotation[0,1] ) * fac };
 		}
 		else if( b > d )
 		{
-			t = sqrt( b + 1.0f ) * 0.5f;
-			fac = 0.25f / t;
+			t = sqrt( b + ONES<T> ) * HALF<T>;
+			fac = ( HALF<T> * HALF<T> ) / t;
 			q = { ( rotation[1,0] + rotation[0,1] ) * fac, t, ( rotation[2,1] + rotation[1,2] ) * fac, ( rotation[0,2] - rotation[2,0] ) * fac };
 		}
 		else if( a > d )
 		{
-			t = sqrt( a + 1.0f ) * 0.5f;
-			fac = 0.25f / t;
+			t = sqrt( a + ONES<T> ) * HALF<T>;
+			fac = ( HALF<T> * HALF<T> ) / t;
 			q = { t, ( rotation[1,0] + rotation[0,1] ) * fac, ( rotation[0,2] + rotation[2,0] ) * fac, ( rotation[2,1] - rotation[1,2] ) * fac };
 		}
 		else
 		{
-			t = sqrt( d + 1.0f ) * 0.5f;
-			fac = 0.25f / t;
+			t = sqrt( d + ONES<T> ) * HALF<T>;
+			fac = ( HALF<T> * HALF<T> ) / t;
 			q = { ( rotation[2,1] - rotation[1,2] ) * fac, ( rotation[0,2] - rotation[2,0] ) * fac, ( rotation[1,0] - rotation[0,1] ) * fac, t };
 		}
 
@@ -431,12 +446,13 @@ namespace Math
 	 * @param rotation - rotation matrix
 	 * @return Axis angle vector
 	*/
-	[[nodiscard]] static AxisAngle<f32> toAxisAngle( const mat4f& rotation )
+	template<typename T>
+	[[nodiscard]] static AxisAngle<T> toAxisAngle( const mat4<T>& rotation )
 	{
-		vec4f diagonal = 0.5f * vec4f{ rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
-		float angle = acosf( diagonal.x + diagonal.y + diagonal.z - 0.5f );
+		vec4<T> diagonal = HALF<T> * vec4<T>{ rotation.x_axis.x, rotation.y_axis.y, rotation.z_axis.z };
+		T angle = std::acos( diagonal.x + diagonal.y + diagonal.z - HALF<T> );
 
-		return ( vec4f{ rotation.y_axis.z, rotation.z_axis.x, rotation.x_axis.y } - vec4f{ rotation.z_axis.y, rotation.x_axis.z, rotation.y_axis.x } ) * ( angle / ( 2.0f * sinf( angle ) ) );
+		return ( vec4<T>{ rotation.y_axis.z, rotation.z_axis.x, rotation.x_axis.y } - vec4<T>{ rotation.z_axis.y, rotation.x_axis.z, rotation.y_axis.x } ) * ( angle / ( TWO<T> * std::sin( angle ) ) );
 	}
 
 	/**
@@ -446,10 +462,11 @@ namespace Math
 	 * @param rotation - rotation component
 	 * @param scale - scale component
 	*/
-	static void decompose( const mat4f& matrix, vec4f& position, quatf32& rotation, vec4f& scale )
+	template<typename T>
+	static void decompose( const mat4<T>& matrix, vec4<T>& position, quat<T>& rotation, vec4<T>& scale )
 	{
-		vf::simd::length4( scale, matrix.x_axis, matrix.y_axis, matrix.z_axis, Math::ZERO<vec4f> );
-		rotation = toQuat( mat4f{ matrix.x_axis / scale.x, matrix.y_axis / scale.y, matrix.z_axis / scale.z, Math::axis::W<vec4f> } );
+		vf::simd::length4( scale, matrix.x_axis, matrix.y_axis, matrix.z_axis, Math::ZERO<vec4<T>> );
+		rotation = toQuat( mat4<T>{ matrix.x_axis / scale.x, matrix.y_axis / scale.y, matrix.z_axis / scale.z, Math::axis::W<vec4<T>> } );
 		position = matrix.origin;
 	}
 
@@ -460,19 +477,19 @@ namespace Math
 	 * @param center - view target vector
 	 * @param up - view up vector
 	*/
-	static void lookAt( mat4f& mat, const vec4f& eye, const vec4f& center, const vec4f& up )
+	template<typename T>
+	static void lookAt( mat4<T>& mat, const vec4<T>& eye, const vec4<T>& center, const vec4<T>& up )
 	{
-		// TODO: Re-write without intrinsics !!!
-		vec4f f = Math::normalize( eye - center );
-		vec4f s = Math::normalize( Math::cross( up, f ) );
-		vec4f u = Math::cross( f, s );
+		vec4<T> f = normalize( eye - center );
+		vec4<T> s = normalize( cross( up, f ) );
+		vec4<T> u = cross( f, s );
 
-		constexpr static __m128 SIMD_4f_ZERO = { 0.0f, 0.0f, 0.0f, 0.0f };
-		mat.simd[0] = _mm_transpose_ps( s.simd, u.simd, f.simd, SIMD_4f_ZERO, swizzle::XXXX );
-		mat.simd[1] = _mm_transpose_ps( s.simd, u.simd, f.simd, SIMD_4f_ZERO, swizzle::YYYY );
-		mat.simd[2] = _mm_transpose_ps( s.simd, u.simd, f.simd, SIMD_4f_ZERO, swizzle::ZZZZ );
-		mat.simd[3] = _mm_mul_ps( _mm_dot3v_ps( s.simd, eye.simd, u.simd, eye.simd, f.simd, eye.simd, _mm_xyzw_ps( 0.0f, 0.0f, 0.0f, 1.0f ) ), 
-			_mm_xyzw_ps( -1.0f, -1.0f, -1.0f, 1.0f ) );
+		mat.x_axis = { s.x, u.x, f.x, ZERO<T> };
+		mat.y_axis = { s.y, u.y, f.y, ZERO<T> };
+		mat.z_axis = { s.z, u.z, f.z, ZERO<T> };
+		
+		vf::simd::dot4( mat.origin, s, eye, u, eye, f, eye, axis::W<vec4<T>>, axis::W<vec4<T>> );
+		vf::simd::mul( mat.origin, mat.origin, { NEGATIVE<T>, NEGATIVE<T>, NEGATIVE<T>, ONES<T> } );
 	};
 
 	/**
@@ -482,11 +499,12 @@ namespace Math
 	 * @param position - translation component (optional)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f lookToX( const vec4f& forward, const vec4f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
+	template<typename T>
+	[[nodiscard]] static mat4<T> lookToX( const vec4<T>& forward, const vec4<T>& trackAxis, const vec4<T>& position = axis::W<vec4<T>> )
 	{
-		vec4f z_axis = Math::normalize( Math::cross( forward, trackAxis ) );
-		vec4f y_axis = Math::cross( z_axis, forward );
-		return mat4f{ forward, y_axis, z_axis, position };
+		vec4<T> z_axis = normalize( cross( forward, trackAxis ) );
+		vec4<T> y_axis = cross( z_axis, forward );
+		return mat4<T>{ forward, y_axis, z_axis, position };
 	}
 
 	/**
@@ -494,9 +512,10 @@ namespace Math
 	 * @param forward - forward orientation (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f lookToX( const vec4f& forward )
+	template<typename T>
+	[[nodiscard]] static mat4<T> lookToX( const vec4<T>& forward )
 	{
-		return lookToX( forward, Math::cross( Math::axis::X<vec4f>, forward ) );
+		return lookToX( forward, cross( axis::X<vec4<T>>, forward ) );
 	}
 
 	/**
@@ -506,11 +525,12 @@ namespace Math
 	 * @param position - translation component (optional)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f lookToY( const vec4f& forward, const vec4f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
+	template<typename T>
+	[[nodiscard]] static mat4<T> lookToY( const vec4<T>& forward, const vec4<T>& trackAxis, const vec4<T>& position = axis::W<vec4<T>> )
 	{
-		vec4f z_axis = Math::normalize( Math::cross( trackAxis, forward ) );
-		vec4f x_axis = Math::cross( forward, z_axis );
-		return mat4f{ x_axis, forward, z_axis, position };
+		vec4<T> z_axis = normalize( Math::cross( trackAxis, forward ) );
+		vec4<T> x_axis = cross( forward, z_axis );
+		return mat4<T>{ x_axis, forward, z_axis, position };
 	}
 
 	/**
@@ -518,9 +538,10 @@ namespace Math
 	 * @param forward - forward orientation (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f lookToY( const vec4f& forward )
+	template<typename T>
+	[[nodiscard]] static mat4<T> lookToY( const vec4<T>& forward )
 	{
-		return lookToY( forward, Math::cross( Math::axis::Y<vec4f>, forward ) );
+		return lookToY( forward, cross( axis::Y<vec4<T>>, forward ) );
 	}
 
 	/**
@@ -530,11 +551,12 @@ namespace Math
 	 * @param position - translation component (optional)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f lookToZ( const vec4f& forward, const vec4f& trackAxis, const vec4f& position = Math::axis::W<vec4f> )
+	template<typename T>
+	[[nodiscard]] static mat4<T> lookToZ( const vec4<T>& forward, const vec4<T>& trackAxis, const vec4<T>& position = axis::W<vec4<T>> )
 	{
-		vec4f x_axis = Math::normalize( Math::cross( trackAxis, forward ) );
-		vec4f y_axis = Math::cross( forward, x_axis );
-		return mat4f{ x_axis, y_axis, forward, position };
+		vec4<T> x_axis = normalize( cross( trackAxis, forward ) );
+		vec4<T> y_axis = cross( forward, x_axis );
+		return mat4<T>{ x_axis, y_axis, forward, position };
 	}
 
 	/**
@@ -542,9 +564,10 @@ namespace Math
 	 * @param forward - forward orientation (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f lookToZ( const vec4f& forward )
+	template<typename T>
+	[[nodiscard]] static mat4<T> lookToZ( const vec4<T>& forward )
 	{
-		return lookToX( forward, Math::cross( Math::axis::Z<vec4f>, forward ) );
+		return lookToX( forward, cross( axis::Z<vec4<T>>, forward ) );
 	}
 
 	/**
@@ -553,17 +576,18 @@ namespace Math
 	 * @param angle - angle of the rotation [rad]
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f matrixRotationAround( const vec4f& axis, const float angle )
+	template<typename T>
+	[[nodiscard]] static mat4<T> matrixRotationAround( const vec4<T>& axis, T angle )
 	{
-		float sin = sinf( angle );
-		float cos = cosf( angle );
-		vec4f tpose = ( 1.0f - cos ) * axis;
+		T sin = std::sin( angle );
+		T cos = std::cos( angle );
+		vec4<T> tpose = ( ONES<T> - cos ) * axis;
 
-		mat4f r;
-		vf::simd::fmadd( r.x_axis, axis, vec4f::set1( tpose.x ), vec4f( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
-		vf::simd::fmadd( r.y_axis, axis, vec4f::set1( tpose.y ), vec4f( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
-		vf::simd::fmadd( r.z_axis, axis, vec4f::set1( tpose.z ), vec4f( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
-		r.origin = axis::W<vec4f>;
+		mat4<T> r;
+		vf::simd::fmadd( r.x_axis, axis, vec4<T>::set1( tpose.x ), vec4<T>( cos, sin * axis.z, -sin * axis.y, ZERO<T> ) );
+		vf::simd::fmadd( r.y_axis, axis, vec4<T>::set1( tpose.y ), vec4<T>( -sin * axis.z, cos, sin * axis.x, ZERO<T> ) );
+		vf::simd::fmadd( r.z_axis, axis, vec4<T>::set1( tpose.z ), vec4<T>( sin * axis.y, -sin * axis.x, cos, ZERO<T> ) );
+		r.origin = axis::W<vec4<T>>;
 		return r;
 	}
 
@@ -573,22 +597,23 @@ namespace Math
 	 * @param to - final vector (normalized)
 	 * @return rotation matrix
 	*/
-	[[nodiscard]] static mat4f matrixRotationBetween( const vec4f& from, const vec4f& to )
+	template<typename T>
+	[[nodiscard]] static mat4<T> matrixRotationBetween( const vec4<T>& from, const vec4f& to )
 	{
-		float product = dot_3D( from, to );
-		if( product > 0.999999f ) return Math::IDENTITY<mat4f>;
-		if( product < -0.999999f ) return matrixRotationAround( orthogonal( from ), PI<float> );
+		T product = dot_3D( from, to );
+		if( product > ONES<T> - EPSILON<T> ) return IDENTITY<mat4<T>>;
+		if( product < NEGATIVE<T> + EPSILON<T> ) return matrixRotationAround( orthogonal( from ), PI<T> );
 
-		vec4f axis = Math::normalize( Math::cross( from, to ) );
-		float cos = Math::dot( from, to );
-		float sin = sqrtf( 1.0f - cos * cos );
-		vec4f tpose = ( 1.0f - cos ) * axis;
+		vec4<T> axis = normalize( cross( from, to ) );
+		T cos = dot( from, to );
+		T sin = sqrt( ONES<T> - cos * cos );
+		vec4<T> tpose = ( ONES<T> - cos ) * axis;
 
-		mat4f r;
-		vf::simd::fmadd( r.x_axis, axis, vec4f::set1( tpose.x ), vec4f( cos, sin * axis.z, -sin * axis.y, 0.0f ) );
-		vf::simd::fmadd( r.y_axis, axis, vec4f::set1( tpose.y ), vec4f( -sin * axis.z, cos, sin * axis.x, 0.0f ) );
-		vf::simd::fmadd( r.z_axis, axis, vec4f::set1( tpose.z ), vec4f( sin * axis.y, -sin * axis.x, cos, 0.0f ) );
-		r.origin = axis::W<vec4f>;
+		mat4<T> r;
+		vf::simd::fmadd( r.x_axis, axis, vec4<T>::set1( tpose.x ), vec4<T>( cos, sin * axis.z, -sin * axis.y, ZERO<T> ) );
+		vf::simd::fmadd( r.y_axis, axis, vec4<T>::set1( tpose.y ), vec4<T>( -sin * axis.z, cos, sin * axis.x, ZERO<T> ) );
+		vf::simd::fmadd( r.z_axis, axis, vec4<T>::set1( tpose.z ), vec4<T>( sin * axis.y, -sin * axis.x, cos, ZERO<T> ) );
+		r.origin = axis::W<vec4<T>>;
 		return r;
 	}
 
@@ -602,19 +627,20 @@ namespace Math
 	 * @param zNear - boundary of closest z
 	 * @param zFar - boundary of farthest z
 	*/
-	constexpr void setOrthographic( mat4f& mat, const float left, const float right, const float bottom, const float top, const float zNear, const float zFar )
+	template<typename T>
+	constexpr void setOrthographic( mat4<T>& mat, T left, T right, T bottom, T top, T zNear, T zFar )
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
-		mat[0,0] = 2.0f / ( right - left );
-		mat[1,1] = -2.0f / ( top - bottom );
-		mat[2,2] = 1.0f / ( zNear - zFar );
+		mat[0,0] = TWO<T> / ( right - left );
+		mat[1,1] = TWO<T> / ( bottom - top );
+		mat[2,2] = ONES<T> / ( zNear - zFar );
 		mat[0,3] = -( right + left ) / ( right - left );
 		mat[1,3] = -( top + bottom ) / ( top - bottom );
 		mat[2,3] = -zNear / ( zFar - zNear );
 #else
-		mat[0,0] = 2.0f / ( right - left );
-		mat[1,1] = 2.0f / ( top - bottom );
-		mat[2,2] = 2.0f / ( zNear - zFar );
+		mat[0,0] = TWO<T> / ( right - left );
+		mat[1,1] = TWO<T> / ( top - bottom );
+		mat[2,2] = TWO<T> / ( zNear - zFar );
 		mat[0,3] = -( right + left ) / ( right - left );
 		mat[1,3] = -( top + bottom ) / ( top - bottom );
 		mat[2,3] = -( zFar + zNear ) / ( zFar - zNear );
@@ -629,24 +655,25 @@ namespace Math
 	 * @param zNear - near plane distance
 	 * @param zFar - far plane distance
 	*/
-	static void setPerspective( mat4f& mat, float fovy, float aspect, float zNear, float zFar )
+	template<typename T>
+	static void setPerspective( mat4<T>& mat, T fovy, T aspect, T zNear, T zFar )
 	{
 #ifdef CLAMP_PERSPECTIVE_ZERO_ONE
-		float tanHalfFovy = tanf( fovy / 2.0f );
-		mat[0,0] = 1.0f / ( aspect * tanHalfFovy );
-		mat[1,1] = -1.0f / tanHalfFovy;
+		float tanHalfFovy = tanf( fovy / TWO<T> );
+		mat[0,0] = ONES<T> / ( aspect * tanHalfFovy );
+		mat[1,1] = NEGATIVE<T> / tanHalfFovy;
 		mat[2,2] = zFar / ( zNear - zFar );
-		mat[3,2] = -1.0f;
+		mat[3,2] = NEGATIVE<T>;
 		mat[2,3] = -( zFar * zNear ) / ( zFar - zNear );
-		mat[3,3] = 0.0f;
+		mat[3,3] = ZERO<T>;
 #else
-		float tanHalfFovy = tanf( fovy / 2.0f );
-		mat[0,0] = 1.0f / ( aspect * tanHalfFovy );
-		mat[1,1] = 1.0f / tanHalfFovy;
+		float tanHalfFovy = tanf( fovy / TWO<T> );
+		mat[0,0] = ONES<T> / ( aspect * tanHalfFovy );
+		mat[1,1] = ONES<T> / tanHalfFovy;
 		mat[2,2] = -( zFar + zNear ) / ( zFar - zNear );
-		mat[3,2] = -1.0f;
-		mat[2,3] = -( 2.0f * zFar * zNear ) / ( zFar - zNear );
-		mat[3,3] = 0.0f;
+		mat[3,2] = NEGATIVE<T>;
+		mat[2,3] = -( TWO<T> * zFar * zNear ) / ( zFar - zNear );
+		mat[3,3] = ZERO<T>;
 #endif
 	}
 
@@ -688,9 +715,10 @@ namespace Math
 	 * @param translation - displacement vector
 	 * @return translated transform
 	*/
-	constexpr mat4f translate( const mat4f& matrix, const vec4f& translation )
+	template<typename T>
+	constexpr mat4<T> translate( const mat4<T>& matrix, const mat4<T>& translation )
 	{
-		mat4f copy = matrix;
+		mat4<T> copy = matrix;
 		copy.origin += translation;
 		return copy;
 	}
@@ -722,9 +750,10 @@ namespace Math
 		 * @param trans - translation vector
 		 * @return translation matrix
 		*/
-		constexpr mat4f translation( const vec4f& trans )
+		template<typename T>
+		constexpr mat4<T> translation( const vec4<T>& trans )
 		{
-			mat4f m = Math::IDENTITY<mat4f>;
+			mat4<T> m = Math::IDENTITY<mat4<T>>;
 			setTranslation( m, trans );
 			return m;
 		}
@@ -734,9 +763,10 @@ namespace Math
 		 * @param rot - rotation angle [rad]
 		 * @return rotation matrix
 		*/
-		static mat2f rotation( const float rot )
+		template<typename T> requires std::floating_point<T>
+		static mat2<T> rotation( T rot )
 		{
-			mat2f m;
+			mat2<T> m;
 			setRotation( m, rot );
 			return m;
 		}
@@ -746,9 +776,10 @@ namespace Math
 		 * @param rot - rotation euler angles [rad]
 		 * @return rotation matrix
 		*/
-		static mat4f rotation( const eulerf32& rot )
+		template<typename T> requires std::floating_point<T>
+		static mat4<T> rotation( const euler<T>& rot )
 		{
-			mat4f m = Math::IDENTITY<mat4f>;
+			mat4<T> m = Math::IDENTITY<mat4<T>>;
 			setRotation( m, rot );
 			return m;
 		}
@@ -758,35 +789,28 @@ namespace Math
 		 * @param rot - rotation quaternion
 		 * @return rotation matrix
 		*/
-		constexpr mat4f rotation( const quatf32& q )
+		template<typename T> requires std::floating_point<T>
+		constexpr mat4<T> rotation( const quat<T>& q )
 		{
-			mat4f m = Math::IDENTITY<mat4f>;
+			mat4<T> m = Math::IDENTITY<mat4<T>>;
 			setRotation( m, q );
 			return m;
 		}
 
 		/**
-		 * @brief Creates a 2D scale matrix.
+		 * @brief Creates a scale matrix.
 		 * @param sc - scale vector
 		 * @return scale matrix
 		*/
-		constexpr mat2f scale( const vec2f sc )
+		template<size_t N, typename T>
+		constexpr mat<N, N, T> scale( const vec<N, T>& sc )
 		{
-			return { vec2f( sc.x, 0.0f ), vec2f( 0.0f, sc.y ) };
-		}
-
-		/**
-		 * @brief Creates a 3D scale matrix.
-		 * @param sc - scale vector
-		 * @return scale matrix
-		*/
-		constexpr mat4f scale( const vec4f& sc )
-		{
-			return mat4f{ 
-				vec4f{ sc.x, 0.0f, 0.0f, 0.0f }, 
-				vec4f{ 0.0f, sc.y, 0.0f, 0.0f }, 
-				vec4f{ 0.0f, 0.0f, sc.z, 0.0f }, 
-				vec4f{ 0.0f, 0.0f, 0.0f, 1.0f } };
+			mat<N, N, T> m = Math::ZERO<mat<N, N, T>>;
+			for( size_t i = 0LLU; i < N; ++i )
+			{
+				m[i, i] = sc[i];
+			}
+			return m;
 		}
 
 		/**
@@ -795,9 +819,10 @@ namespace Math
 		 * @param scale - scale vector
 		 * @return transform matrix
 		*/
-		static mat2f transform( const float rotation, const vec2f scale )
+		template<typename T> requires std::floating_point<T>
+		static mat2<T> transform( const T rotation, const vec2<T> scale )
 		{
-			mat2f m;
+			mat2<T> m;
 			setTransform( m, rotation, scale );
 			return m;
 		}
@@ -809,9 +834,10 @@ namespace Math
 		 * @param scale - scale vector
 		 * @return transform matrix
 		*/
-		static mat4f transform( const vec4f translation, const eulerf32& rotation, const vec4f& scale )
+		template<typename T> requires std::floating_point<T>
+		static mat4<T> transform( const vec4<T> translation, const euler<T>& rotation, const vec4<T>& scale )
 		{
-			mat4f m = Math::IDENTITY<mat4f>;
+			mat4<T> m = Math::IDENTITY<mat4<T>>;
 			setTransform( m, translation, rotation, scale );
 			return m;
 		}
@@ -823,9 +849,10 @@ namespace Math
 		 * @param scale - scale vector
 		 * @return transform matrix
 		*/
-		constexpr mat4f transform( const vec4f translation, const quatf32& rotation, const vec4f& scale )
+		template<typename T> requires std::floating_point<T>
+		constexpr mat4<T> transform( const vec4<T> translation, const quat<T>& rotation, const vec4<T>& scale )
 		{
-			mat4f m = Math::IDENTITY<mat4f>;
+			mat4<T> m = Math::IDENTITY<mat4<T>>;
 			setTransform( m, translation, rotation, scale );
 			return m;
 		}

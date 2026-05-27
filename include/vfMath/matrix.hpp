@@ -2,7 +2,7 @@
 #ifndef VF_MATRIX_HPP
 #define VF_MATRIX_HPP
 
-#include "mat_ops.hpp"
+#include "matrix_ops.hpp"
 
 template<size_t M, size_t N, typename T>
 struct mat : public MatrixStorage<M, N, T>
@@ -16,10 +16,6 @@ struct mat : public MatrixStorage<M, N, T>
 	template<typename ... Args, typename = std::enable_if_t<( sizeof...( Args ) == N ) && 
 		( ( std::is_constructible_v<VectorStorage<M, T>, Args&&> ) && ... )>>
 	constexpr mat( Args&& ... args ) : Storage{ std::forward<Args>( args )... } {}
-
-	//template<typename ... Args, typename = std::enable_if_t<( sizeof...( Args ) == M * N ) &&
-	//	( ( std::is_constructible_v<T, Args&&> ) && ... )>>
-	//mat( Args&& ... args ) : Storage{ std::forward<Args>( args )... } {}
 
 	// Copy Constructor
 	constexpr mat( const mat<M, N, T>& copy ) = default;

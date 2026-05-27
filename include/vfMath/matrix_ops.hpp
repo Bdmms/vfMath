@@ -4,7 +4,7 @@
 
 #include "constants.hpp"
 #include "vec_ops.hpp"
-#include "mat_store.hpp"
+#include "matrix_store.hpp"
 
 namespace vf::simd
 {

@@ -3,7 +3,7 @@
 #define VF_CURVES_HPP
 
 #include "vec_math.hpp"
-#include "mat.hpp"
+#include "matrix.hpp"
 #include <vector>
 
 /**
