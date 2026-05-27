@@ -2,7 +2,7 @@
 #ifndef WB_COLLISION_HPP
 #define WB_COLLISION_HPP
 
-#include "Transform3D.hpp"
+#include "transform3D.hpp"
 #include <vector>
 #include <list>
 #include <mutex>
