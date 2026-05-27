@@ -2,7 +2,8 @@
 #ifndef WB_COLLISION_HPP
 #define WB_COLLISION_HPP
 
-#include "transform3D.hpp"
+#include "geometry.hpp"
+
 #include <vector>
 #include <list>
 #include <mutex>
@@ -89,163 +90,6 @@ namespace Math
 		translation.w = 1.0f;
 		return { vec4f{ scale.x, 0.0f, 0.0f }, vec4f{ 0.0f, scale.y, 0.0f }, vec4f{ 0.0f, 0.0f, scale.z }, translation };
 	}
-
-	namespace AABB
-	{
-		/**
-		 * @brief Tests if the finite ray intersects with the axis-aligned bounding box.
-		 * @param aabb - axis-aligned bounding box
-		 * @param rayOrigin - origin point of the ray
-		 * @param rayVector - displacement vector to the end of the ray
-		 * @return Whether the ray intersects the unit cube
-		*/
-		bool rayTest( const vec4f& min, const vec4f& max, const vec4f& rayOrigin, const vec4f& rayVector );
-
-		/**
-		 * @brief Calculates the entry and exit distances where the ray intersects with the axis-aligned bounding box.
-		 * @param aabb - axis-aligned bounding box
-		 * @param rayOrigin - origin point of the ray
-		 * @param rayVector - displacement vector to the end of the ray
-		 * @return minimum and maximum values along the ray vector
-		*/
-		Bounds<float> rayBounds( const vec4f& min, const vec4f& max, const vec4f& rayOrigin, const vec4f& rayVector );
-	}
-
-	namespace Box
-	{
-		/**
-		 * @brief Calculates the Axis Aligned Bounding Box (AABB) that fits the arbitrary box
-		 * @param transform - transform of the box in the axis aligned space
-		 * @return bounding vector pair that represents the AABB
-		*/
-		Bounds<vec4f> calculateAABB( const mat4f& transform );
-
-		/**
-		 * @brief Tests if the unit cube contains the point.
-		 * @param point - point vector
-		 * @return Whether the point is inside the unit cube
-		*/
-		bool pointTest( const vec4f& point );
-
-		/**
-		 * @brief Tests if the finite ray intersects with the unit cube.
-		 * @param rayOrigin - origin point of the ray
-		 * @param rayVector - displacement vector to the end of the ray
-		 * @return Whether the ray intersects the unit cube
-		*/
-		bool rayTest( const vec4f& rayOrigin, const vec4f& rayVector );
-
-		/**
-		 * @brief Tests if the triangle intersects with the unit cube.
-		 * @param triangle - transform space of triangle
-		 * @return Whether the triangle intersects the unit cube
-		*/
-		bool triangleTest( const TransformSpace& triangle );
-
-		/**
-		 * @brief Tests if the arbitrary box intersects with the unit cube.
-		 * @param box - transform space of box
-		 * @return Whether the box intersects the unit cube
-		*/
-		bool boxTest( const TransformSpace& box );
-
-		/**
-		 * @brief Tests if the arbitrary box intersects with the unit cube.
-		 * This differs from boxTest() by dividing projected points by their w coordinate.
-		 * @param box - transform space of box
-		 * @return Whether the box intersects the unit cube
-		*/
-		bool projectedBoxTest( const TransformSpace& box );
-
-		/**
-		 * @brief Calculates the displacement of an arbitrary sphere intersecting with the unit cube.
-		 * @param displacement - write destination of displacement vector
-		 * @param sphere - transform space of sphere
-		 * @return Whether the sphere intersects the unit cube
-		*/
-		bool sphereCollision( vec4f& displacement, const TransformSpace& sphere );
-	}
-
-	namespace Sphere
-	{
-		/**
-		 * @brief Tests if the arbitrary sphere intersects with the unit sphere.
-		 * @param sphere - transform space of sphere
-		 * @return Whether the sphere intersects the unit sphere
-		*/
-		bool sphereTest( const TransformSpace& sphere );
-
-		/**
-		 * @brief Tests if the arbitrary box intersects with the unit sphere.
-		 * @param box - transform space of box
-		 * @return Whether the box intersects the unit sphere
-		*/
-		bool boxTest( const TransformSpace& box );
-
-		/**
-		 * @brief Calculates the displacement of an arbitrary box intersecting with the unit sphere.
-		 * @param displacement - write destination of displacement vector
-		 * @param sphere - transform space of box
-		 * @return Whether the box intersects the unit sphere
-		*/
-		bool boxCollision( vec4f& displacement, const TransformSpace& box );
-
-		/**
-		 * @brief Calculates the displacement of an arbitrary sphere intersecting with the unit sphere.
-		 * @param displacement - write destination of displacement vector
-		 * @param sphere - transform space of sphere
-		 * @return Whether the sphere intersects the unit sphere
-		*/
-		bool sphereCollision( vec4f& displacement, const TransformSpace& sphere );
-	}
-
-	namespace Triangle
-	{
-		/**
-		 * @brief Calculates the Axis Aligned Bounding Box (AABB) that fits the triangle
-		 * @param transform - transform of the triangle in the axis aligned space
-		 * @return bounding vector pair that represents the AABB
-		*/
-		Bounds<vec4f> calculateAABB( const mat4f& transform );
-
-		/**
-		 * @brief Calculates the intersecting distance of the ray against the triangle.
-		 * @param triangle - transform of triangle
-		 * @param rayOrigin - origin point of the ray
-		 * @param rayVector - displacement vector to the end of the ray
-		 * @return Whether the triangle intersects the unit cube
-		*/
-		float rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec4f& rayVector );
-	}
-
-	static vec2f intersection2D( vec2f originA, vec2f lineA, vec2f originB, vec2f lineB )
-	{
-		// p + rt
-		// q + su
-		float dx = originB.x - originA.x;
-		float dy = originB.y - originA.y;
-		float dp = lineA.x * lineB.y - lineA.y * lineB.x;
-
-		// t = ( q - p ) x s / ( r x s )
-		float t = ( dx * lineB.y - dy * lineB.x ) / dp;
-		// u = ( q - p ) x r / ( r x s )
-		float u = ( dx * lineA.y - dy * lineA.x ) / dp;
-		return { t, u };
-	}
-
-	static vec2f intersection3D( const vec4f& originA, const vec4f& lineA, const vec4f& originB, const vec4f& lineB )
-	{
-		vec4f normal = normalize( cross( lineA, lineB ) );
-		vec4f tangent = normalize( lineA );
-		vec4f bitangent = cross( normal, tangent );
-		vec4f displacement = originB - originA;
-
-		vec4f p;
-		vf::simd::dot4( p, displacement, tangent, displacement, bitangent, lineB, tangent, lineB, bitangent );
-		if( p.w <= Math::EPSILON<float> ) return { 0.0f, 0.0f };
-
-		return { p.x - p.y * p.z / p.w, -p.y / p.w };
-	}
 }
 
 /**
@@ -324,7 +168,7 @@ struct Collider
 		current.transform = transform;
 		current.inverse = Math::invert( transform );
 		clearPrevious();
-		aabb = Math::Box::calculateAABB( transform );
+		aabb = vf::geometry::box::calculateAABB( transform );
 	}
 
 	/**
@@ -335,7 +179,7 @@ struct Collider
 	{
 		current = transformSpace;
 		clearPrevious();
-		aabb = Math::Box::calculateAABB( transformSpace.transform );
+		aabb = vf::geometry::box::calculateAABB( transformSpace.transform );
 	}
 
 	/**
@@ -346,7 +190,7 @@ struct Collider
 	{
 		current.transform = transform;
 		current.inverse = Math::invert( transform );
-		aabb = Math::Box::calculateAABB( transform );
+		aabb = vf::geometry::box::calculateAABB( transform );
 	}
 
 	/**
@@ -359,7 +203,7 @@ struct Collider
 		previous = current;
 		current.transform = transform;
 		current.inverse = Math::invert( transform );
-		aabb = Math::Box::calculateAABB( transform );
+		aabb = vf::geometry::box::calculateAABB( transform );
 	}
 
 	/**
@@ -371,7 +215,7 @@ struct Collider
 	{
 		previous = current;
 		current = space;
-		aabb = Math::Box::calculateAABB( current.transform );
+		aabb = vf::geometry::box::calculateAABB( current.transform );
 	}
 
 	/**
@@ -414,7 +258,7 @@ struct ColliderSpace : public Collider
 	}
 
 	ColliderSpace( const mat4x4& transform ) : 
-		Collider{ { transform, Math::invert( transform ) }, Math::Box::calculateAABB(transform), ColliderType::Mesh}
+		Collider{ { transform, Math::invert( transform ) }, vf::geometry::box::calculateAABB(transform), ColliderType::Mesh}
 	{
 
 	}

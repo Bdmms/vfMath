@@ -28,28 +28,6 @@ static vec4f clampTriangleUV( const vec4f& uv )
 	return bounded.x + bounded.y > 1.0f ? bounded / ( bounded.x + bounded.y ) : bounded;
 }
 
-/**
- * @brief Returns the index of the vector's component with the largest value.
- * @param vector - 3D vector
- * @return component index
-*/
-constexpr uint8_t maxIndex( const vec4f& vector )
-{
-	if( vector.x >= vector.y )	return vector.z >= vector.x ? 2u : 0u;
-	else						return vector.z >= vector.y ? 2u : 1u;
-}
-
-/**
- * @brief Returns the index of the vector's component with the smallest value.
- * @param vector - 3D vector
- * @return component index
-*/
-constexpr uint8_t minIndex( const vec4f& vector )
-{
-	if( vector.x <= vector.y )	return vector.z <= vector.x ? 2u : 0u;
-	else						return vector.z <= vector.y ? 2u : 1u;
-}
-
 // ---------------------------
 // Collision Mesh Primitives
 // ---------------------------
@@ -97,376 +75,11 @@ std::vector<CollisionFace> Collision::createCubeMesh()
 	return collider;
 }
 
-
 // ---------------------------
 // Other Functions
 // ---------------------------
 
-#define _mm_transform_ps( point, r0, r1, r2, r3 ) _mm_dot_ps( point, r0, point, r1, point, r2, point, r3 )
-
-static void AABB_TRIANGLE( const mat4f& t, vec4f& min, vec4f& max )
-{
-	min.simd = _mm_min_ps( t.origin.simd, _mm_min_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), _mm_add_ps( t.origin.simd, t.y_axis.simd ) ) );
-	max.simd = _mm_max_ps( t.origin.simd, _mm_max_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), _mm_add_ps( t.origin.simd, t.y_axis.simd ) ) );
-}
-
-static void AABB_BOX_FULL( const mat4f& t, vec4f& min, vec4f& max )
-{
-	__m128 point = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = point;
-	max.simd = point;
-
-	point = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-
-	point = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-
-	point = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-
-	point = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-
-	point = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-
-	point = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-
-	point = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min.simd = _mm_min_ps( min.simd, point );
-	max.simd = _mm_max_ps( max.simd, point );
-}
-
-static void AABB_BOX_HALF( const mat4f& t, __m128& min )
-{
-	__m128 point__ = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = point__;
-	
-	point__ = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = _mm_min_ps( min, point__ );
-	
-	point__ = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = _mm_min_ps( min, point__ );
-	
-	point__ = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = _mm_min_ps( min, point__ );
-	
-	point__ = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = _mm_min_ps( min, point__ );
-	
-	point__ = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = _mm_min_ps( min, point__ );
-	
-	point__ = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	min = _mm_min_ps( min, point__ );
-}
-
-
-constexpr __m128 SIMD_X_AXIS = { 1.0f, 0.0f, 0.0f, 0.0f };
-constexpr __m128 SIMD_Y_AXIS = { 0.0f, 1.0f, 0.0f, 0.0f };
-constexpr __m128 SIMD_Z_AXIS = { 0.0f, 0.0f, 1.0f, 0.0f };
-
-constexpr __m128 SIMD_BOX_P0 = { 1.0f, 1.0f, 1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P1 = { 1.0f, 1.0f, -1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P2 = { 1.0f, -1.0f, 1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P3 = { 1.0f, -1.0f, -1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P4 = { -1.0f, 1.0f, 1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P5 = { -1.0f, 1.0f, -1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P6 = { -1.0f, -1.0f, 1.0f, 1.0f };
-constexpr __m128 SIMD_BOX_P7 = { -1.0f, -1.0f, -1.0f, 1.0f };
-
-// Epsilon used when compiling triangles in lattice
-constexpr float P_EPSILON = 2E-5f;
-constexpr float N_EPSILON = -P_EPSILON;
-constexpr float ONE_EPSILON = 1.0f + P_EPSILON;
-
-__m128 COMPLETE_AXIS_SEPARATION_TEST( const mat4f& t, const vec4f& min, const vec4f& max )
-{
-	__m128 _Tmp0 = _mm_shuffle_ps( t.x_axis.simd, t.y_axis.simd, 0x44 );
-	__m128 _Tmp2 = _mm_shuffle_ps( t.x_axis.simd, t.y_axis.simd, 0xEE );
-	__m128 _Tmp1 = _mm_shuffle_ps( t.z_axis.simd, t.origin.simd, 0x44 );
-	__m128 _Tmp3 = _mm_shuffle_ps( t.z_axis.simd, t.origin.simd, 0xEE );
-	__m128 r0 = _mm_shuffle_ps( _Tmp0, _Tmp1, 0x88 );
-	__m128 r1 = _mm_shuffle_ps( _Tmp0, _Tmp1, 0xDD );
-	__m128 r2 = _mm_shuffle_ps( _Tmp2, _Tmp3, 0x88 );
-	__m128 r3 = _mm_shuffle_ps( _Tmp2, _Tmp3, 0xDD );
-
-	__m128 minBounds = _mm_xyzw_ps( Math::MAX<float>, Math::MAX<float>, Math::MAX<float>, Math::MIN<float> );
-	__m128 maxBounds = _mm_xyzw_ps( Math::MIN<float>, Math::MIN<float>, Math::MIN<float>, Math::MAX<float> );
-	
-	__m128 point = _mm_transform_ps( SIMD_BOX_P0, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P1, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P2, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P3, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P4, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P5, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P6, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_transform_ps( SIMD_BOX_P7, r0, r1, r2, r3 );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min.simd ), _mm_cmple_ps( minBounds, max.simd ) ), 
-		_mm_and_ps( _mm_cmpge_ps( min.simd, minBounds ), _mm_cmple_ps( min.simd, maxBounds ) ) );
-}
-
-__m128 AFFINE_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& min, const vec4f& max )
-{
-	__m128 point = _mm_add_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	__m128 minBounds = point;
-	__m128 maxBounds = point;
-
-	point = _mm_add_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_add_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_add_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_sub_ps( _mm_add_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_sub_ps( _mm_add_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_sub_ps( _mm_sub_ps( _mm_add_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	point = _mm_sub_ps( _mm_sub_ps( _mm_sub_ps( t.origin.simd, t.x_axis.simd ), t.y_axis.simd ), t.z_axis.simd );
-	minBounds = _mm_min_ps( minBounds, point );
-	maxBounds = _mm_max_ps( maxBounds, point );
-
-	return _mm_or_ps( _mm_and_ps( _mm_cmpge_ps( minBounds, min.simd ), _mm_cmple_ps( minBounds, max.simd ) ), 
-		_mm_and_ps( _mm_cmpge_ps( min.simd, minBounds ), _mm_cmple_ps( min.simd, maxBounds ) ) );
-}
-
-static vec4f MIRRORED_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& max )
-{
-	// Create a sign vector to select the corner of the box
-	vec4f quadrant = Math::sign( t.origin );
-
-	vec4f bounds( Math::MAX<float>, Math::MAX<float>, Math::MAX<float>, Math::MIN<float> );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis + t.y_axis + t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis + t.y_axis - t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis - t.y_axis + t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin + t.x_axis - t.y_axis - t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis + t.y_axis + t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis + t.y_axis - t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis - t.y_axis + t.z_axis ) );
-	vf::simd::min( bounds, bounds, quadrant * ( t.origin - t.x_axis - t.y_axis - t.z_axis ) );
-
-	return bounds <= max;
-}
-
-constexpr vec4f PROJECTED_AABB_SEPARATION_TEST( const mat4f& t, const vec4f& min, const vec4f& max )
-{
-	vec4f point = t.origin + t.x_axis + t.y_axis + t.z_axis;
-	vec4f scale = vec4f::set1( point.w );
-	vf::simd::div( point, point, scale );
-	vec4f minBounds = point;
-	vec4f maxBounds = point;
-
-	point = t.origin + t.x_axis + t.y_axis - t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	point = t.origin + t.x_axis - t.y_axis + t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	point = t.origin + t.x_axis - t.y_axis - t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	point = t.origin - t.x_axis + t.y_axis + t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	point = t.origin - t.x_axis + t.y_axis - t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	point = t.origin - t.x_axis - t.y_axis + t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	point = t.origin - t.x_axis - t.y_axis - t.z_axis;
-	vf::simd::set1( scale, point.w );
-	vf::simd::div( point, point, scale );
-	vf::simd::min( minBounds, minBounds, point );
-	vf::simd::max( maxBounds, maxBounds, point );
-
-	return Math::overlaps( min, max, minBounds, maxBounds );
-}
-
-bool Math::AABB::rayTest( const vec4f& min, const vec4f& max, const vec4f& point, const vec4f& ray )
-{
-	vec4f intersect0 = ( min - point ) / ray;
-	vec4f intersect1 = ( max - point ) / ray;
-
-	vec4f tmin = Math::condition( ray == Math::ZERO<vec4f>, Math::ZERO<vec4f>, Math::min( intersect0, intersect1 ) );
-	vec4f tmax = Math::condition( ray == Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::max( intersect0, intersect1 ) );
-
-	float minBounds = std::max( std::max( tmin.x, tmin.y ), std::max( tmin.z, 0.0f ) );
-	float maxBounds = std::min( std::min( tmax.x, tmax.y ), std::min( tmax.z, 1.0f ) );
-	return minBounds <= maxBounds;
-}
-
-Bounds<float> Math::AABB::rayBounds( const vec4f& min, const vec4f& max, const vec4f& point, const vec4f& ray )
-{
-	vec4f intersect0 = ( min - point ) / ray;
-	vec4f intersect1 = ( max - point ) / ray;
-
-	vec4f tmin = Math::condition( ray == Math::ZERO<vec4f>, Math::ZERO<vec4f>, Math::min( intersect0, intersect1 ) );
-	vec4f tmax = Math::condition( ray == Math::ZERO<vec4f>, Math::ONES<vec4f>, Math::max( intersect0, intersect1 ) );
-
-	return
-	{
-		std::clamp( std::max( std::max( tmin.x, tmin.y ), tmin.z ), 0.0f, 1.0f ),
-		std::clamp( std::min( std::min( tmax.x, tmax.y ), tmax.z ), 0.0f, 1.0f )
-	};
-}
-
-float Math::Triangle::rayDistance( const mat4f& triangle, const vec4f& rayOrigin, const vec4f& rayVector )
-{
-	// Calculate the line-plane intersection
-	vec4f displaced = triangle.origin - rayOrigin;
-	vec4f normal = Math::cross( triangle.x_axis, triangle.y_axis );
-	vec4f product;
-	vf::simd::dot4( product,
-		normal, displaced,
-		Math::cross( rayVector, triangle.y_axis ), displaced,
-		Math::cross( triangle.x_axis, rayVector ), displaced,
-		normal, rayVector
-	);
-
-	// Check that the plane intersection hits the region of the triangle
-	vec4f intersection = product / product.w;
-	return intersection.y >= 0.0f && intersection.z >= 0.0f && intersection.y + intersection.z <= 1.0f ? intersection.x : INFINITY;
-}
-
-bool Math::Box::pointTest( const vec4f& point )
-{
-	vec4f isInside = point >= Math::NEGATIVE<vec4f> && point <= Math::ONES<vec4f>;
-	return isInside.x && isInside.y && isInside.z;
-}
-
-bool Math::Box::rayTest( const vec4f& origin, const vec4f& ray )
-{
-	return Math::AABB::rayTest( Math::NEGATIVE<vec4f>, Math::ONES<vec4f>, origin, ray );
-}
-
-bool Math::Box::triangleTest( const TransformSpace& triangle )
-{
-	// Test triangle overlapping box
-	const mat4x4& tri = triangle.transform;
-	vec4f min, max;
-
-	AABB_TRIANGLE( tri, min, max );
-
-	vec4f minBounds( -ONE_EPSILON, -ONE_EPSILON, -ONE_EPSILON, 0.0f );
-	vec4f maxBounds(  ONE_EPSILON,  ONE_EPSILON,  ONE_EPSILON, 0.0f );
-	vec4f overlaps = Math::overlaps( min, max, minBounds, maxBounds );
-	if( !( overlaps.x && overlaps.y && overlaps.z ) ) return false;
-	
-	// Test box overlapping triangle
-	AABB_BOX_FULL( triangle.inverse, min, max );
-
-	return max.x >= N_EPSILON && max.y >= N_EPSILON
-		&& min.x + min.y <= ONE_EPSILON && min.z <= P_EPSILON && max.z >= N_EPSILON;
-}
-
-bool Math::Box::boxTest( const TransformSpace& box )
-{
-	// Test regular overlap
-	vec4f overlaps = MIRRORED_AABB_SEPARATION_TEST( box.transform, Math::ONES<vec4f> );
-	if( !( overlaps.x && overlaps.y && overlaps.z ) ) return false;
-
-	overlaps = MIRRORED_AABB_SEPARATION_TEST( box.inverse, Math::ONES<vec4f> );
-	return overlaps.x && overlaps.y && overlaps.z;
-}
-
-bool Math::Box::projectedBoxTest( const TransformSpace& box )
-{
-	// Test regular overlap
-	vec4f overlaps = PROJECTED_AABB_SEPARATION_TEST( box.transform, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
-	if( !( overlaps.x && overlaps.y && overlaps.z ) ) return false;
-
-	overlaps = PROJECTED_AABB_SEPARATION_TEST( box.inverse, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
-	return overlaps.x && overlaps.y && overlaps.z;
-}
-
-bool Math::Sphere::sphereTest( const TransformSpace& sphere )
-{
-	vec4f displacement = sphere.transform.origin;
-	displacement.w = 0.0f;
-
-	float distance = Math::length( displacement );
-	if( distance <= Math::EPSILON<float> ) return true;
-
-	float radius = Math::length( sphere.transform * Math::normalize( sphere.inverse * displacement ) );
-
-	// Test if the distance is less than the radius of both spheres
-	return distance <= radius + 1.0f;
-}
-
-bool Math::Sphere::boxTest( const TransformSpace& box )
-{
-	vec4f closestPoint = Math::clamp( box.inverse.origin, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
-	vec4f displacement = box.transform * closestPoint;
-	float distance2 = displacement.x * displacement.x + displacement.y * displacement.y + displacement.z * displacement.z;
-	return distance2 <= 1.0f;
-}
-
-bool sphereFaceCollision( vec4f& displacement, const TransformSpace& sphere, const TransformSpace& face )
+static bool sphereFaceCollision( vec4f& displacement, const TransformSpace& sphere, const TransformSpace& face )
 {
 	vec4f uvs = face.inverse * sphere.transform.origin;
 	if( uvs.x + uvs.y > 1.0f || uvs.x < 0.0f || uvs.y < 0.0f ) return false;
@@ -489,75 +102,6 @@ bool sphereFaceCollision( vec4f& displacement, const TransformSpace& sphere, con
 	return Math::dot_3D( compCombined, compCombined ) <= 1.0f;
 }
 
-bool Math::Box::sphereCollision( vec4f& displacement, const TransformSpace& sphere )
-{
-	const mat4x4& boxSpace = sphere.inverse;
-	const vec4f& origin = sphere.transform.origin;
-
-	vec4f clamped = Math::clamp( origin, Math::NEGATIVE<vec4f>, Math::ONES<vec4f> );
-	vec4f quadrant = Math::sign( origin );
-
-	vec4f rx = boxSpace.x_axis * clamped.x;
-	vec4f ry = boxSpace.y_axis * clamped.y;
-	vec4f rz = boxSpace.z_axis * clamped.z;
-
-	vec4f vectorBoxSpace[3] = {
-		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.x_axis * quadrant.x ) + ry + rz,
-		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.y_axis * quadrant.y ) + rz + rx,
-		( boxSpace.origin - Math::axis::W<vec4f> ) + ( boxSpace.z_axis * quadrant.z ) + rx + ry
-	};
-	vec4f lengthBoxSpace;
-	vf::simd::length4( lengthBoxSpace, vectorBoxSpace[0], vectorBoxSpace[1], vectorBoxSpace[2], Math::ZERO<vec4f> );
-
-	uint8_t idx = minIndex( lengthBoxSpace );
-	displacement = sphere.transform * vectorBoxSpace[idx];
-	float distance2 = Math::length2( displacement );
-	float radius2 = Math::length2( sphere.transform * ( vectorBoxSpace[idx] / lengthBoxSpace[idx] ) );
-
-	return distance2 <= radius2;
-}
-
-bool Math::Sphere::boxCollision( vec4f& displacement, const TransformSpace& box )
-{
-	const mat4x4& sphereSpace = box.inverse;
-
-	vec4f boxPoint = Math::clamp( sphereSpace.origin, { -1.0f, -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f } );
-	vec4f spherePoint = box.transform * boxPoint;
-	float distance2 = Math::dot_3D( spherePoint, spherePoint );
-	
-	if( distance2 > Math::EPSILON<float> )
-	{
-		// Calculate displacement from "revised" point
-		displacement = spherePoint - ( spherePoint / sqrtf( distance2 ) );
-	}
-	else
-	{
-		// Arbitrarily displace along the x-axis
-		displacement = Math::axis::X<vec4f>;
-	}
-
-	return distance2 <= 1.0f;
-}
-
-bool Math::Sphere::sphereCollision( vec4f& displacement, const TransformSpace& sphere )
-{
-	vec4f vector = sphere.transform.origin;
-	vector.w = 0.0f;
-
-	float distance = Math::length( vector );
-	if( distance <= Math::EPSILON<float> )
-	{
-		displacement = Math::axis::X<vec4f>;
-		return true;
-	}
-
-	float radius = Math::length( sphere.transform * Math::normalize( sphere.inverse * vector ) );
-	float signedDistance = ( ( 1.0f + radius ) - distance );
-
-	displacement = vector * ( signedDistance / distance );
-	return distance < 1.0f + radius;
-}
-
 // --------------------------
 // --- Intersection Table ---
 // --------------------------
@@ -570,25 +114,25 @@ bool intersect_AABB( const Collider& a, const Collider& b )
 bool intersect_Box_Box( const Collider& a, const Collider& b )
 {
 	return Math::overlaps3D( a.aabb, b.aabb ) &&
-		Math::Box::boxTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
+		vf::geometry::box::boxTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
 }
 
 bool intersect_Box_Sphere( const Collider& a, const Collider& b )
 {
 	return Math::overlaps3D( a.aabb, b.aabb ) &&
-		Math::Sphere::boxTest( { b.current.inverse * a.current.transform, a.current.inverse * b.current.transform } );
+		vf::geometry::sphere::boxTest( { b.current.inverse * a.current.transform, a.current.inverse * b.current.transform } );
 }
 
 bool intersect_Sphere_Box( const Collider& a, const Collider& b )
 {
 	return Math::overlaps3D( a.aabb, b.aabb ) &&
-		Math::Sphere::boxTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
+		vf::geometry::sphere::boxTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
 }
 
 bool intersect_Sphere_Sphere( const Collider& a, const Collider& b )
 {
 	return Math::overlaps3D( a.aabb, b.aabb ) &&
-		Math::Sphere::sphereTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
+		vf::geometry::sphere::sphereTest( { a.current.inverse * b.current.transform, b.current.inverse * a.current.transform } );
 }
 
 const IntersectTest intersectionMatrix[4][4]
@@ -602,20 +146,6 @@ const IntersectTest intersectionMatrix[4][4]
 // -------------------------
 // --- General Collision ---
 // -------------------------
-
-Bounds<vec4f> Math::Box::calculateAABB( const mat4x4& t )
-{
-	Bounds<vec4f> bounds;
-	AABB_BOX_FULL( t, bounds.min, bounds.max );
-	return bounds;
-}
-
-Bounds<vec4f> Math::Triangle::calculateAABB( const mat4x4& t )
-{
-	Bounds<vec4f> bounds;
-	AABB_TRIANGLE( t, bounds.min, bounds.max );
-	return bounds;
-}
 
 /**
  * This function converts a 2D array into a 1D array of faces.
@@ -649,10 +179,10 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 	TransformSpace unitTriangle;
 	
 	Bounds<vec4f> triangleBounds;
-	AABB_TRIANGLE( unitXform.transform, triangleBounds.min, triangleBounds.max );
+	vf::geometry::process::AABB_TRIANGLE( unitXform.transform, triangleBounds.min, triangleBounds.max );
 
-	vec4i minIdx = Math::clamp( static_cast<vec4i>( Math::floor( triangleBounds.min - P_EPSILON ) ), Math::ZERO<vec4i>, dimensions - Math::ONES<vec4i> );
-	vec4i maxIdx = Math::clamp( static_cast<vec4i>( Math::ceil(  triangleBounds.max + P_EPSILON ) ), Math::ONES<vec4i>, dimensions );
+	vec4i minIdx = Math::clamp( static_cast<vec4i>( Math::floor( triangleBounds.min - vf::geometry::P_EPSILON ) ), Math::ZERO<vec4i>, dimensions - Math::ONES<vec4i> );
+	vec4i maxIdx = Math::clamp( static_cast<vec4i>( Math::ceil(  triangleBounds.max + vf::geometry::P_EPSILON ) ), Math::ONES<vec4i>, dimensions );
 	minIdx.w = 0;
 	maxIdx.w = 0;
 
@@ -672,7 +202,7 @@ void addTriangle( std::vector<std::vector<CollisionFace>>& unitFaces, const Tran
 				unitTriangle.transform = unit.inverse * unitXform.transform;
 				unitTriangle.inverse = unitXform.inverse * unit.transform;
 
-				if( Math::Box::triangleTest( unitTriangle ) )
+				if( vf::geometry::box::triangleTest( unitTriangle ) )
 				{
 					unitFaces[iy + idx.x].emplace_back( unitXform );
 				}
@@ -833,7 +363,7 @@ void CollisionLattice::collision( TransformSpace& sphere ) const
 	vec4f startOrigin = unitXform.transform.origin;
 
 	// Compute the bounds of the sphere in unit space
-	Bounds<vec4f> aabb = Math::Box::calculateAABB( unitXform.transform );
+	Bounds<vec4f> aabb = vf::geometry::box::calculateAABB( unitXform.transform );
 	vec4i minIdx = Math::clamp( static_cast<vec4i>( Math::floor( aabb.min ) ), Math::ZERO<vec4i>, dimensions );
 	vec4i maxIdx = Math::clamp( static_cast<vec4i>( Math::ceil(  aabb.max ) ), Math::ZERO<vec4i>, dimensions );
 
@@ -864,7 +394,7 @@ bool CollisionMesh::rayCast( RaySensor& ray ) const
 	vec4f origin = current.inverse * ray.origin;
 	vec4f line = current.inverse * ( ray.direction * ray.distance );
 
-	if( !Math::Box::rayTest( origin, line ) ) return false;
+	if( !vf::geometry::box::rayTest( origin, line ) ) return false;
 
 	// We need to make sure the distance/normal is calculated relative to the mesh space
 	float relDistance = 1.0f;
@@ -877,7 +407,7 @@ bool CollisionMesh::rayCast( RaySensor& ray ) const
 		if( Math::dot_3D( face.transform.z_axis, line ) > 0.0f ) continue;
 
 		// Check that the distance is postive and less than the current distance
-		float rayDistance = Math::Triangle::rayDistance( face.transform, origin, line );
+		float rayDistance = vf::geometry::triangle::rayDistance( face.transform, origin, line );
 		if( rayDistance >= 0.0f && rayDistance <= relDistance )
 		{
 			relDistance = rayDistance;
@@ -912,7 +442,7 @@ bool raycast_CollisionLatticeUnit_sphere( const vec4f& point, const vec4f& ray, 
 		if( Math::dot_3D( face.transform.z_axis, ray ) > 0.0f ) continue;
 
 		// Check that the distance is postive and less than the current distance
-		float rayDistance = Math::Triangle::rayDistance( face.transform, point, ray );
+		float rayDistance = vf::geometry::triangle::rayDistance( face.transform, point, ray );
 		if( rayDistance >= 0.0f && rayDistance <= distance )
 		{
 			distance = rayDistance;
@@ -936,7 +466,7 @@ bool CollisionLattice::rayCast( RaySensor& ray ) const
 	vec4f line = unitSpace.inverse * ( current.inverse * ( ray.direction * ray.distance ) );
 
 	// Clip the ray within along the boundaries of the lattice, exit if the ray is outside the bounds
-	Bounds<float> rayClip = Math::AABB::rayBounds( Math::ZERO<vec4f>, static_cast<vec4f>( dimensions ), origin, line );
+	Bounds<float> rayClip = vf::geometry::aabb::rayBounds( Math::ZERO<vec4f>, static_cast<vec4f>( dimensions ), origin, line );
 	if( rayClip.min > rayClip.max ) return false;
 
 	// Epsilon fixes a rounding issue when retrieving the unit index
