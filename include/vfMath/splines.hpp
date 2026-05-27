@@ -6,7 +6,7 @@
 #include "matrix.hpp"
 #include <vector>
 
-namespace vf::math::splines
+namespace vf::splines
 {
 	using namespace Math;
 
